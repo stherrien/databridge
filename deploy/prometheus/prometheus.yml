@@ -1,0 +1,44 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+  external_labels:
+    cluster: 'databridge'
+    environment: 'production'
+
+# Alertmanager configuration
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets: []
+
+# Load rules once and periodically evaluate them
+rule_files:
+  # - "alerts.yml"
+
+# Scrape configurations
+scrape_configs:
+  # DataBridge single instance
+  - job_name: 'databridge'
+    static_configs:
+      - targets: ['databridge:8080']
+        labels:
+          instance: 'databridge-single'
+    metrics_path: '/api/metrics'
+    scrape_interval: 10s
+
+  # DataBridge cluster nodes
+  - job_name: 'databridge-cluster'
+    static_configs:
+      - targets:
+        - 'databridge-node1:8080'
+        - 'databridge-node2:8080'
+        - 'databridge-node3:8080'
+        labels:
+          cluster: 'databridge-cluster'
+    metrics_path: '/api/metrics'
+    scrape_interval: 10s
+
+  # Prometheus self-monitoring
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']

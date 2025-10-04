@@ -1,0 +1,228 @@
+# DataBridge Cluster Configuration Example
+# This file demonstrates how to configure a DataBridge node for clustered deployment
+
+# Data directory for repositories
+dataDir: "./data"
+
+# Log level (debug, info, warn, error)
+logLevel: "info"
+
+# HTTP API server port
+port: 8080
+
+# Plugin configuration
+pluginDir: "./plugins"
+autoLoadPlugins: true
+
+# Cluster configuration
+cluster:
+  # Enable clustering
+  enabled: true
+
+  # Node ID (unique identifier for this node)
+  # If not specified, will be auto-generated
+  nodeId: "node-1"
+
+  # Bind address for cluster communication
+  bindAddress: "127.0.0.1"
+
+  # Bind port for cluster communication
+  bindPort: 8090
+
+  # Seed nodes for cluster discovery
+  # List of other nodes in the cluster
+  seeds:
+    - "127.0.0.1:8091"
+    - "127.0.0.1:8092"
+
+  # Discovery method
+  # Options: static, multicast, dns, etcd
+  discovery: "static"
+
+  # Number of replicas for state replication
+  # Recommended: 3 for production
+  replicaCount: 3
+
+  # Heartbeat timeout (in seconds)
+  # How long to wait for heartbeat before considering node unhealthy
+  heartbeatTimeout: 10
+
+  # Election timeout (in seconds)
+  # How long to wait before starting leader election
+  electionTimeout: 30
+
+---
+# Example: 3-Node Cluster Configuration
+
+# Node 1 Configuration (databridge-node1.yaml)
+dataDir: "./data-node1"
+logLevel: "info"
+port: 8080
+cluster:
+  enabled: true
+  nodeId: "node-1"
+  bindAddress: "10.0.1.1"
+  bindPort: 8090
+  seeds:
+    - "10.0.1.2:8090"
+    - "10.0.1.3:8090"
+  discovery: "static"
+  replicaCount: 3
+
+# Node 2 Configuration (databridge-node2.yaml)
+dataDir: "./data-node2"
+logLevel: "info"
+port: 8080
+cluster:
+  enabled: true
+  nodeId: "node-2"
+  bindAddress: "10.0.1.2"
+  bindPort: 8090
+  seeds:
+    - "10.0.1.1:8090"
+    - "10.0.1.3:8090"
+  discovery: "static"
+  replicaCount: 3
+
+# Node 3 Configuration (databridge-node3.yaml)
+dataDir: "./data-node3"
+logLevel: "info"
+port: 8080
+cluster:
+  enabled: true
+  nodeId: "node-3"
+  bindAddress: "10.0.1.3"
+  bindPort: 8090
+  seeds:
+    - "10.0.1.1:8090"
+    - "10.0.1.2:8090"
+  discovery: "static"
+  replicaCount: 3
+
+---
+# Load Balancing Strategies
+
+# The load balancer automatically distributes processors across nodes
+# based on the selected strategy:
+
+# 1. Round Robin (round_robin)
+#    - Evenly distributes processors in order
+#    - Simple and predictable
+#    - Good for homogeneous clusters
+
+# 2. Least Loaded (least_loaded)
+#    - Assigns to node with lowest load
+#    - Considers CPU, memory, and processor count
+#    - Best for heterogeneous clusters
+#    - Default strategy
+
+# 3. Weighted Random (weighted_random)
+#    - Random assignment with load-based weights
+#    - Less loaded nodes get higher probability
+#    - Good for varying workloads
+
+# 4. Consistent Hash (consistent_hash)
+#    - Deterministic assignment based on processor ID
+#    - Same processor always maps to same node
+#    - Good for processor affinity
+#    - Minimizes reassignments during rebalancing
+
+---
+# Health Monitoring
+
+# Health checks are performed automatically with the following defaults:
+# - Interval: 5 seconds
+# - Timeout: 3 seconds
+# - Failure threshold: 3 consecutive failures
+
+# Nodes are marked as unhealthy after exceeding the failure threshold
+# Unhealthy nodes are automatically excluded from processor assignments
+# Automatic rebalancing occurs when nodes fail or recover
+
+---
+# Fault Tolerance
+
+# The cluster provides the following fault tolerance features:
+
+# 1. Quorum-based Decisions
+#    - Requires majority (n/2 + 1) for cluster operations
+#    - Prevents split-brain scenarios
+
+# 2. Automatic Leader Election
+#    - Uses Raft-like consensus algorithm
+#    - Automatic failover on leader failure
+#    - Typically completes within election timeout
+
+# 3. State Replication
+#    - Cluster state replicated across nodes
+#    - Configurable replication strategy (sync/async/quorum)
+#    - Ensures consistency
+
+# 4. Graceful Degradation
+#    - Cluster continues with reduced capacity
+#    - Failed nodes automatically removed from rotation
+#    - Work redistributed to healthy nodes
+
+---
+# Performance Tuning
+
+# For optimal performance in production:
+
+# Low Latency Network (<1ms):
+heartbeatTimeout: 5
+electionTimeout: 15
+replicaCount: 3
+
+# High Latency Network (>10ms):
+heartbeatTimeout: 15
+electionTimeout: 45
+replicaCount: 3
+
+# Large Cluster (>10 nodes):
+heartbeatTimeout: 10
+electionTimeout: 30
+replicaCount: 5
+
+# High Availability:
+replicaCount: 5
+heartbeatTimeout: 5
+electionTimeout: 20
+
+---
+# Monitoring Endpoints
+
+# Once clustering is enabled, the following REST API endpoints are available:
+
+# GET /api/cluster/nodes
+# - List all nodes in the cluster
+# - Shows health status, load, and capacity
+
+# GET /api/cluster/nodes/{id}
+# - Get details for a specific node
+# - Includes processor assignments and metrics
+
+# GET /api/cluster/leader
+# - Get the current cluster leader
+# - Returns node ID and address
+
+# GET /api/cluster/status
+# - Overall cluster health status
+# - Shows node count, healthy nodes, leader
+
+# GET /api/cluster/assignments
+# - View all processor-to-node assignments
+# - Useful for debugging distribution
+
+# POST /api/cluster/rebalance
+# - Trigger manual rebalancing
+# - Leader only
+# - Redistributes work across nodes
+
+# POST /api/cluster/join
+# - Join an existing cluster
+# - Requires seed node address
+
+# DELETE /api/cluster/nodes/{id}
+# - Remove a node from the cluster
+# - Leader only
+# - Triggers automatic rebalancing

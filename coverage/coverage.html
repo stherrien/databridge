@@ -1,0 +1,2951 @@
+
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+		<title>databridge: Go Coverage Report</title>
+		<style>
+			body {
+				background: black;
+				color: rgb(80, 80, 80);
+			}
+			body, pre, #legend span {
+				font-family: Menlo, monospace;
+				font-weight: bold;
+			}
+			#topbar {
+				background: black;
+				position: fixed;
+				top: 0; left: 0; right: 0;
+				height: 42px;
+				border-bottom: 1px solid rgb(80, 80, 80);
+			}
+			#content {
+				margin-top: 50px;
+			}
+			#nav, #legend {
+				float: left;
+				margin-left: 10px;
+			}
+			#legend {
+				margin-top: 12px;
+			}
+			#nav {
+				margin-top: 10px;
+			}
+			#legend span {
+				margin: 0 5px;
+			}
+			.cov0 { color: rgb(192, 0, 0) }
+.cov1 { color: rgb(128, 128, 128) }
+.cov2 { color: rgb(116, 140, 131) }
+.cov3 { color: rgb(104, 152, 134) }
+.cov4 { color: rgb(92, 164, 137) }
+.cov5 { color: rgb(80, 176, 140) }
+.cov6 { color: rgb(68, 188, 143) }
+.cov7 { color: rgb(56, 200, 146) }
+.cov8 { color: rgb(44, 212, 149) }
+.cov9 { color: rgb(32, 224, 152) }
+.cov10 { color: rgb(20, 236, 155) }
+
+		</style>
+	</head>
+	<body>
+		<div id="topbar">
+			<div id="nav">
+				<select id="files">
+				
+				<option value="file0">github.com/shawntherrien/databridge/cmd/databridge/main.go (0.0%)</option>
+				
+				<option value="file1">github.com/shawntherrien/databridge/internal/core/flow_controller.go (77.7%)</option>
+				
+				<option value="file2">github.com/shawntherrien/databridge/internal/core/provenance.go (86.7%)</option>
+				
+				<option value="file3">github.com/shawntherrien/databridge/internal/core/repository.go (88.2%)</option>
+				
+				<option value="file4">github.com/shawntherrien/databridge/internal/core/scheduler.go (49.6%)</option>
+				
+				<option value="file5">github.com/shawntherrien/databridge/internal/core/session.go (12.2%)</option>
+				
+				<option value="file6">github.com/shawntherrien/databridge/pkg/types/flowfile.go (100.0%)</option>
+				
+				<option value="file7">github.com/shawntherrien/databridge/pkg/types/processor.go (100.0%)</option>
+				
+				<option value="file8">github.com/shawntherrien/databridge/plugins/generate_flowfile.go (93.0%)</option>
+				
+				</select>
+			</div>
+			<div id="legend">
+				<span>not tracked</span>
+			
+				<span class="cov0">no coverage</span>
+				<span class="cov1">low coverage</span>
+				<span class="cov2">*</span>
+				<span class="cov3">*</span>
+				<span class="cov4">*</span>
+				<span class="cov5">*</span>
+				<span class="cov6">*</span>
+				<span class="cov7">*</span>
+				<span class="cov8">*</span>
+				<span class="cov9">*</span>
+				<span class="cov10">high coverage</span>
+			
+			</div>
+		</div>
+		<div id="content">
+		
+		<pre class="file" id="file0" style="display: none">package main
+
+import (
+        "context"
+        "fmt"
+        "os"
+        "os/signal"
+        "path/filepath"
+        "syscall"
+
+        "github.com/google/uuid"
+        "github.com/sirupsen/logrus"
+        "github.com/spf13/cobra"
+        "github.com/spf13/viper"
+
+        "github.com/shawntherrien/databridge/internal/core"
+        "github.com/shawntherrien/databridge/pkg/types"
+        "github.com/shawntherrien/databridge/plugins"
+)
+
+var (
+        cfgFile string
+        logger  *logrus.Logger
+)
+
+func main() <span class="cov0" title="0">{
+        if err := rootCmd.Execute(); err != nil </span><span class="cov0" title="0">{
+                fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+                os.Exit(1)
+        }</span>
+}
+
+var rootCmd = &amp;cobra.Command{
+        Use:   "databridge",
+        Short: "DataBridge - Modern Data Flow Processing Engine",
+        Long: `DataBridge is a modern, Go-based data flow processing engine
+inspired by Apache NiFi. It provides a visual interface for designing
+data flows and supports distributed processing.`,
+        Run: runDataBridge,
+}
+
+func init() <span class="cov0" title="0">{
+        cobra.OnInitialize(initConfig)
+
+        // Global flags
+        rootCmd.PersistentFlags().StringVar(&amp;cfgFile, "config", "", "config file (default is ./databridge.yaml)")
+        rootCmd.PersistentFlags().String("data-dir", "./data", "data directory for repositories")
+        rootCmd.PersistentFlags().String("log-level", "info", "log level (debug, info, warn, error)")
+        rootCmd.PersistentFlags().Int("port", 8080, "HTTP server port")
+
+        // Bind flags to viper
+        viper.BindPFlag("dataDir", rootCmd.PersistentFlags().Lookup("data-dir"))
+        viper.BindPFlag("logLevel", rootCmd.PersistentFlags().Lookup("log-level"))
+        viper.BindPFlag("port", rootCmd.PersistentFlags().Lookup("port"))
+
+        // Initialize logger
+        logger = logrus.New()
+        logger.SetFormatter(&amp;logrus.TextFormatter{
+                FullTimestamp: true,
+        })
+}</span>
+
+func initConfig() <span class="cov0" title="0">{
+        if cfgFile != "" </span><span class="cov0" title="0">{
+                viper.SetConfigFile(cfgFile)
+        }</span> else<span class="cov0" title="0"> {
+                viper.AddConfigPath(".")
+                viper.SetConfigName("databridge")
+                viper.SetConfigType("yaml")
+        }</span>
+
+        <span class="cov0" title="0">viper.AutomaticEnv()
+
+        if err := viper.ReadInConfig(); err == nil </span><span class="cov0" title="0">{
+                logger.Info("Using config file:", viper.ConfigFileUsed())
+        }</span>
+
+        // Set log level
+        <span class="cov0" title="0">logLevel := viper.GetString("logLevel")
+        level, err := logrus.ParseLevel(logLevel)
+        if err != nil </span><span class="cov0" title="0">{
+                logger.Warn("Invalid log level, using info", "level", logLevel)
+                level = logrus.InfoLevel
+        }</span>
+        <span class="cov0" title="0">logger.SetLevel(level)</span>
+}
+
+func runDataBridge(cmd *cobra.Command, args []string) <span class="cov0" title="0">{
+        logger.Info("Starting DataBridge")
+
+        // Create data directories
+        dataDir := viper.GetString("dataDir")
+        if err := createDirectories(dataDir); err != nil </span><span class="cov0" title="0">{
+                logger.WithError(err).Fatal("Failed to create data directories")
+        }</span>
+
+        // Initialize repositories
+        <span class="cov0" title="0">flowFileRepo, err := core.NewBadgerFlowFileRepository(filepath.Join(dataDir, "flowfiles"))
+        if err != nil </span><span class="cov0" title="0">{
+                logger.WithError(err).Fatal("Failed to initialize FlowFile repository")
+        }</span>
+        <span class="cov0" title="0">defer flowFileRepo.Close()
+
+        contentRepo, err := core.NewFileSystemContentRepository(filepath.Join(dataDir, "content"))
+        if err != nil </span><span class="cov0" title="0">{
+                logger.WithError(err).Fatal("Failed to initialize Content repository")
+        }</span>
+        <span class="cov0" title="0">defer contentRepo.Close()
+
+        // For now, use a simple in-memory provenance repository
+        provenanceRepo := core.NewInMemoryProvenanceRepository()
+
+        // Create FlowController
+        flowController := core.NewFlowController(
+                flowFileRepo,
+                contentRepo,
+                provenanceRepo,
+                logger,
+        )
+
+        // Start FlowController
+        if err := flowController.Start(); err != nil </span><span class="cov0" title="0">{
+                logger.WithError(err).Fatal("Failed to start FlowController")
+        }</span>
+        <span class="cov0" title="0">defer func() </span><span class="cov0" title="0">{
+                if err := flowController.Stop(); err != nil </span><span class="cov0" title="0">{
+                        logger.WithError(err).Error("Error stopping FlowController")
+                }</span>
+        }()
+
+        // Add example processors for demonstration
+        <span class="cov0" title="0">if err := addExampleFlow(flowController); err != nil </span><span class="cov0" title="0">{
+                logger.WithError(err).Fatal("Failed to add example flow")
+        }</span>
+
+        <span class="cov0" title="0">logger.Info("DataBridge started successfully")
+
+        // Wait for interrupt signal
+        sigChan := make(chan os.Signal, 1)
+        signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM)
+
+        &lt;-sigChan
+        logger.Info("Received shutdown signal")</span>
+}
+
+func createDirectories(dataDir string) error <span class="cov0" title="0">{
+        dirs := []string{
+                filepath.Join(dataDir, "flowfiles"),
+                filepath.Join(dataDir, "content"),
+                filepath.Join(dataDir, "provenance"),
+                filepath.Join(dataDir, "logs"),
+        }
+
+        for _, dir := range dirs </span><span class="cov0" title="0">{
+                if err := os.MkdirAll(dir, 0755); err != nil </span><span class="cov0" title="0">{
+                        return fmt.Errorf("failed to create directory %s: %w", dir, err)
+                }</span>
+        }
+
+        <span class="cov0" title="0">return nil</span>
+}
+
+func addExampleFlow(flowController *core.FlowController) error <span class="cov0" title="0">{
+        logger.Info("Adding example flow")
+
+        // Create a GenerateFlowFile processor
+        generateProcessor := plugins.NewGenerateFlowFileProcessor()
+        generateConfig := types.ProcessorConfig{
+                ID:           uuid.New(),
+                Name:         "Generate Sample Data",
+                Type:         "GenerateFlowFile",
+                ScheduleType: types.ScheduleTypeTimer,
+                ScheduleValue: "5s", // Generate every 5 seconds
+                Concurrency:  1,
+                Properties: map[string]string{
+                        "File Size":        "512",
+                        "Content":          "Sample data from DataBridge",
+                        "Unique FlowFiles": "true",
+                        "Custom Text":      "Demo Flow",
+                },
+                AutoTerminate: map[string]bool{
+                        "success": false, // Don't auto-terminate, we'll connect to another processor
+                },
+        }
+
+        generateNode, err := flowController.AddProcessor(generateProcessor, generateConfig)
+        if err != nil </span><span class="cov0" title="0">{
+                return fmt.Errorf("failed to add GenerateFlowFile processor: %w", err)
+        }</span>
+
+        // Create a LogAttribute processor (we'll implement this as a simple example)
+        <span class="cov0" title="0">logProcessor := &amp;SimpleLogProcessor{}
+        logConfig := types.ProcessorConfig{
+                ID:           uuid.New(),
+                Name:         "Log Attributes",
+                Type:         "LogAttribute",
+                ScheduleType: types.ScheduleTypeEvent, // Event-driven
+                ScheduleValue: "0s",
+                Concurrency:  1,
+                Properties: map[string]string{
+                        "Log Level": "INFO",
+                },
+                AutoTerminate: map[string]bool{
+                        "success": true, // Auto-terminate success relationship
+                },
+        }
+
+        logNode, err := flowController.AddProcessor(logProcessor, logConfig)
+        if err != nil </span><span class="cov0" title="0">{
+                return fmt.Errorf("failed to add LogAttribute processor: %w", err)
+        }</span>
+
+        // Connect the processors
+        <span class="cov0" title="0">_, err = flowController.AddConnection(
+                generateNode.ID,
+                logNode.ID,
+                types.RelationshipSuccess,
+        )
+        if err != nil </span><span class="cov0" title="0">{
+                return fmt.Errorf("failed to connect processors: %w", err)
+        }</span>
+
+        // Start the processors
+        <span class="cov0" title="0">if err := flowController.StartProcessor(generateNode.ID); err != nil </span><span class="cov0" title="0">{
+                return fmt.Errorf("failed to start GenerateFlowFile processor: %w", err)
+        }</span>
+
+        <span class="cov0" title="0">if err := flowController.StartProcessor(logNode.ID); err != nil </span><span class="cov0" title="0">{
+                return fmt.Errorf("failed to start LogAttribute processor: %w", err)
+        }</span>
+
+        <span class="cov0" title="0">logger.Info("Example flow added and started successfully")
+        return nil</span>
+}
+
+// SimpleLogProcessor is a basic processor that logs FlowFile attributes
+type SimpleLogProcessor struct {
+        *types.BaseProcessor
+}
+
+func init() <span class="cov0" title="0">{
+        // Initialize the SimpleLogProcessor
+        info := types.ProcessorInfo{
+                Name:        "LogAttribute",
+                Description: "Logs FlowFile attributes and content information",
+                Version:     "1.0.0",
+                Author:      "DataBridge",
+                Tags:        []string{"logging", "debug", "attributes"},
+                Properties: []types.PropertySpec{
+                        {
+                                Name:         "Log Level",
+                                Description:  "Log level for output",
+                                Required:     false,
+                                DefaultValue: "INFO",
+                                AllowedValues: []string{"DEBUG", "INFO", "WARN", "ERROR"},
+                        },
+                },
+                Relationships: []types.Relationship{
+                        types.RelationshipSuccess,
+                        types.RelationshipFailure,
+                },
+        }
+        // This would be set in a proper initialization
+        _ = info
+}</span>
+
+// Initialize initializes the processor
+func (p *SimpleLogProcessor) Initialize(ctx types.ProcessorContext) error <span class="cov0" title="0">{
+        return nil
+}</span>
+
+// GetInfo returns processor metadata
+func (p *SimpleLogProcessor) GetInfo() types.ProcessorInfo <span class="cov0" title="0">{
+        return types.ProcessorInfo{
+                Name:        "LogAttribute",
+                Description: "Logs FlowFile attributes and content information",
+                Version:     "1.0.0",
+                Author:      "DataBridge",
+                Tags:        []string{"logging", "debug", "attributes"},
+                Properties: []types.PropertySpec{
+                        {
+                                Name:         "Log Level",
+                                Description:  "Log level for output",
+                                Required:     false,
+                                DefaultValue: "INFO",
+                                AllowedValues: []string{"DEBUG", "INFO", "WARN", "ERROR"},
+                        },
+                },
+                Relationships: []types.Relationship{
+                        types.RelationshipSuccess,
+                        types.RelationshipFailure,
+                },
+        }
+}</span>
+
+// OnTrigger processes FlowFiles
+func (p *SimpleLogProcessor) OnTrigger(ctx context.Context, session types.ProcessSession) error <span class="cov0" title="0">{
+        logger := session.GetLogger()
+
+        // Get FlowFile from input
+        flowFile := session.Get()
+        if flowFile == nil </span><span class="cov0" title="0">{
+                // No FlowFile available
+                return nil
+        }</span>
+
+        // Log FlowFile information
+        <span class="cov0" title="0">logger.Info("Processing FlowFile",
+                "flowFileId", flowFile.ID,
+                "size", flowFile.Size,
+                "attributeCount", len(flowFile.Attributes))
+
+        // Log all attributes
+        for key, value := range flowFile.Attributes </span><span class="cov0" title="0">{
+                logger.Info("FlowFile Attribute",
+                        "flowFileId", flowFile.ID,
+                        "key", key,
+                        "value", value)
+        }</span>
+
+        // Read and log content size (don't log actual content to avoid spam)
+        <span class="cov0" title="0">if flowFile.ContentClaim != nil </span><span class="cov0" title="0">{
+                content, err := session.Read(flowFile)
+                if err != nil </span><span class="cov0" title="0">{
+                        logger.Error("Failed to read FlowFile content", "error", err)
+                        session.Transfer(flowFile, types.RelationshipFailure)
+                }</span> else<span class="cov0" title="0"> {
+                        logger.Info("FlowFile Content",
+                                "flowFileId", flowFile.ID,
+                                "contentLength", len(content),
+                                "preview", string(content[:min(100, len(content))]))
+
+                        session.Transfer(flowFile, types.RelationshipSuccess)
+                }</span>
+        } else<span class="cov0" title="0"> {
+                logger.Info("FlowFile has no content claim", "flowFileId", flowFile.ID)
+                session.Transfer(flowFile, types.RelationshipSuccess)
+        }</span>
+
+        <span class="cov0" title="0">return nil</span>
+}
+
+// Validate validates the processor configuration
+func (p *SimpleLogProcessor) Validate(config types.ProcessorConfig) []types.ValidationResult <span class="cov0" title="0">{
+        var results []types.ValidationResult
+
+        if logLevel, exists := config.Properties["Log Level"]; exists </span><span class="cov0" title="0">{
+                validLevels := []string{"DEBUG", "INFO", "WARN", "ERROR"}
+                valid := false
+                for _, level := range validLevels </span><span class="cov0" title="0">{
+                        if logLevel == level </span><span class="cov0" title="0">{
+                                valid = true
+                                break</span>
+                        }
+                }
+                <span class="cov0" title="0">if !valid </span><span class="cov0" title="0">{
+                        results = append(results, types.ValidationResult{
+                                Property: "Log Level",
+                                Valid:    false,
+                                Message:  "Log Level must be one of: DEBUG, INFO, WARN, ERROR",
+                        })
+                }</span>
+        }
+
+        <span class="cov0" title="0">return results</span>
+}
+
+// OnStopped cleanup when processor is stopped
+func (p *SimpleLogProcessor) OnStopped(ctx context.Context) {<span class="cov0" title="0">
+        // No cleanup needed
+}</span>
+
+
+// Helper function for min
+func min(a, b int) int <span class="cov0" title="0">{
+        if a &lt; b </span><span class="cov0" title="0">{
+                return a
+        }</span>
+        <span class="cov0" title="0">return b</span>
+}
+
+</pre>
+		
+		<pre class="file" id="file1" style="display: none">package core
+
+import (
+        "context"
+        "fmt"
+        "sync"
+
+        "github.com/google/uuid"
+        "github.com/sirupsen/logrus"
+        "github.com/shawntherrien/databridge/pkg/types"
+)
+
+// FlowController is the central orchestrator for data flow management
+type FlowController struct {
+        mu                sync.RWMutex
+        ctx               context.Context
+        cancel            context.CancelFunc
+        logger            *logrus.Logger
+
+        // Repositories
+        flowFileRepo      FlowFileRepository
+        contentRepo       ContentRepository
+        provenanceRepo    ProvenanceRepository
+
+        // Components
+        processors        map[uuid.UUID]*ProcessorNode
+        connections       map[uuid.UUID]*Connection
+        processGroups     map[uuid.UUID]*ProcessGroup
+
+        // Scheduling
+        scheduler         *ProcessScheduler
+        running           bool
+}
+
+// ProcessorNode wraps a processor with its configuration and runtime state
+type ProcessorNode struct {
+        ID           uuid.UUID                `json:"id"`
+        Name         string                   `json:"name"`
+        Type         string                   `json:"type"`
+        Processor    types.Processor          `json:"-"`
+        Config       types.ProcessorConfig    `json:"config"`
+        Status       types.ProcessorStatus    `json:"status"`
+        Context      *ProcessorContextImpl    `json:"-"`
+        Connections  []*Connection           `json:"-"`
+        mu           sync.RWMutex
+}
+
+// Connection represents a connection between processors
+type Connection struct {
+        ID               uuid.UUID          `json:"id"`
+        Name             string             `json:"name"`
+        Source           *ProcessorNode     `json:"source"`
+        Destination      *ProcessorNode     `json:"destination"`
+        Relationship     types.Relationship `json:"relationship"`
+        Queue            *FlowFileQueue     `json:"-"`
+        BackPressureSize int64             `json:"backPressureSize"`
+        mu               sync.RWMutex
+}
+
+// ProcessGroup provides hierarchical organization of components
+type ProcessGroup struct {
+        ID          uuid.UUID                    `json:"id"`
+        Name        string                      `json:"name"`
+        Parent      *ProcessGroup               `json:"parent,omitempty"`
+        Children    map[uuid.UUID]*ProcessGroup `json:"children"`
+        Processors  map[uuid.UUID]*ProcessorNode `json:"processors"`
+        Connections map[uuid.UUID]*Connection   `json:"connections"`
+        mu          sync.RWMutex
+}
+
+// FlowFileQueue manages queued FlowFiles between processors
+type FlowFileQueue struct {
+        connection  *Connection
+        flowFiles   []*types.FlowFile
+        maxSize     int64
+        currentSize int64
+        mu          sync.RWMutex
+}
+
+// NewFlowController creates a new FlowController
+func NewFlowController(
+        flowFileRepo FlowFileRepository,
+        contentRepo ContentRepository,
+        provenanceRepo ProvenanceRepository,
+        logger *logrus.Logger,
+) *FlowController <span class="cov10" title="8">{
+        ctx, cancel := context.WithCancel(context.Background())
+
+        fc := &amp;FlowController{
+                ctx:            ctx,
+                cancel:         cancel,
+                logger:         logger,
+                flowFileRepo:   flowFileRepo,
+                contentRepo:    contentRepo,
+                provenanceRepo: provenanceRepo,
+                processors:     make(map[uuid.UUID]*ProcessorNode),
+                connections:    make(map[uuid.UUID]*Connection),
+                processGroups:  make(map[uuid.UUID]*ProcessGroup),
+        }
+
+        // Create root process group
+        rootGroup := &amp;ProcessGroup{
+                ID:          uuid.New(),
+                Name:        "root",
+                Children:    make(map[uuid.UUID]*ProcessGroup),
+                Processors:  make(map[uuid.UUID]*ProcessorNode),
+                Connections: make(map[uuid.UUID]*Connection),
+        }
+        fc.processGroups[rootGroup.ID] = rootGroup
+
+        // Initialize scheduler
+        fc.scheduler = NewProcessScheduler(fc, logger)
+
+        return fc
+}</span>
+
+// Start starts the flow controller
+func (fc *FlowController) Start() error <span class="cov7" title="4">{
+        fc.mu.Lock()
+        defer fc.mu.Unlock()
+
+        if fc.running </span><span class="cov1" title="1">{
+                return fmt.Errorf("flow controller is already running")
+        }</span>
+
+        <span class="cov5" title="3">fc.logger.Info("Starting FlowController")
+
+        // Start scheduler
+        if err := fc.scheduler.Start(fc.ctx); err != nil </span><span class="cov0" title="0">{
+                return fmt.Errorf("failed to start scheduler: %w", err)
+        }</span>
+
+        // Initialize all processors
+        <span class="cov5" title="3">for _, processorNode := range fc.processors </span><span class="cov0" title="0">{
+                if err := fc.initializeProcessor(processorNode); err != nil </span><span class="cov0" title="0">{
+                        fc.logger.WithError(err).Errorf("Failed to initialize processor %s", processorNode.Name)
+                }</span>
+        }
+
+        <span class="cov5" title="3">fc.running = true
+        fc.logger.Info("FlowController started successfully")
+        return nil</span>
+}
+
+// Stop stops the flow controller
+func (fc *FlowController) Stop() error <span class="cov7" title="4">{
+        fc.mu.Lock()
+        defer fc.mu.Unlock()
+
+        if !fc.running </span><span class="cov1" title="1">{
+                return nil
+        }</span>
+
+        <span class="cov5" title="3">fc.logger.Info("Stopping FlowController")
+
+        // Stop scheduler
+        if err := fc.scheduler.Stop(); err != nil </span><span class="cov0" title="0">{
+                fc.logger.WithError(err).Error("Error stopping scheduler")
+        }</span>
+
+        // Stop all processors
+        <span class="cov5" title="3">for _, processorNode := range fc.processors </span><span class="cov4" title="2">{
+                fc.stopProcessor(processorNode)
+        }</span>
+
+        // Cancel context
+        <span class="cov5" title="3">fc.cancel()
+
+        fc.running = false
+        fc.logger.Info("FlowController stopped")
+        return nil</span>
+}
+
+// AddProcessor adds a processor to the flow
+func (fc *FlowController) AddProcessor(processor types.Processor, config types.ProcessorConfig) (*ProcessorNode, error) <span class="cov8" title="6">{
+        fc.mu.Lock()
+        defer fc.mu.Unlock()
+
+        processorNode := &amp;ProcessorNode{
+                ID:        config.ID,
+                Name:      config.Name,
+                Type:      config.Type,
+                Processor: processor,
+                Config:    config,
+                Status: types.ProcessorStatus{
+                        ID:    config.ID,
+                        Name:  config.Name,
+                        Type:  config.Type,
+                        State: types.ProcessorStateStopped,
+                },
+                Context: NewProcessorContext(config, fc.logger),
+        }
+
+        fc.processors[processorNode.ID] = processorNode
+
+        // Add to root process group for now
+        for _, pg := range fc.processGroups </span><span class="cov8" title="6">{
+                if pg.Parent == nil </span><span class="cov8" title="6">{ // Root group
+                        pg.mu.Lock()
+                        pg.Processors[processorNode.ID] = processorNode
+                        pg.mu.Unlock()
+                        break</span>
+                }
+        }
+
+        <span class="cov8" title="6">fc.logger.WithFields(logrus.Fields{
+                "processorId":   processorNode.ID,
+                "processorName": processorNode.Name,
+                "processorType": processorNode.Type,
+        }).Info("Added processor")
+
+        return processorNode, nil</span>
+}
+
+// AddConnection creates a connection between processors
+func (fc *FlowController) AddConnection(sourceID, destID uuid.UUID, relationship types.Relationship) (*Connection, error) <span class="cov5" title="3">{
+        fc.mu.Lock()
+        defer fc.mu.Unlock()
+
+        source, exists := fc.processors[sourceID]
+        if !exists </span><span class="cov1" title="1">{
+                return nil, fmt.Errorf("source processor not found: %s", sourceID)
+        }</span>
+
+        <span class="cov4" title="2">dest, exists := fc.processors[destID]
+        if !exists </span><span class="cov1" title="1">{
+                return nil, fmt.Errorf("destination processor not found: %s", destID)
+        }</span>
+
+        <span class="cov1" title="1">connection := &amp;Connection{
+                ID:               uuid.New(),
+                Name:             fmt.Sprintf("%s -&gt; %s", source.Name, dest.Name),
+                Source:           source,
+                Destination:      dest,
+                Relationship:     relationship,
+                BackPressureSize: 10000, // Default back pressure size
+        }
+
+        // Create queue
+        connection.Queue = &amp;FlowFileQueue{
+                connection: connection,
+                flowFiles:  make([]*types.FlowFile, 0),
+                maxSize:    connection.BackPressureSize,
+        }
+
+        fc.connections[connection.ID] = connection
+
+        // Add connection to processors
+        source.mu.Lock()
+        source.Connections = append(source.Connections, connection)
+        source.mu.Unlock()
+
+        fc.logger.WithFields(logrus.Fields{
+                "connectionId": connection.ID,
+                "source":       source.Name,
+                "destination":  dest.Name,
+                "relationship": relationship.Name,
+        }).Info("Added connection")
+
+        return connection, nil</span>
+}
+
+// StartProcessor starts a specific processor
+func (fc *FlowController) StartProcessor(processorID uuid.UUID) error <span class="cov5" title="3">{
+        fc.mu.RLock()
+        processorNode, exists := fc.processors[processorID]
+        fc.mu.RUnlock()
+
+        if !exists </span><span class="cov0" title="0">{
+                return fmt.Errorf("processor not found: %s", processorID)
+        }</span>
+
+        <span class="cov5" title="3">processorNode.mu.Lock()
+        defer processorNode.mu.Unlock()
+
+        if processorNode.Status.State != types.ProcessorStateStopped </span><span class="cov1" title="1">{
+                return fmt.Errorf("processor %s is not in stopped state", processorNode.Name)
+        }</span>
+
+        // Validate configuration
+        <span class="cov4" title="2">validationResults := processorNode.Processor.Validate(processorNode.Config)
+        var errors []string
+        for _, result := range validationResults </span><span class="cov0" title="0">{
+                if !result.Valid </span><span class="cov0" title="0">{
+                        errors = append(errors, fmt.Sprintf("%s: %s", result.Property, result.Message))
+                }</span>
+        }
+
+        <span class="cov4" title="2">if len(errors) &gt; 0 </span><span class="cov0" title="0">{
+                processorNode.Status.State = types.ProcessorStateInvalid
+                processorNode.Status.ValidationErrors = errors
+                return fmt.Errorf("processor validation failed: %v", errors)
+        }</span>
+
+        // Initialize if not already done
+        <span class="cov4" title="2">if processorNode.Status.State == types.ProcessorStateStopped </span><span class="cov4" title="2">{
+                if err := fc.initializeProcessor(processorNode); err != nil </span><span class="cov1" title="1">{
+                        return fmt.Errorf("failed to initialize processor: %w", err)
+                }</span>
+        }
+
+        // Schedule processor
+        <span class="cov1" title="1">fc.scheduler.ScheduleProcessor(processorNode)
+
+        processorNode.Status.State = types.ProcessorStateRunning
+        processorNode.Status.ValidationErrors = nil
+
+        fc.logger.WithField("processorName", processorNode.Name).Info("Started processor")
+        return nil</span>
+}
+
+// StopProcessor stops a specific processor
+func (fc *FlowController) StopProcessor(processorID uuid.UUID) error <span class="cov1" title="1">{
+        fc.mu.RLock()
+        processorNode, exists := fc.processors[processorID]
+        fc.mu.RUnlock()
+
+        if !exists </span><span class="cov0" title="0">{
+                return fmt.Errorf("processor not found: %s", processorID)
+        }</span>
+
+        <span class="cov1" title="1">fc.stopProcessor(processorNode)
+        return nil</span>
+}
+
+// Private methods
+
+func (fc *FlowController) initializeProcessor(processorNode *ProcessorNode) error <span class="cov4" title="2">{
+        if err := processorNode.Processor.Initialize(processorNode.Context); err != nil </span><span class="cov1" title="1">{
+                return fmt.Errorf("processor initialization failed: %w", err)
+        }</span>
+        <span class="cov1" title="1">return nil</span>
+}
+
+func (fc *FlowController) stopProcessor(processorNode *ProcessorNode) <span class="cov5" title="3">{
+        processorNode.mu.Lock()
+        defer processorNode.mu.Unlock()
+
+        if processorNode.Status.State != types.ProcessorStateRunning </span><span class="cov4" title="2">{
+                return
+        }</span>
+
+        // Unschedule processor
+        <span class="cov1" title="1">fc.scheduler.UnscheduleProcessor(processorNode)
+
+        // Call processor's stop method
+        processorNode.Processor.OnStopped(fc.ctx)
+
+        processorNode.Status.State = types.ProcessorStateStopped
+
+        fc.logger.WithField("processorName", processorNode.Name).Info("Stopped processor")</span>
+}
+
+// GetProcessor retrieves a processor by ID
+func (fc *FlowController) GetProcessor(id uuid.UUID) (*ProcessorNode, bool) <span class="cov4" title="2">{
+        fc.mu.RLock()
+        defer fc.mu.RUnlock()
+        processor, exists := fc.processors[id]
+        return processor, exists
+}</span>
+
+// GetProcessors returns all processors
+func (fc *FlowController) GetProcessors() map[uuid.UUID]*ProcessorNode <span class="cov4" title="2">{
+        fc.mu.RLock()
+        defer fc.mu.RUnlock()
+
+        result := make(map[uuid.UUID]*ProcessorNode)
+        for k, v := range fc.processors </span><span class="cov1" title="1">{
+                result[k] = v
+        }</span>
+        <span class="cov4" title="2">return result</span>
+}
+
+// GetConnection retrieves a connection by ID
+func (fc *FlowController) GetConnection(id uuid.UUID) (*Connection, bool) <span class="cov0" title="0">{
+        fc.mu.RLock()
+        defer fc.mu.RUnlock()
+        connection, exists := fc.connections[id]
+        return connection, exists
+}</span>
+
+// GetConnections returns all connections
+func (fc *FlowController) GetConnections() map[uuid.UUID]*Connection <span class="cov1" title="1">{
+        fc.mu.RLock()
+        defer fc.mu.RUnlock()
+
+        result := make(map[uuid.UUID]*Connection)
+        for k, v := range fc.connections </span><span class="cov0" title="0">{
+                result[k] = v
+        }</span>
+        <span class="cov1" title="1">return result</span>
+}
+
+// CreateProcessSession creates a new process session for a processor
+func (fc *FlowController) CreateProcessSession(logger types.Logger) types.ProcessSession <span class="cov1" title="1">{
+        return NewProcessSession(
+                fc.flowFileRepo,
+                fc.contentRepo,
+                fc.provenanceRepo,
+                logger,
+                fc.ctx,
+        )
+}</span>
+
+// FlowFileQueue methods
+
+// Enqueue adds a FlowFile to the queue
+func (q *FlowFileQueue) Enqueue(flowFile *types.FlowFile) error <span class="cov7" title="4">{
+        q.mu.Lock()
+        defer q.mu.Unlock()
+
+        if q.currentSize &gt;= q.maxSize </span><span class="cov1" title="1">{
+                return fmt.Errorf("queue is full, back pressure triggered")
+        }</span>
+
+        <span class="cov5" title="3">q.flowFiles = append(q.flowFiles, flowFile)
+        q.currentSize++
+        return nil</span>
+}
+
+// Dequeue removes and returns a FlowFile from the queue
+func (q *FlowFileQueue) Dequeue() *types.FlowFile <span class="cov7" title="4">{
+        q.mu.Lock()
+        defer q.mu.Unlock()
+
+        if len(q.flowFiles) == 0 </span><span class="cov1" title="1">{
+                return nil
+        }</span>
+
+        <span class="cov5" title="3">flowFile := q.flowFiles[0]
+        q.flowFiles = q.flowFiles[1:]
+        q.currentSize--
+        return flowFile</span>
+}
+
+// Size returns the current queue size
+func (q *FlowFileQueue) Size() int64 <span class="cov7" title="4">{
+        q.mu.RLock()
+        defer q.mu.RUnlock()
+        return q.currentSize
+}</span>
+
+// IsEmpty returns whether the queue is empty
+func (q *FlowFileQueue) IsEmpty() bool <span class="cov5" title="3">{
+        q.mu.RLock()
+        defer q.mu.RUnlock()
+        return len(q.flowFiles) == 0
+}</span>
+
+// ProcessorContextImpl implements ProcessorContext
+type ProcessorContextImpl struct {
+        config types.ProcessorConfig
+        logger types.Logger
+}
+
+// NewProcessorContext creates a new ProcessorContext
+func NewProcessorContext(config types.ProcessorConfig, logger *logrus.Logger) *ProcessorContextImpl <span class="cov8" title="6">{
+        return &amp;ProcessorContextImpl{
+                config: config,
+                logger: &amp;LogrusAdapter{Logger: logger},
+        }
+}</span>
+
+// GetProperty retrieves a property value
+func (ctx *ProcessorContextImpl) GetProperty(name string) (string, bool) <span class="cov0" title="0">{
+        value, exists := ctx.config.Properties[name]
+        return value, exists
+}</span>
+
+// GetPropertyValue retrieves a property value or empty string
+func (ctx *ProcessorContextImpl) GetPropertyValue(name string) string <span class="cov0" title="0">{
+        value, _ := ctx.config.Properties[name]
+        return value
+}</span>
+
+// HasProperty checks if a property exists
+func (ctx *ProcessorContextImpl) HasProperty(name string) bool <span class="cov0" title="0">{
+        _, exists := ctx.config.Properties[name]
+        return exists
+}</span>
+
+// GetProcessorConfig returns the processor configuration
+func (ctx *ProcessorContextImpl) GetProcessorConfig() types.ProcessorConfig <span class="cov0" title="0">{
+        return ctx.config
+}</span>
+
+// GetLogger returns the logger
+func (ctx *ProcessorContextImpl) GetLogger() types.Logger <span class="cov0" title="0">{
+        return ctx.logger
+}</span>
+
+// LogrusAdapter adapts logrus.Logger to types.Logger interface
+type LogrusAdapter struct {
+        *logrus.Logger
+}
+
+// Debug logs a debug message
+func (l *LogrusAdapter) Debug(msg string, fields ...interface{}) <span class="cov4" title="2">{
+        entry := l.Logger.WithFields(logrus.Fields{})
+        for i := 0; i &lt; len(fields)-1; i += 2 </span><span class="cov7" title="4">{
+                if key, ok := fields[i].(string); ok &amp;&amp; i+1 &lt; len(fields) </span><span class="cov7" title="4">{
+                        entry = entry.WithField(key, fields[i+1])
+                }</span>
+        }
+        <span class="cov4" title="2">entry.Debug(msg)</span>
+}
+
+// Info logs an info message
+func (l *LogrusAdapter) Info(msg string, fields ...interface{}) <span class="cov0" title="0">{
+        entry := l.Logger.WithFields(logrus.Fields{})
+        for i := 0; i &lt; len(fields)-1; i += 2 </span><span class="cov0" title="0">{
+                if key, ok := fields[i].(string); ok &amp;&amp; i+1 &lt; len(fields) </span><span class="cov0" title="0">{
+                        entry = entry.WithField(key, fields[i+1])
+                }</span>
+        }
+        <span class="cov0" title="0">entry.Info(msg)</span>
+}
+
+// Warn logs a warning message
+func (l *LogrusAdapter) Warn(msg string, fields ...interface{}) <span class="cov0" title="0">{
+        entry := l.Logger.WithFields(logrus.Fields{})
+        for i := 0; i &lt; len(fields)-1; i += 2 </span><span class="cov0" title="0">{
+                if key, ok := fields[i].(string); ok &amp;&amp; i+1 &lt; len(fields) </span><span class="cov0" title="0">{
+                        entry = entry.WithField(key, fields[i+1])
+                }</span>
+        }
+        <span class="cov0" title="0">entry.Warn(msg)</span>
+}
+
+// Error logs an error message
+func (l *LogrusAdapter) Error(msg string, fields ...interface{}) <span class="cov0" title="0">{
+        entry := l.Logger.WithFields(logrus.Fields{})
+        for i := 0; i &lt; len(fields)-1; i += 2 </span><span class="cov0" title="0">{
+                if key, ok := fields[i].(string); ok &amp;&amp; i+1 &lt; len(fields) </span><span class="cov0" title="0">{
+                        entry = entry.WithField(key, fields[i+1])
+                }</span>
+        }
+        <span class="cov0" title="0">entry.Error(msg)</span>
+}</pre>
+		
+		<pre class="file" id="file2" style="display: none">package core
+
+import (
+        "sync"
+
+        "github.com/google/uuid"
+)
+
+// InMemoryProvenanceRepository is a simple in-memory implementation for testing
+type InMemoryProvenanceRepository struct {
+        events map[uuid.UUID]*ProvenanceEvent
+        mu     sync.RWMutex
+}
+
+// NewInMemoryProvenanceRepository creates a new in-memory provenance repository
+func NewInMemoryProvenanceRepository() *InMemoryProvenanceRepository <span class="cov7" title="8">{
+        return &amp;InMemoryProvenanceRepository{
+                events: make(map[uuid.UUID]*ProvenanceEvent),
+        }
+}</span>
+
+// Store stores a provenance event
+func (r *InMemoryProvenanceRepository) Store(event *ProvenanceEvent) error <span class="cov4" title="3">{
+        r.mu.Lock()
+        defer r.mu.Unlock()
+        r.events[event.ID] = event
+        return nil
+}</span>
+
+// Query queries provenance events
+func (r *InMemoryProvenanceRepository) Query(query ProvenanceQuery) ([]*ProvenanceEvent, error) <span class="cov6" title="5">{
+        r.mu.RLock()
+        defer r.mu.RUnlock()
+
+        var results []*ProvenanceEvent
+        for _, event := range r.events </span><span class="cov10" title="15">{
+                // Simple filtering logic
+                if query.FlowFileID != nil &amp;&amp; event.FlowFileID != *query.FlowFileID </span><span class="cov1" title="1">{
+                        continue</span>
+                }
+                <span class="cov9" title="14">if query.EventType != "" &amp;&amp; event.EventType != query.EventType </span><span class="cov3" title="2">{
+                        continue</span>
+                }
+                <span class="cov9" title="12">if query.ProcessorID != nil &amp;&amp; event.ProcessorID != *query.ProcessorID </span><span class="cov1" title="1">{
+                        continue</span>
+                }
+                <span class="cov8" title="11">if query.StartTime != nil &amp;&amp; event.EventTime.Before(*query.StartTime) </span><span class="cov0" title="0">{
+                        continue</span>
+                }
+                <span class="cov8" title="11">if query.EndTime != nil &amp;&amp; event.EventTime.After(*query.EndTime) </span><span class="cov1" title="1">{
+                        continue</span>
+                }
+                <span class="cov8" title="10">results = append(results, event)</span>
+        }
+
+        // Apply pagination
+        <span class="cov6" title="5">if query.Offset &gt; 0 &amp;&amp; query.Offset &lt; len(results) </span><span class="cov0" title="0">{
+                results = results[query.Offset:]
+        }</span>
+        <span class="cov6" title="5">if query.Limit &gt; 0 &amp;&amp; query.Limit &lt; len(results) </span><span class="cov0" title="0">{
+                results = results[:query.Limit]
+        }</span>
+
+        <span class="cov6" title="5">return results, nil</span>
+}
+
+// GetLineage gets lineage for a FlowFile
+func (r *InMemoryProvenanceRepository) GetLineage(flowFileId uuid.UUID) (*LineageGraph, error) <span class="cov1" title="1">{
+        r.mu.RLock()
+        defer r.mu.RUnlock()
+
+        // Simple implementation - collect all events for the FlowFile
+        var nodes []LineageNode
+        var links []LineageLink
+
+        for _, event := range r.events </span><span class="cov4" title="3">{
+                if event.FlowFileID == flowFileId </span><span class="cov3" title="2">{
+                        node := LineageNode{
+                                ID:          event.ID,
+                                FlowFileID:  event.FlowFileID,
+                                ProcessorID: event.ProcessorID,
+                                EventType:   event.EventType,
+                                Timestamp:   event.EventTime,
+                        }
+                        nodes = append(nodes, node)
+
+                        // Create links from parent events
+                        for _, parentID := range event.ParentIDs </span><span class="cov0" title="0">{
+                                link := LineageLink{
+                                        Source: parentID,
+                                        Target: event.ID,
+                                }
+                                links = append(links, link)
+                        }</span>
+                }
+        }
+
+        // Ensure we return initialized slices even if empty
+        <span class="cov1" title="1">if nodes == nil </span><span class="cov0" title="0">{
+                nodes = make([]LineageNode, 0)
+        }</span>
+        <span class="cov1" title="1">if links == nil </span><span class="cov1" title="1">{
+                links = make([]LineageLink, 0)
+        }</span>
+
+        <span class="cov1" title="1">return &amp;LineageGraph{
+                Nodes: nodes,
+                Links: links,
+        }, nil</span>
+}
+
+// Close closes the repository
+func (r *InMemoryProvenanceRepository) Close() error <span class="cov1" title="1">{
+        r.mu.Lock()
+        defer r.mu.Unlock()
+        r.events = make(map[uuid.UUID]*ProvenanceEvent)
+        return nil
+}</pre>
+		
+		<pre class="file" id="file3" style="display: none">package core
+
+import (
+        "encoding/json"
+        "fmt"
+        "io"
+        "os"
+        "path/filepath"
+        "sync"
+        "time"
+
+        "github.com/dgraph-io/badger/v4"
+        "github.com/google/uuid"
+        "github.com/shawntherrien/databridge/pkg/types"
+)
+
+// Repository interfaces define the contract for data persistence
+type FlowFileRepository interface {
+        Store(flowFile *types.FlowFile) error
+        Get(id uuid.UUID) (*types.FlowFile, error)
+        Delete(id uuid.UUID) error
+        List(limit, offset int) ([]*types.FlowFile, error)
+        UpdateAttributes(id uuid.UUID, attributes map[string]string) error
+        Close() error
+}
+
+type ContentRepository interface {
+        Store(content []byte) (*types.ContentClaim, error)
+        Get(claim *types.ContentClaim) ([]byte, error)
+        GetReader(claim *types.ContentClaim) (io.ReadCloser, error)
+        GetWriter() (ContentWriter, error)
+        Delete(claim *types.ContentClaim) error
+        IncrementRef(claim *types.ContentClaim) error
+        DecrementRef(claim *types.ContentClaim) error
+        Close() error
+}
+
+type ProvenanceRepository interface {
+        Store(event *ProvenanceEvent) error
+        Query(query ProvenanceQuery) ([]*ProvenanceEvent, error)
+        GetLineage(flowFileId uuid.UUID) (*LineageGraph, error)
+        Close() error
+}
+
+// ContentWriter provides streaming write capabilities
+type ContentWriter interface {
+        io.Writer
+        Claim() *types.ContentClaim
+        Close() error
+}
+
+// ProvenanceEvent represents a data lineage event
+type ProvenanceEvent struct {
+        ID              uuid.UUID         `json:"id"`
+        EventType       string           `json:"eventType"`
+        FlowFileID      uuid.UUID        `json:"flowFileId"`
+        ProcessorID     uuid.UUID        `json:"processorId"`
+        ProcessorName   string           `json:"processorName"`
+        EventTime       time.Time        `json:"eventTime"`
+        Duration        time.Duration    `json:"duration"`
+        Attributes      map[string]string `json:"attributes"`
+        ParentIDs       []uuid.UUID      `json:"parentIds,omitempty"`
+        ChildIDs        []uuid.UUID      `json:"childIds,omitempty"`
+        Details         string           `json:"details"`
+        ContentClaim    *types.ContentClaim `json:"contentClaim,omitempty"`
+}
+
+// ProvenanceQuery defines search criteria for provenance events
+type ProvenanceQuery struct {
+        StartTime    *time.Time `json:"startTime,omitempty"`
+        EndTime      *time.Time `json:"endTime,omitempty"`
+        FlowFileID   *uuid.UUID `json:"flowFileId,omitempty"`
+        ProcessorID  *uuid.UUID `json:"processorId,omitempty"`
+        EventType    string     `json:"eventType,omitempty"`
+        Limit        int        `json:"limit"`
+        Offset       int        `json:"offset"`
+}
+
+// LineageGraph represents data flow lineage
+type LineageGraph struct {
+        Nodes []LineageNode `json:"nodes"`
+        Links []LineageLink `json:"links"`
+}
+
+type LineageNode struct {
+        ID          uuid.UUID `json:"id"`
+        FlowFileID  uuid.UUID `json:"flowFileId"`
+        ProcessorID uuid.UUID `json:"processorId"`
+        EventType   string    `json:"eventType"`
+        Timestamp   time.Time `json:"timestamp"`
+}
+
+type LineageLink struct {
+        Source uuid.UUID `json:"source"`
+        Target uuid.UUID `json:"target"`
+}
+
+// BadgerFlowFileRepository implements FlowFileRepository using BadgerDB
+type BadgerFlowFileRepository struct {
+        db *badger.DB
+        mu sync.RWMutex
+}
+
+// NewBadgerFlowFileRepository creates a new BadgerDB-based FlowFile repository
+func NewBadgerFlowFileRepository(dbPath string) (*BadgerFlowFileRepository, error) <span class="cov3" title="2">{
+        opts := badger.DefaultOptions(dbPath).
+                WithLogger(nil). // Disable badger logging
+                WithSyncWrites(false) // Async writes for performance
+
+        db, err := badger.Open(opts)
+        if err != nil </span><span class="cov0" title="0">{
+                return nil, fmt.Errorf("failed to open BadgerDB: %w", err)
+        }</span>
+
+        <span class="cov3" title="2">return &amp;BadgerFlowFileRepository{
+                db: db,
+        }, nil</span>
+}
+
+// Store persists a FlowFile to the repository
+func (r *BadgerFlowFileRepository) Store(flowFile *types.FlowFile) error <span class="cov8" title="7">{
+        r.mu.Lock()
+        defer r.mu.Unlock()
+
+        data, err := json.Marshal(flowFile)
+        if err != nil </span><span class="cov0" title="0">{
+                return fmt.Errorf("failed to marshal FlowFile: %w", err)
+        }</span>
+
+        <span class="cov8" title="7">return r.db.Update(func(txn *badger.Txn) error </span><span class="cov8" title="7">{
+                key := fmt.Sprintf("flowfile:%s", flowFile.ID.String())
+                return txn.Set([]byte(key), data)
+        }</span>)
+}
+
+// Get retrieves a FlowFile from the repository
+func (r *BadgerFlowFileRepository) Get(id uuid.UUID) (*types.FlowFile, error) <span class="cov7" title="5">{
+        r.mu.RLock()
+        defer r.mu.RUnlock()
+
+        var flowFile *types.FlowFile
+
+        err := r.db.View(func(txn *badger.Txn) error </span><span class="cov7" title="5">{
+                key := fmt.Sprintf("flowfile:%s", id.String())
+                item, err := txn.Get([]byte(key))
+                if err != nil </span><span class="cov3" title="2">{
+                        return err
+                }</span>
+
+                <span class="cov5" title="3">return item.Value(func(val []byte) error </span><span class="cov5" title="3">{
+                        flowFile = &amp;types.FlowFile{}
+                        return json.Unmarshal(val, flowFile)
+                }</span>)
+        })
+
+        <span class="cov7" title="5">if err == badger.ErrKeyNotFound </span><span class="cov3" title="2">{
+                return nil, fmt.Errorf("FlowFile not found: %s", id.String())
+        }</span>
+
+        <span class="cov5" title="3">return flowFile, err</span>
+}
+
+// Delete removes a FlowFile from the repository
+func (r *BadgerFlowFileRepository) Delete(id uuid.UUID) error <span class="cov3" title="2">{
+        r.mu.Lock()
+        defer r.mu.Unlock()
+
+        return r.db.Update(func(txn *badger.Txn) error </span><span class="cov3" title="2">{
+                key := fmt.Sprintf("flowfile:%s", id.String())
+                return txn.Delete([]byte(key))
+        }</span>)
+}
+
+// List retrieves FlowFiles with pagination
+func (r *BadgerFlowFileRepository) List(limit, offset int) ([]*types.FlowFile, error) <span class="cov3" title="2">{
+        r.mu.RLock()
+        defer r.mu.RUnlock()
+
+        var flowFiles []*types.FlowFile
+        count := 0
+
+        err := r.db.View(func(txn *badger.Txn) error </span><span class="cov3" title="2">{
+                opts := badger.DefaultIteratorOptions
+                opts.PrefetchSize = limit
+                it := txn.NewIterator(opts)
+                defer it.Close()
+
+                prefix := []byte("flowfile:")
+                for it.Seek(prefix); it.ValidForPrefix(prefix); it.Next() </span><span class="cov10" title="9">{
+                        if count &lt; offset </span><span class="cov3" title="2">{
+                                count++
+                                continue</span>
+                        }
+                        <span class="cov8" title="7">if len(flowFiles) &gt;= limit </span><span class="cov3" title="2">{
+                                break</span>
+                        }
+
+                        <span class="cov7" title="5">item := it.Item()
+                        err := item.Value(func(val []byte) error </span><span class="cov7" title="5">{
+                                var flowFile types.FlowFile
+                                if err := json.Unmarshal(val, &amp;flowFile); err != nil </span><span class="cov0" title="0">{
+                                        return err
+                                }</span>
+                                <span class="cov7" title="5">flowFiles = append(flowFiles, &amp;flowFile)
+                                return nil</span>
+                        })
+                        <span class="cov7" title="5">if err != nil </span><span class="cov0" title="0">{
+                                return err
+                        }</span>
+                        <span class="cov7" title="5">count++</span>
+                }
+                <span class="cov3" title="2">return nil</span>
+        })
+
+        <span class="cov3" title="2">return flowFiles, err</span>
+}
+
+// UpdateAttributes updates FlowFile attributes
+func (r *BadgerFlowFileRepository) UpdateAttributes(id uuid.UUID, attributes map[string]string) error <span class="cov1" title="1">{
+        r.mu.Lock()
+        defer r.mu.Unlock()
+
+        return r.db.Update(func(txn *badger.Txn) error </span><span class="cov1" title="1">{
+                key := fmt.Sprintf("flowfile:%s", id.String())
+
+                // Get existing FlowFile
+                item, err := txn.Get([]byte(key))
+                if err != nil </span><span class="cov0" title="0">{
+                        return err
+                }</span>
+
+                <span class="cov1" title="1">var flowFile types.FlowFile
+                err = item.Value(func(val []byte) error </span><span class="cov1" title="1">{
+                        return json.Unmarshal(val, &amp;flowFile)
+                }</span>)
+                <span class="cov1" title="1">if err != nil </span><span class="cov0" title="0">{
+                        return err
+                }</span>
+
+                // Update attributes
+                <span class="cov1" title="1">for k, v := range attributes </span><span class="cov3" title="2">{
+                        flowFile.Attributes[k] = v
+                }</span>
+                <span class="cov1" title="1">flowFile.UpdatedAt = time.Now()
+
+                // Store updated FlowFile
+                data, err := json.Marshal(&amp;flowFile)
+                if err != nil </span><span class="cov0" title="0">{
+                        return err
+                }</span>
+
+                <span class="cov1" title="1">return txn.Set([]byte(key), data)</span>
+        })
+}
+
+// Close closes the repository
+func (r *BadgerFlowFileRepository) Close() error <span class="cov3" title="2">{
+        return r.db.Close()
+}</span>
+
+// FileSystemContentRepository implements ContentRepository using filesystem storage
+type FileSystemContentRepository struct {
+        basePath string
+        mu       sync.RWMutex
+}
+
+// NewFileSystemContentRepository creates a new filesystem-based content repository
+func NewFileSystemContentRepository(basePath string) (*FileSystemContentRepository, error) <span class="cov6" title="4">{
+        if err := os.MkdirAll(basePath, 0755); err != nil </span><span class="cov0" title="0">{
+                return nil, fmt.Errorf("failed to create content repository directory: %w", err)
+        }</span>
+
+        <span class="cov6" title="4">return &amp;FileSystemContentRepository{
+                basePath: basePath,
+        }, nil</span>
+}
+
+// Store stores content and returns a content claim
+func (r *FileSystemContentRepository) Store(content []byte) (*types.ContentClaim, error) <span class="cov5" title="3">{
+        claim := &amp;types.ContentClaim{
+                ID:        uuid.New(),
+                Container: "default",
+                Section:   time.Now().Format("2006/01/02"),
+                Offset:    0,
+                Length:    int64(len(content)),
+                RefCount:  1,
+        }
+
+        sectionPath := filepath.Join(r.basePath, claim.Container, claim.Section)
+        if err := os.MkdirAll(sectionPath, 0755); err != nil </span><span class="cov0" title="0">{
+                return nil, fmt.Errorf("failed to create section directory: %w", err)
+        }</span>
+
+        <span class="cov5" title="3">filePath := filepath.Join(sectionPath, claim.ID.String())
+        if err := os.WriteFile(filePath, content, 0644); err != nil </span><span class="cov0" title="0">{
+                return nil, fmt.Errorf("failed to write content file: %w", err)
+        }</span>
+
+        <span class="cov5" title="3">return claim, nil</span>
+}
+
+// Get retrieves content by claim
+func (r *FileSystemContentRepository) Get(claim *types.ContentClaim) ([]byte, error) <span class="cov8" title="7">{
+        filePath := filepath.Join(r.basePath, claim.Container, claim.Section, claim.ID.String())
+
+        content, err := os.ReadFile(filePath)
+        if err != nil </span><span class="cov3" title="2">{
+                return nil, fmt.Errorf("failed to read content file: %w", err)
+        }</span>
+
+        // Return the requested slice
+        <span class="cov7" title="5">if claim.Offset &gt; 0 || claim.Length &lt; int64(len(content)) </span><span class="cov3" title="2">{
+                start := claim.Offset
+                end := start + claim.Length
+                if start &gt; int64(len(content)) </span><span class="cov1" title="1">{
+                        return nil, fmt.Errorf("offset exceeds content length")
+                }</span>
+                <span class="cov1" title="1">if end &gt; int64(len(content)) </span><span class="cov0" title="0">{
+                        end = int64(len(content))
+                }</span>
+                <span class="cov1" title="1">content = content[start:end]</span>
+        }
+
+        <span class="cov6" title="4">return content, nil</span>
+}
+
+// GetReader returns a reader for the content claim
+func (r *FileSystemContentRepository) GetReader(claim *types.ContentClaim) (io.ReadCloser, error) <span class="cov3" title="2">{
+        filePath := filepath.Join(r.basePath, claim.Container, claim.Section, claim.ID.String())
+
+        file, err := os.Open(filePath)
+        if err != nil </span><span class="cov1" title="1">{
+                return nil, fmt.Errorf("failed to open content file: %w", err)
+        }</span>
+
+        <span class="cov1" title="1">if claim.Offset &gt; 0 </span><span class="cov0" title="0">{
+                if _, err := file.Seek(claim.Offset, io.SeekStart); err != nil </span><span class="cov0" title="0">{
+                        file.Close()
+                        return nil, fmt.Errorf("failed to seek to offset: %w", err)
+                }</span>
+        }
+
+        <span class="cov1" title="1">return file, nil</span>
+}
+
+// GetWriter returns a writer for new content
+func (r *FileSystemContentRepository) GetWriter() (ContentWriter, error) <span class="cov3" title="2">{
+        claim := &amp;types.ContentClaim{
+                ID:        uuid.New(),
+                Container: "default",
+                Section:   time.Now().Format("2006/01/02"),
+                Offset:    0,
+                RefCount:  1,
+        }
+
+        sectionPath := filepath.Join(r.basePath, claim.Container, claim.Section)
+        if err := os.MkdirAll(sectionPath, 0755); err != nil </span><span class="cov0" title="0">{
+                return nil, fmt.Errorf("failed to create section directory: %w", err)
+        }</span>
+
+        <span class="cov3" title="2">filePath := filepath.Join(sectionPath, claim.ID.String())
+        file, err := os.Create(filePath)
+        if err != nil </span><span class="cov0" title="0">{
+                return nil, fmt.Errorf("failed to create content file: %w", err)
+        }</span>
+
+        <span class="cov3" title="2">return &amp;fileContentWriter{
+                file:  file,
+                claim: claim,
+                repo:  r,
+        }, nil</span>
+}
+
+// Delete removes content by claim
+func (r *FileSystemContentRepository) Delete(claim *types.ContentClaim) error <span class="cov3" title="2">{
+        filePath := filepath.Join(r.basePath, claim.Container, claim.Section, claim.ID.String())
+        return os.Remove(filePath)
+}</span>
+
+// IncrementRef increments reference count (no-op for filesystem)
+func (r *FileSystemContentRepository) IncrementRef(claim *types.ContentClaim) error <span class="cov1" title="1">{
+        claim.RefCount++
+        return nil
+}</span>
+
+// DecrementRef decrements reference count (no-op for filesystem)
+func (r *FileSystemContentRepository) DecrementRef(claim *types.ContentClaim) error <span class="cov1" title="1">{
+        claim.RefCount--
+        return nil
+}</span>
+
+// Close closes the repository
+func (r *FileSystemContentRepository) Close() error <span class="cov6" title="4">{
+        return nil
+}</span>
+
+// fileContentWriter implements ContentWriter
+type fileContentWriter struct {
+        file   *os.File
+        claim  *types.ContentClaim
+        repo   *FileSystemContentRepository
+        length int64
+}
+
+// Write writes data to the content file
+func (w *fileContentWriter) Write(p []byte) (n int, err error) <span class="cov6" title="4">{
+        n, err = w.file.Write(p)
+        w.length += int64(n)
+        return n, err
+}</span>
+
+// Claim returns the content claim
+func (w *fileContentWriter) Claim() *types.ContentClaim <span class="cov3" title="2">{
+        w.claim.Length = w.length
+        return w.claim
+}</span>
+
+// Close closes the writer and updates the claim
+func (w *fileContentWriter) Close() error <span class="cov3" title="2">{
+        w.claim.Length = w.length
+        return w.file.Close()
+}</pre>
+		
+		<pre class="file" id="file4" style="display: none">package core
+
+import (
+        "context"
+        "fmt"
+        "sync"
+        "time"
+
+        "github.com/google/uuid"
+        "github.com/robfig/cron/v3"
+        "github.com/sirupsen/logrus"
+        "github.com/shawntherrien/databridge/pkg/types"
+)
+
+// ProcessScheduler manages the execution of processors
+type ProcessScheduler struct {
+        mu               sync.RWMutex
+        flowController   *FlowController
+        logger           *logrus.Logger
+        ctx              context.Context
+        cancel           context.CancelFunc
+
+        // Scheduling
+        scheduledTasks   map[uuid.UUID]*ScheduledTask
+        timerScheduler   *time.Ticker
+        cronScheduler    *cron.Cron
+        workerPool       *WorkerPool
+        running          bool
+}
+
+// ScheduledTask represents a scheduled processor execution
+type ScheduledTask struct {
+        ProcessorNode *ProcessorNode
+        Schedule      ProcessorSchedule
+        LastRun       time.Time
+        NextRun       time.Time
+        Running       bool
+        RunCount      int64
+        mu            sync.RWMutex
+}
+
+// ProcessorSchedule defines how a processor should be scheduled
+type ProcessorSchedule struct {
+        Type           types.ScheduleType `json:"type"`
+        Interval       time.Duration      `json:"interval"`
+        CronExpression string             `json:"cronExpression,omitempty"`
+        Concurrency    int                `json:"concurrency"`
+}
+
+// WorkerPool manages concurrent processor execution
+type WorkerPool struct {
+        workers       chan *ProcessorExecution
+        workerCount   int
+        ctx           context.Context
+        cancel        context.CancelFunc
+        logger        *logrus.Logger
+        mu            sync.RWMutex
+        activeWorkers int
+}
+
+// ProcessorExecution represents a processor execution task
+type ProcessorExecution struct {
+        ProcessorNode *ProcessorNode
+        Session       types.ProcessSession
+        StartTime     time.Time
+}
+
+// NewProcessScheduler creates a new ProcessScheduler
+func NewProcessScheduler(flowController *FlowController, logger *logrus.Logger) *ProcessScheduler <span class="cov6" title="8">{
+        ctx, cancel := context.WithCancel(context.Background())
+
+        return &amp;ProcessScheduler{
+                flowController: flowController,
+                logger:         logger,
+                ctx:            ctx,
+                cancel:         cancel,
+                scheduledTasks: make(map[uuid.UUID]*ScheduledTask),
+                cronScheduler:  cron.New(cron.WithSeconds()),
+                workerPool:     NewWorkerPool(10, ctx, logger), // Default 10 workers
+        }
+}</span>
+
+// Start starts the scheduler
+func (s *ProcessScheduler) Start(ctx context.Context) error <span class="cov3" title="3">{
+        s.mu.Lock()
+        defer s.mu.Unlock()
+
+        if s.running </span><span class="cov0" title="0">{
+                return fmt.Errorf("scheduler is already running")
+        }</span>
+
+        <span class="cov3" title="3">s.logger.Info("Starting ProcessScheduler")
+
+        // Start cron scheduler
+        s.cronScheduler.Start()
+
+        // Start timer-driven scheduler
+        s.timerScheduler = time.NewTicker(1 * time.Second)
+        go s.timerScheduleLoop()
+
+        // Start worker pool
+        if err := s.workerPool.Start(); err != nil </span><span class="cov0" title="0">{
+                return fmt.Errorf("failed to start worker pool: %w", err)
+        }</span>
+
+        <span class="cov3" title="3">s.running = true
+        s.logger.Info("ProcessScheduler started")
+        return nil</span>
+}
+
+// Stop stops the scheduler
+func (s *ProcessScheduler) Stop() error <span class="cov3" title="3">{
+        s.mu.Lock()
+        defer s.mu.Unlock()
+
+        if !s.running </span><span class="cov0" title="0">{
+                return nil
+        }</span>
+
+        <span class="cov3" title="3">s.logger.Info("Stopping ProcessScheduler")
+
+        // Stop timer scheduler
+        if s.timerScheduler != nil </span><span class="cov3" title="3">{
+                s.timerScheduler.Stop()
+        }</span>
+
+        // Stop cron scheduler
+        <span class="cov3" title="3">cronCtx := s.cronScheduler.Stop()
+        &lt;-cronCtx.Done()
+
+        // Stop worker pool
+        s.workerPool.Stop()
+
+        // Cancel context
+        s.cancel()
+
+        s.running = false
+        s.logger.Info("ProcessScheduler stopped")
+        return nil</span>
+}
+
+// ScheduleProcessor schedules a processor for execution
+func (s *ProcessScheduler) ScheduleProcessor(processorNode *ProcessorNode) error <span class="cov1" title="1">{
+        s.mu.Lock()
+        defer s.mu.Unlock()
+
+        schedule, err := s.parseSchedule(processorNode.Config)
+        if err != nil </span><span class="cov0" title="0">{
+                return fmt.Errorf("failed to parse schedule: %w", err)
+        }</span>
+
+        <span class="cov1" title="1">task := &amp;ScheduledTask{
+                ProcessorNode: processorNode,
+                Schedule:      schedule,
+                NextRun:       s.calculateNextRun(schedule, time.Now()),
+        }
+
+        s.scheduledTasks[processorNode.ID] = task
+
+        // For cron-driven processors, add to cron scheduler
+        if schedule.Type == types.ScheduleTypeCron </span><span class="cov0" title="0">{
+                _, err := s.cronScheduler.AddFunc(schedule.CronExpression, func() </span><span class="cov0" title="0">{
+                        s.executeProcessor(task)
+                }</span>)
+                <span class="cov0" title="0">if err != nil </span><span class="cov0" title="0">{
+                        return fmt.Errorf("failed to schedule cron job: %w", err)
+                }</span>
+        }
+
+        <span class="cov1" title="1">s.logger.WithFields(logrus.Fields{
+                "processorId":   processorNode.ID,
+                "processorName": processorNode.Name,
+                "scheduleType":  schedule.Type,
+        }).Info("Scheduled processor")
+
+        return nil</span>
+}
+
+// UnscheduleProcessor removes a processor from scheduling
+func (s *ProcessScheduler) UnscheduleProcessor(processorNode *ProcessorNode) <span class="cov1" title="1">{
+        s.mu.Lock()
+        defer s.mu.Unlock()
+
+        delete(s.scheduledTasks, processorNode.ID)
+
+        s.logger.WithFields(logrus.Fields{
+                "processorId":   processorNode.ID,
+                "processorName": processorNode.Name,
+        }).Info("Unscheduled processor")
+}</span>
+
+// Private methods
+
+func (s *ProcessScheduler) timerScheduleLoop() <span class="cov3" title="3">{
+        for </span><span class="cov3" title="3">{
+                select </span>{
+                case &lt;-s.ctx.Done():<span class="cov3" title="3">
+                        return</span>
+                case &lt;-s.timerScheduler.C:<span class="cov0" title="0">
+                        s.checkTimerDrivenTasks()</span>
+                }
+        }
+}
+
+func (s *ProcessScheduler) checkTimerDrivenTasks() <span class="cov0" title="0">{
+        s.mu.RLock()
+        tasks := make([]*ScheduledTask, 0, len(s.scheduledTasks))
+        now := time.Now()
+
+        for _, task := range s.scheduledTasks </span><span class="cov0" title="0">{
+                if (task.Schedule.Type == types.ScheduleTypeTimer ||
+                        task.Schedule.Type == types.ScheduleTypeEvent) &amp;&amp;
+                        now.After(task.NextRun) &amp;&amp; !task.Running </span><span class="cov0" title="0">{
+                        tasks = append(tasks, task)
+                }</span>
+        }
+        <span class="cov0" title="0">s.mu.RUnlock()
+
+        // Execute eligible tasks
+        for _, task := range tasks </span><span class="cov0" title="0">{
+                s.executeProcessor(task)
+        }</span>
+}
+
+func (s *ProcessScheduler) executeProcessor(task *ScheduledTask) <span class="cov0" title="0">{
+        task.mu.Lock()
+        if task.Running </span><span class="cov0" title="0">{
+                task.mu.Unlock()
+                return
+        }</span>
+        <span class="cov0" title="0">task.Running = true
+        task.LastRun = time.Now()
+        task.NextRun = s.calculateNextRun(task.Schedule, task.LastRun)
+        task.RunCount++
+        task.mu.Unlock()
+
+        // Create process session
+        session := s.flowController.CreateProcessSession(&amp;LogrusAdapter{Logger: s.logger})
+
+        execution := &amp;ProcessorExecution{
+                ProcessorNode: task.ProcessorNode,
+                Session:       session,
+                StartTime:     time.Now(),
+        }
+
+        // Submit to worker pool
+        select </span>{
+        case s.workerPool.workers &lt;- execution:<span class="cov0" title="0"></span>
+                // Successfully submitted
+        default:<span class="cov0" title="0">
+                // Worker pool is full, skip this execution
+                task.mu.Lock()
+                task.Running = false
+                task.mu.Unlock()
+
+                s.logger.WithFields(logrus.Fields{
+                        "processorName": task.ProcessorNode.Name,
+                }).Warn("Skipped processor execution - worker pool full")</span>
+        }
+}
+
+func (s *ProcessScheduler) parseSchedule(config types.ProcessorConfig) (ProcessorSchedule, error) <span class="cov1" title="1">{
+        schedule := ProcessorSchedule{
+                Type:        config.ScheduleType,
+                Concurrency: config.Concurrency,
+        }
+
+        if schedule.Concurrency &lt;= 0 </span><span class="cov0" title="0">{
+                schedule.Concurrency = 1
+        }</span>
+
+        <span class="cov1" title="1">switch config.ScheduleType </span>{
+        case types.ScheduleTypeTimer:<span class="cov1" title="1">
+                duration, err := time.ParseDuration(config.ScheduleValue)
+                if err != nil </span><span class="cov0" title="0">{
+                        return schedule, fmt.Errorf("invalid timer duration: %w", err)
+                }</span>
+                <span class="cov1" title="1">schedule.Interval = duration</span>
+        case types.ScheduleTypeCron:<span class="cov0" title="0">
+                schedule.CronExpression = config.ScheduleValue</span>
+        case types.ScheduleTypeEvent:<span class="cov0" title="0">
+                // Event-driven processors run immediately when data is available
+                schedule.Interval = 100 * time.Millisecond</span> // Quick polling for events
+        case types.ScheduleTypePrimaryNode:<span class="cov0" title="0">
+                // Primary node only - treat as timer-driven for now
+                duration, err := time.ParseDuration(config.ScheduleValue)
+                if err != nil </span><span class="cov0" title="0">{
+                        return schedule, fmt.Errorf("invalid timer duration for primary node: %w", err)
+                }</span>
+                <span class="cov0" title="0">schedule.Interval = duration</span>
+        default:<span class="cov0" title="0">
+                return schedule, fmt.Errorf("unsupported schedule type: %s", config.ScheduleType)</span>
+        }
+
+        <span class="cov1" title="1">return schedule, nil</span>
+}
+
+func (s *ProcessScheduler) calculateNextRun(schedule ProcessorSchedule, lastRun time.Time) time.Time <span class="cov1" title="1">{
+        switch schedule.Type </span>{
+        case types.ScheduleTypeTimer, types.ScheduleTypeEvent, types.ScheduleTypePrimaryNode:<span class="cov1" title="1">
+                return lastRun.Add(schedule.Interval)</span>
+        case types.ScheduleTypeCron:<span class="cov0" title="0">
+                // For cron jobs, the cron scheduler handles the next run calculation
+                return time.Now().Add(24 * time.Hour)</span> // Placeholder
+        default:<span class="cov0" title="0">
+                return time.Now().Add(1 * time.Minute)</span> // Default fallback
+        }
+}
+
+// WorkerPool implementation
+
+// NewWorkerPool creates a new WorkerPool
+func NewWorkerPool(workerCount int, ctx context.Context, logger *logrus.Logger) *WorkerPool <span class="cov6" title="8">{
+        ctx, cancel := context.WithCancel(ctx)
+
+        return &amp;WorkerPool{
+                workers:     make(chan *ProcessorExecution, workerCount*2), // Buffer for queued executions
+                workerCount: workerCount,
+                ctx:         ctx,
+                cancel:      cancel,
+                logger:      logger,
+        }
+}</span>
+
+// Start starts the worker pool
+func (wp *WorkerPool) Start() error <span class="cov3" title="3">{
+        wp.logger.WithField("workerCount", wp.workerCount).Info("Starting worker pool")
+
+        for i := 0; i &lt; wp.workerCount; i++ </span><span class="cov10" title="30">{
+                go wp.worker(i)
+        }</span>
+
+        <span class="cov3" title="3">return nil</span>
+}
+
+// Stop stops the worker pool
+func (wp *WorkerPool) Stop() <span class="cov3" title="3">{
+        wp.logger.Info("Stopping worker pool")
+        wp.cancel()
+        close(wp.workers)
+}</span>
+
+// worker is the main worker goroutine
+func (wp *WorkerPool) worker(workerID int) <span class="cov10" title="30">{
+        wp.logger.WithField("workerId", workerID).Debug("Worker started")
+
+        for </span><span class="cov10" title="30">{
+                select </span>{
+                case &lt;-wp.ctx.Done():<span class="cov9" title="28">
+                        wp.logger.WithField("workerId", workerID).Debug("Worker stopped")
+                        return</span>
+                case execution, ok := &lt;-wp.workers:<span class="cov2" title="2">
+                        if !ok </span><span class="cov2" title="2">{
+                                wp.logger.WithField("workerId", workerID).Debug("Worker channel closed")
+                                return
+                        }</span>
+                        <span class="cov0" title="0">wp.executeProcessorTask(workerID, execution)</span>
+                }
+        }
+}
+
+func (wp *WorkerPool) executeProcessorTask(workerID int, execution *ProcessorExecution) <span class="cov0" title="0">{
+        wp.mu.Lock()
+        wp.activeWorkers++
+        wp.mu.Unlock()
+
+        defer func() </span><span class="cov0" title="0">{
+                wp.mu.Lock()
+                wp.activeWorkers--
+                wp.mu.Unlock()
+
+                // Mark task as no longer running
+                // Task cleanup if needed
+        }</span>()
+
+        <span class="cov0" title="0">logger := wp.logger.WithFields(logrus.Fields{
+                "workerId":      workerID,
+                "processorName": execution.ProcessorNode.Name,
+                "processorId":   execution.ProcessorNode.ID,
+        })
+
+        logger.Debug("Executing processor")
+
+        startTime := time.Now()
+
+        // Execute processor
+        err := execution.ProcessorNode.Processor.OnTrigger(wp.ctx, execution.Session)
+
+        duration := time.Since(startTime)
+
+        // Update processor statistics
+        execution.ProcessorNode.mu.Lock()
+        execution.ProcessorNode.Status.TasksCompleted++
+        execution.ProcessorNode.Status.LastRun = startTime
+        execution.ProcessorNode.Status.AverageTaskTime =
+                (execution.ProcessorNode.Status.AverageTaskTime + duration) / 2
+        execution.ProcessorNode.mu.Unlock()
+
+        if err != nil </span><span class="cov0" title="0">{
+                logger.WithError(err).Error("Processor execution failed")
+                execution.Session.Rollback()
+        }</span> else<span class="cov0" title="0"> {
+                if err := execution.Session.Commit(); err != nil </span><span class="cov0" title="0">{
+                        logger.WithError(err).Error("Failed to commit process session")
+                }</span> else<span class="cov0" title="0"> {
+                        logger.WithField("duration", duration).Debug("Processor execution completed successfully")
+                }</span>
+        }
+
+        // Mark scheduled task as no longer running
+        // This would typically be done through a callback or task reference
+}</pre>
+		
+		<pre class="file" id="file5" style="display: none">package core
+
+import (
+        "context"
+        "fmt"
+        "sync"
+        "time"
+
+        "github.com/google/uuid"
+        "github.com/shawntherrien/databridge/pkg/types"
+)
+
+// ProcessSessionImpl implements the ProcessSession interface
+type ProcessSessionImpl struct {
+        id               uuid.UUID
+        flowFileRepo     FlowFileRepository
+        contentRepo      ContentRepository
+        provenanceRepo   ProvenanceRepository
+        logger           types.Logger
+        ctx              context.Context
+
+        // Transaction state
+        mu               sync.RWMutex
+        flowFiles        map[uuid.UUID]*types.FlowFile
+        transfers        map[uuid.UUID]types.Relationship
+        removals         []uuid.UUID
+        creations        []*types.FlowFile
+        modifications    map[uuid.UUID]*types.FlowFile
+        committed        bool
+        rolledBack       bool
+}
+
+// NewProcessSession creates a new process session
+func NewProcessSession(
+        flowFileRepo FlowFileRepository,
+        contentRepo ContentRepository,
+        provenanceRepo ProvenanceRepository,
+        logger types.Logger,
+        ctx context.Context,
+) *ProcessSessionImpl <span class="cov8" title="1">{
+        return &amp;ProcessSessionImpl{
+                id:             uuid.New(),
+                flowFileRepo:   flowFileRepo,
+                contentRepo:    contentRepo,
+                provenanceRepo: provenanceRepo,
+                logger:         logger,
+                ctx:            ctx,
+                flowFiles:      make(map[uuid.UUID]*types.FlowFile),
+                transfers:      make(map[uuid.UUID]types.Relationship),
+                modifications: make(map[uuid.UUID]*types.FlowFile),
+        }
+}</span>
+
+// Get retrieves a FlowFile from the input queue
+func (s *ProcessSessionImpl) Get() *types.FlowFile <span class="cov0" title="0">{
+        // TODO: Implement queue integration
+        // For now, create a mock FlowFile for testing
+        flowFile := types.NewFlowFile()
+        flowFile.UpdateAttribute("source", "queue")
+
+        s.mu.Lock()
+        s.flowFiles[flowFile.ID] = flowFile
+        s.mu.Unlock()
+
+        s.logger.Debug("Retrieved FlowFile from queue", "id", flowFile.ID)
+        return flowFile
+}</span>
+
+// GetBatch retrieves multiple FlowFiles up to maxResults
+func (s *ProcessSessionImpl) GetBatch(maxResults int) []*types.FlowFile <span class="cov0" title="0">{
+        var batch []*types.FlowFile
+
+        for i := 0; i &lt; maxResults; i++ </span><span class="cov0" title="0">{
+                flowFile := s.Get()
+                if flowFile == nil </span><span class="cov0" title="0">{
+                        break</span>
+                }
+                <span class="cov0" title="0">batch = append(batch, flowFile)</span>
+        }
+
+        <span class="cov0" title="0">s.logger.Debug("Retrieved FlowFile batch", "count", len(batch))
+        return batch</span>
+}
+
+// Create creates a new FlowFile
+func (s *ProcessSessionImpl) Create() *types.FlowFile <span class="cov8" title="1">{
+        flowFile := types.NewFlowFile()
+
+        s.mu.Lock()
+        s.flowFiles[flowFile.ID] = flowFile
+        s.creations = append(s.creations, flowFile)
+        s.mu.Unlock()
+
+        s.logger.Debug("Created new FlowFile", "id", flowFile.ID)
+        return flowFile
+}</span>
+
+// CreateChild creates a child FlowFile from a parent
+func (s *ProcessSessionImpl) CreateChild(parent *types.FlowFile) *types.FlowFile <span class="cov0" title="0">{
+        child := types.NewFlowFileBuilder().
+                WithParent(parent).
+                WithAttributes(parent.Attributes).
+                Build()
+
+        s.mu.Lock()
+        s.flowFiles[child.ID] = child
+        s.creations = append(s.creations, child)
+        s.mu.Unlock()
+
+        s.logger.Debug("Created child FlowFile", "childId", child.ID, "parentId", parent.ID)
+        return child
+}</span>
+
+// Clone creates a copy of a FlowFile
+func (s *ProcessSessionImpl) Clone(original *types.FlowFile) *types.FlowFile <span class="cov0" title="0">{
+        clone := original.Clone()
+
+        s.mu.Lock()
+        s.flowFiles[clone.ID] = clone
+        s.creations = append(s.creations, clone)
+        s.mu.Unlock()
+
+        // Increment reference count on content claim
+        if clone.ContentClaim != nil </span><span class="cov0" title="0">{
+                s.contentRepo.IncrementRef(clone.ContentClaim)
+        }</span>
+
+        <span class="cov0" title="0">s.logger.Debug("Cloned FlowFile", "cloneId", clone.ID, "originalId", original.ID)
+        return clone</span>
+}
+
+// Transfer routes a FlowFile to a relationship
+func (s *ProcessSessionImpl) Transfer(flowFile *types.FlowFile, relationship types.Relationship) <span class="cov0" title="0">{
+        s.mu.Lock()
+        s.transfers[flowFile.ID] = relationship
+        s.mu.Unlock()
+
+        s.logger.Debug("Transferred FlowFile", "id", flowFile.ID, "relationship", relationship.Name)
+}</span>
+
+// Remove removes a FlowFile from the session
+func (s *ProcessSessionImpl) Remove(flowFile *types.FlowFile) <span class="cov0" title="0">{
+        s.mu.Lock()
+        s.removals = append(s.removals, flowFile.ID)
+        delete(s.flowFiles, flowFile.ID)
+        s.mu.Unlock()
+
+        s.logger.Debug("Removed FlowFile", "id", flowFile.ID)
+}</span>
+
+// PutAttribute adds or updates an attribute
+func (s *ProcessSessionImpl) PutAttribute(flowFile *types.FlowFile, key, value string) <span class="cov8" title="1">{
+        s.mu.Lock()
+        defer s.mu.Unlock()
+
+        // Track modification
+        if _, exists := s.modifications[flowFile.ID]; !exists </span><span class="cov8" title="1">{
+                // Create a copy for modification tracking
+                modified := *flowFile
+                modified.Attributes = make(map[string]string)
+                for k, v := range flowFile.Attributes </span><span class="cov0" title="0">{
+                        modified.Attributes[k] = v
+                }</span>
+                <span class="cov8" title="1">s.modifications[flowFile.ID] = &amp;modified</span>
+        }
+
+        <span class="cov8" title="1">flowFile.UpdateAttribute(key, value)
+        s.modifications[flowFile.ID].UpdateAttribute(key, value)
+
+        s.logger.Debug("Updated FlowFile attribute", "id", flowFile.ID, "key", key, "value", value)</span>
+}
+
+// PutAllAttributes updates multiple attributes
+func (s *ProcessSessionImpl) PutAllAttributes(flowFile *types.FlowFile, attributes map[string]string) <span class="cov0" title="0">{
+        s.mu.Lock()
+        defer s.mu.Unlock()
+
+        // Track modification
+        if _, exists := s.modifications[flowFile.ID]; !exists </span><span class="cov0" title="0">{
+                modified := *flowFile
+                modified.Attributes = make(map[string]string)
+                for k, v := range flowFile.Attributes </span><span class="cov0" title="0">{
+                        modified.Attributes[k] = v
+                }</span>
+                <span class="cov0" title="0">s.modifications[flowFile.ID] = &amp;modified</span>
+        }
+
+        <span class="cov0" title="0">for key, value := range attributes </span><span class="cov0" title="0">{
+                flowFile.UpdateAttribute(key, value)
+                s.modifications[flowFile.ID].UpdateAttribute(key, value)
+        }</span>
+
+        <span class="cov0" title="0">s.logger.Debug("Updated FlowFile attributes", "id", flowFile.ID, "count", len(attributes))</span>
+}
+
+// RemoveAttribute removes an attribute
+func (s *ProcessSessionImpl) RemoveAttribute(flowFile *types.FlowFile, key string) <span class="cov0" title="0">{
+        s.mu.Lock()
+        defer s.mu.Unlock()
+
+        // Track modification
+        if _, exists := s.modifications[flowFile.ID]; !exists </span><span class="cov0" title="0">{
+                modified := *flowFile
+                modified.Attributes = make(map[string]string)
+                for k, v := range flowFile.Attributes </span><span class="cov0" title="0">{
+                        modified.Attributes[k] = v
+                }</span>
+                <span class="cov0" title="0">s.modifications[flowFile.ID] = &amp;modified</span>
+        }
+
+        <span class="cov0" title="0">flowFile.RemoveAttribute(key)
+        s.modifications[flowFile.ID].RemoveAttribute(key)
+
+        s.logger.Debug("Removed FlowFile attribute", "id", flowFile.ID, "key", key)</span>
+}
+
+// Write writes content to a FlowFile
+func (s *ProcessSessionImpl) Write(flowFile *types.FlowFile, content []byte) error <span class="cov0" title="0">{
+        s.mu.Lock()
+        defer s.mu.Unlock()
+
+        // Store content and get claim
+        claim, err := s.contentRepo.Store(content)
+        if err != nil </span><span class="cov0" title="0">{
+                return fmt.Errorf("failed to store content: %w", err)
+        }</span>
+
+        // Decrement reference count on old content claim
+        <span class="cov0" title="0">if flowFile.ContentClaim != nil </span><span class="cov0" title="0">{
+                s.contentRepo.DecrementRef(flowFile.ContentClaim)
+        }</span>
+
+        // Update FlowFile with new content claim
+        <span class="cov0" title="0">flowFile.ContentClaim = claim
+        flowFile.Size = claim.Length
+        flowFile.UpdatedAt = time.Now()
+
+        // Track modification
+        if _, exists := s.modifications[flowFile.ID]; !exists </span><span class="cov0" title="0">{
+                modified := *flowFile
+                s.modifications[flowFile.ID] = &amp;modified
+        }</span> else<span class="cov0" title="0"> {
+                s.modifications[flowFile.ID].ContentClaim = claim
+                s.modifications[flowFile.ID].Size = claim.Length
+                s.modifications[flowFile.ID].UpdatedAt = flowFile.UpdatedAt
+        }</span>
+
+        <span class="cov0" title="0">s.logger.Debug("Wrote content to FlowFile", "id", flowFile.ID, "size", len(content))
+        return nil</span>
+}
+
+// Read reads content from a FlowFile
+func (s *ProcessSessionImpl) Read(flowFile *types.FlowFile) ([]byte, error) <span class="cov0" title="0">{
+        if flowFile.ContentClaim == nil </span><span class="cov0" title="0">{
+                return nil, fmt.Errorf("FlowFile has no content claim")
+        }</span>
+
+        <span class="cov0" title="0">content, err := s.contentRepo.Get(flowFile.ContentClaim)
+        if err != nil </span><span class="cov0" title="0">{
+                return nil, fmt.Errorf("failed to read content: %w", err)
+        }</span>
+
+        <span class="cov0" title="0">s.logger.Debug("Read content from FlowFile", "id", flowFile.ID, "size", len(content))
+        return content, nil</span>
+}
+
+// Commit commits all changes in the session
+func (s *ProcessSessionImpl) Commit() error <span class="cov0" title="0">{
+        s.mu.Lock()
+        defer s.mu.Unlock()
+
+        if s.committed || s.rolledBack </span><span class="cov0" title="0">{
+                return fmt.Errorf("session already finalized")
+        }</span>
+
+        // Store all created and modified FlowFiles
+        <span class="cov0" title="0">for _, flowFile := range s.creations </span><span class="cov0" title="0">{
+                if err := s.flowFileRepo.Store(flowFile); err != nil </span><span class="cov0" title="0">{
+                        return fmt.Errorf("failed to store created FlowFile: %w", err)
+                }</span>
+        }
+
+        <span class="cov0" title="0">for id, modified := range s.modifications </span><span class="cov0" title="0">{
+                if err := s.flowFileRepo.Store(modified); err != nil </span><span class="cov0" title="0">{
+                        return fmt.Errorf("failed to store modified FlowFile %s: %w", id, err)
+                }</span>
+        }
+
+        // Remove FlowFiles marked for removal
+        <span class="cov0" title="0">for _, id := range s.removals </span><span class="cov0" title="0">{
+                if err := s.flowFileRepo.Delete(id); err != nil </span><span class="cov0" title="0">{
+                        s.logger.Warn("Failed to delete FlowFile", "id", id, "error", err)
+                }</span>
+        }
+
+        // Create provenance events
+        <span class="cov0" title="0">for id, relationship := range s.transfers </span><span class="cov0" title="0">{
+                event := &amp;ProvenanceEvent{
+                        ID:            uuid.New(),
+                        EventType:     "ROUTE",
+                        FlowFileID:    id,
+                        ProcessorID:   uuid.New(), // TODO: Get actual processor ID
+                        ProcessorName: "Unknown",  // TODO: Get actual processor name
+                        EventTime:     time.Now(),
+                        Details:       fmt.Sprintf("Routed to %s", relationship.Name),
+                }
+
+                if err := s.provenanceRepo.Store(event); err != nil </span><span class="cov0" title="0">{
+                        s.logger.Warn("Failed to store provenance event", "error", err)
+                }</span>
+        }
+
+        <span class="cov0" title="0">s.committed = true
+        s.logger.Debug("Session committed successfully", "sessionId", s.id)
+        return nil</span>
+}
+
+// Rollback rolls back all changes in the session
+func (s *ProcessSessionImpl) Rollback() <span class="cov0" title="0">{
+        s.mu.Lock()
+        defer s.mu.Unlock()
+
+        if s.committed || s.rolledBack </span><span class="cov0" title="0">{
+                return
+        }</span>
+
+        // Decrement reference counts on any content claims that were incremented
+        <span class="cov0" title="0">for _, flowFile := range s.creations </span><span class="cov0" title="0">{
+                if flowFile.ContentClaim != nil </span><span class="cov0" title="0">{
+                        s.contentRepo.DecrementRef(flowFile.ContentClaim)
+                }</span>
+        }
+
+        // Clear all transaction state
+        <span class="cov0" title="0">s.flowFiles = make(map[uuid.UUID]*types.FlowFile)
+        s.transfers = make(map[uuid.UUID]types.Relationship)
+        s.removals = nil
+        s.creations = nil
+        s.modifications = make(map[uuid.UUID]*types.FlowFile)
+        s.rolledBack = true
+
+        s.logger.Debug("Session rolled back", "sessionId", s.id)</span>
+}
+
+// GetLogger returns a logger for the session
+func (s *ProcessSessionImpl) GetLogger() types.Logger <span class="cov0" title="0">{
+        return s.logger
+}</span>
+
+// IsCommitted returns whether the session has been committed
+func (s *ProcessSessionImpl) IsCommitted() bool <span class="cov0" title="0">{
+        s.mu.RLock()
+        defer s.mu.RUnlock()
+        return s.committed
+}</span>
+
+// IsRolledBack returns whether the session has been rolled back
+func (s *ProcessSessionImpl) IsRolledBack() bool <span class="cov0" title="0">{
+        s.mu.RLock()
+        defer s.mu.RUnlock()
+        return s.rolledBack
+}</pre>
+		
+		<pre class="file" id="file6" style="display: none">package types
+
+import (
+        "time"
+
+        "github.com/google/uuid"
+)
+
+// FlowFile represents a data unit in the flow with metadata and content reference
+type FlowFile struct {
+        ID          uuid.UUID         `json:"id"`
+        ContentClaim *ContentClaim    `json:"contentClaim,omitempty"`
+        Attributes   map[string]string `json:"attributes"`
+        Size         int64            `json:"size"`
+        CreatedAt    time.Time        `json:"createdAt"`
+        UpdatedAt    time.Time        `json:"updatedAt"`
+        Lineage      LineageInfo      `json:"lineage"`
+}
+
+// ContentClaim represents a reference to stored content
+type ContentClaim struct {
+        ID        uuid.UUID `json:"id"`
+        Container string    `json:"container"`
+        Section   string    `json:"section"`
+        Offset    int64     `json:"offset"`
+        Length    int64     `json:"length"`
+        RefCount  int32     `json:"refCount"`
+}
+
+// LineageInfo tracks data lineage for provenance
+type LineageInfo struct {
+        LineageStartDate time.Time   `json:"lineageStartDate"`
+        ParentUUIDs      []uuid.UUID `json:"parentUuids,omitempty"`
+        SourceQueue      string      `json:"sourceQueue,omitempty"`
+}
+
+// FlowFileBuilder provides a builder pattern for creating FlowFiles
+type FlowFileBuilder struct {
+        flowFile *FlowFile
+}
+
+// NewFlowFile creates a new FlowFile with default values
+func NewFlowFile() *FlowFile <span class="cov10" title="17">{
+        now := time.Now()
+        return &amp;FlowFile{
+                ID:         uuid.New(),
+                Attributes: make(map[string]string),
+                CreatedAt:  now,
+                UpdatedAt:  now,
+                Lineage: LineageInfo{
+                        LineageStartDate: now,
+                },
+        }
+}</span>
+
+// NewFlowFileBuilder creates a new FlowFileBuilder
+func NewFlowFileBuilder() *FlowFileBuilder <span class="cov3" title="2">{
+        return &amp;FlowFileBuilder{
+                flowFile: NewFlowFile(),
+        }
+}</span>
+
+// WithAttribute adds an attribute to the FlowFile
+func (b *FlowFileBuilder) WithAttribute(key, value string) *FlowFileBuilder <span class="cov1" title="1">{
+        b.flowFile.Attributes[key] = value
+        return b
+}</span>
+
+// WithAttributes sets multiple attributes
+func (b *FlowFileBuilder) WithAttributes(attrs map[string]string) *FlowFileBuilder <span class="cov1" title="1">{
+        for k, v := range attrs </span><span class="cov3" title="2">{
+                b.flowFile.Attributes[k] = v
+        }</span>
+        <span class="cov1" title="1">return b</span>
+}
+
+// WithContentClaim sets the content claim
+func (b *FlowFileBuilder) WithContentClaim(claim *ContentClaim) *FlowFileBuilder <span class="cov1" title="1">{
+        b.flowFile.ContentClaim = claim
+        b.flowFile.Size = claim.Length
+        return b
+}</span>
+
+// WithParent sets parent lineage information
+func (b *FlowFileBuilder) WithParent(parent *FlowFile) *FlowFileBuilder <span class="cov3" title="2">{
+        b.flowFile.Lineage.ParentUUIDs = []uuid.UUID{parent.ID}
+        b.flowFile.Lineage.LineageStartDate = parent.Lineage.LineageStartDate
+        return b
+}</span>
+
+// Build creates the final FlowFile
+func (b *FlowFileBuilder) Build() *FlowFile <span class="cov3" title="2">{
+        return b.flowFile
+}</span>
+
+// Clone creates a deep copy of the FlowFile
+func (f *FlowFile) Clone() *FlowFile <span class="cov3" title="2">{
+        clone := &amp;FlowFile{
+                ID:        uuid.New(), // New ID for clone
+                Size:      f.Size,
+                CreatedAt: time.Now(),
+                UpdatedAt: time.Now(),
+                Lineage: LineageInfo{
+                        LineageStartDate: f.Lineage.LineageStartDate,
+                        ParentUUIDs:      []uuid.UUID{f.ID}, // Original becomes parent
+                        SourceQueue:      f.Lineage.SourceQueue,
+                },
+        }
+
+        // Deep copy attributes
+        clone.Attributes = make(map[string]string)
+        for k, v := range f.Attributes </span><span class="cov4" title="3">{
+                clone.Attributes[k] = v
+        }</span>
+
+        // Copy content claim reference (increases ref count)
+        <span class="cov3" title="2">if f.ContentClaim != nil </span><span class="cov1" title="1">{
+                clone.ContentClaim = &amp;ContentClaim{
+                        ID:        f.ContentClaim.ID,
+                        Container: f.ContentClaim.Container,
+                        Section:   f.ContentClaim.Section,
+                        Offset:    f.ContentClaim.Offset,
+                        Length:    f.ContentClaim.Length,
+                        RefCount:  f.ContentClaim.RefCount + 1, // Increment reference count
+                }
+        }</span>
+
+        <span class="cov3" title="2">return clone</span>
+}
+
+// UpdateAttribute updates or adds an attribute
+func (f *FlowFile) UpdateAttribute(key, value string) <span class="cov5" title="4">{
+        f.Attributes[key] = value
+        f.UpdatedAt = time.Now()
+}</span>
+
+// RemoveAttribute removes an attribute
+func (f *FlowFile) RemoveAttribute(key string) <span class="cov4" title="3">{
+        delete(f.Attributes, key)
+        f.UpdatedAt = time.Now()
+}</span>
+
+// GetAttribute safely gets an attribute value
+func (f *FlowFile) GetAttribute(key string) (string, bool) <span class="cov3" title="2">{
+        value, exists := f.Attributes[key]
+        return value, exists
+}</pre>
+		
+		<pre class="file" id="file7" style="display: none">package types
+
+import (
+        "context"
+        "time"
+
+        "github.com/google/uuid"
+)
+
+// Processor represents a processing component in the flow
+type Processor interface {
+        // Initialize is called once when the processor is created
+        Initialize(ctx ProcessorContext) error
+
+        // OnTrigger is called to process FlowFiles
+        OnTrigger(ctx context.Context, session ProcessSession) error
+
+        // GetInfo returns processor metadata
+        GetInfo() ProcessorInfo
+
+        // Validate validates the processor configuration
+        Validate(config ProcessorConfig) []ValidationResult
+
+        // OnStopped is called when the processor is stopped
+        OnStopped(ctx context.Context)
+}
+
+// ProcessorInfo contains metadata about a processor
+type ProcessorInfo struct {
+        Name         string            `json:"name"`
+        Description  string            `json:"description"`
+        Version      string            `json:"version"`
+        Author       string            `json:"author"`
+        Tags         []string          `json:"tags"`
+        Properties   []PropertySpec    `json:"properties"`
+        Relationships []Relationship   `json:"relationships"`
+}
+
+// PropertySpec defines a processor property specification
+type PropertySpec struct {
+        Name         string `json:"name"`
+        Description  string `json:"description"`
+        Required     bool   `json:"required"`
+        Sensitive    bool   `json:"sensitive"`
+        DefaultValue string `json:"defaultValue"`
+        AllowedValues []string `json:"allowedValues,omitempty"`
+        Pattern      string `json:"pattern,omitempty"`
+}
+
+// Relationship defines how FlowFiles are routed after processing
+type Relationship struct {
+        Name        string `json:"name"`
+        Description string `json:"description"`
+        AutoTerminate bool `json:"autoTerminate"`
+}
+
+// Common relationships
+var (
+        RelationshipSuccess = Relationship{
+                Name:        "success",
+                Description: "FlowFiles that are successfully processed",
+        }
+        RelationshipFailure = Relationship{
+                Name:        "failure",
+                Description: "FlowFiles that failed processing",
+        }
+        RelationshipRetry = Relationship{
+                Name:        "retry",
+                Description: "FlowFiles that should be retried",
+        }
+        RelationshipOriginal = Relationship{
+                Name:        "original",
+                Description: "The original FlowFile",
+        }
+)
+
+// ProcessorConfig contains processor configuration
+type ProcessorConfig struct {
+        ID            uuid.UUID         `json:"id"`
+        Name          string           `json:"name"`
+        Type          string           `json:"type"`
+        Properties    map[string]string `json:"properties"`
+        ScheduleType  ScheduleType     `json:"scheduleType"`
+        ScheduleValue string           `json:"scheduleValue"`
+        Concurrency   int              `json:"concurrency"`
+        AutoTerminate map[string]bool  `json:"autoTerminate"`
+}
+
+// ScheduleType defines how a processor is scheduled
+type ScheduleType string
+
+const (
+        ScheduleTypeTimer       ScheduleType = "TIMER_DRIVEN"
+        ScheduleTypeEvent       ScheduleType = "EVENT_DRIVEN"
+        ScheduleTypeCron        ScheduleType = "CRON_DRIVEN"
+        ScheduleTypePrimaryNode ScheduleType = "PRIMARY_NODE_ONLY"
+)
+
+// ValidationResult represents a configuration validation result
+type ValidationResult struct {
+        Property string `json:"property"`
+        Valid    bool   `json:"valid"`
+        Message  string `json:"message"`
+}
+
+// ProcessorContext provides access to processor services and configuration
+type ProcessorContext interface {
+        GetProperty(name string) (string, bool)
+        GetPropertyValue(name string) string
+        HasProperty(name string) bool
+        GetProcessorConfig() ProcessorConfig
+        GetLogger() Logger
+}
+
+// ProcessSession provides transactional access to FlowFiles
+type ProcessSession interface {
+        // Get retrieves a FlowFile from the input queue
+        Get() *FlowFile
+
+        // GetBatch retrieves multiple FlowFiles up to maxResults
+        GetBatch(maxResults int) []*FlowFile
+
+        // Create creates a new FlowFile
+        Create() *FlowFile
+
+        // CreateChild creates a child FlowFile from a parent
+        CreateChild(parent *FlowFile) *FlowFile
+
+        // Clone creates a copy of a FlowFile
+        Clone(original *FlowFile) *FlowFile
+
+        // Transfer routes a FlowFile to a relationship
+        Transfer(flowFile *FlowFile, relationship Relationship)
+
+        // Remove removes a FlowFile from the session
+        Remove(flowFile *FlowFile)
+
+        // PutAttribute adds or updates an attribute
+        PutAttribute(flowFile *FlowFile, key, value string)
+
+        // PutAllAttributes updates multiple attributes
+        PutAllAttributes(flowFile *FlowFile, attributes map[string]string)
+
+        // RemoveAttribute removes an attribute
+        RemoveAttribute(flowFile *FlowFile, key string)
+
+        // Write writes content to a FlowFile
+        Write(flowFile *FlowFile, content []byte) error
+
+        // Read reads content from a FlowFile
+        Read(flowFile *FlowFile) ([]byte, error)
+
+        // Commit commits all changes in the session
+        Commit() error
+
+        // Rollback rolls back all changes in the session
+        Rollback()
+
+        // GetLogger returns a logger for the session
+        GetLogger() Logger
+}
+
+// ProcessorStatus represents the current status of a processor
+type ProcessorStatus struct {
+        ID                uuid.UUID `json:"id"`
+        Name              string    `json:"name"`
+        Type              string    `json:"type"`
+        State             ProcessorState `json:"state"`
+        FlowFilesIn       int64     `json:"flowFilesIn"`
+        FlowFilesOut      int64     `json:"flowFilesOut"`
+        BytesIn           int64     `json:"bytesIn"`
+        BytesOut          int64     `json:"bytesOut"`
+        TasksCompleted    int64     `json:"tasksCompleted"`
+        TasksRunning      int       `json:"tasksRunning"`
+        AverageTaskTime   time.Duration `json:"averageTaskTime"`
+        LastRun           time.Time `json:"lastRun"`
+        ValidationErrors  []string  `json:"validationErrors,omitempty"`
+}
+
+// ProcessorState represents the processor lifecycle state
+type ProcessorState string
+
+const (
+        ProcessorStateStopped  ProcessorState = "STOPPED"
+        ProcessorStateRunning  ProcessorState = "RUNNING"
+        ProcessorStateDisabled ProcessorState = "DISABLED"
+        ProcessorStateInvalid  ProcessorState = "INVALID"
+)
+
+// Logger interface for processor logging
+type Logger interface {
+        Debug(msg string, fields ...interface{})
+        Info(msg string, fields ...interface{})
+        Warn(msg string, fields ...interface{})
+        Error(msg string, fields ...interface{})
+}
+
+// BaseProcessor provides common processor functionality
+type BaseProcessor struct {
+        info ProcessorInfo
+}
+
+// NewBaseProcessor creates a new BaseProcessor
+func NewBaseProcessor(info ProcessorInfo) *BaseProcessor <span class="cov10" title="7">{
+        return &amp;BaseProcessor{info: info}
+}</span>
+
+// GetInfo returns processor information
+func (p *BaseProcessor) GetInfo() ProcessorInfo <span class="cov1" title="1">{
+        return p.info
+}</span>
+
+// Validate provides default validation (override in specific processors)
+func (p *BaseProcessor) Validate(config ProcessorConfig) []ValidationResult <span class="cov6" title="3">{
+        var results []ValidationResult
+
+        // Validate required properties
+        for _, prop := range p.info.Properties </span><span class="cov9" title="6">{
+                if prop.Required </span><span class="cov6" title="3">{
+                        if value, exists := config.Properties[prop.Name]; !exists || value == "" </span><span class="cov4" title="2">{
+                                results = append(results, ValidationResult{
+                                        Property: prop.Name,
+                                        Valid:    false,
+                                        Message:  "Required property is missing or empty",
+                                })
+                        }</span>
+                }
+        }
+
+        <span class="cov6" title="3">return results</span>
+}
+
+// OnStopped provides default cleanup (override if needed)
+func (p *BaseProcessor) OnStopped(ctx context.Context) {<span class="cov0" title="0">
+        // Default implementation does nothing
+}</pre>
+		
+		<pre class="file" id="file8" style="display: none">package plugins
+
+import (
+        "context"
+        "fmt"
+        "time"
+
+        "github.com/google/uuid"
+        "github.com/shawntherrien/databridge/pkg/types"
+)
+
+// GenerateFlowFileProcessor creates FlowFiles with configurable content
+type GenerateFlowFileProcessor struct {
+        *types.BaseProcessor
+}
+
+// NewGenerateFlowFileProcessor creates a new GenerateFlowFile processor
+func NewGenerateFlowFileProcessor() *GenerateFlowFileProcessor <span class="cov7" title="7">{
+        info := types.ProcessorInfo{
+                Name:        "GenerateFlowFile",
+                Description: "Generates FlowFiles with configurable content at regular intervals",
+                Version:     "1.0.0",
+                Author:      "DataBridge",
+                Tags:        []string{"generate", "source", "testing"},
+                Properties: []types.PropertySpec{
+                        {
+                                Name:         "File Size",
+                                Description:  "Size of the generated content in bytes",
+                                Required:     true,
+                                DefaultValue: "1024",
+                                Pattern:      `^\d+$`,
+                        },
+                        {
+                                Name:         "Content",
+                                Description:  "Content to generate (will be repeated to reach file size)",
+                                Required:     false,
+                                DefaultValue: "Hello, DataBridge!",
+                        },
+                        {
+                                Name:         "Unique FlowFiles",
+                                Description:  "Whether to generate unique content for each FlowFile",
+                                Required:     false,
+                                DefaultValue: "true",
+                                AllowedValues: []string{"true", "false"},
+                        },
+                        {
+                                Name:         "Custom Text",
+                                Description:  "Custom text to include in generated content",
+                                Required:     false,
+                                DefaultValue: "",
+                        },
+                },
+                Relationships: []types.Relationship{
+                        types.RelationshipSuccess,
+                },
+        }
+
+        return &amp;GenerateFlowFileProcessor{
+                BaseProcessor: types.NewBaseProcessor(info),
+        }
+}</span>
+
+// Initialize initializes the processor
+func (p *GenerateFlowFileProcessor) Initialize(ctx types.ProcessorContext) error <span class="cov3" title="2">{
+        logger := ctx.GetLogger()
+        logger.Info("Initializing GenerateFlowFile processor")
+
+        // Validate required properties
+        if !ctx.HasProperty("File Size") </span><span class="cov1" title="1">{
+                return fmt.Errorf("File Size property is required")
+        }</span>
+
+        <span class="cov1" title="1">return nil</span>
+}
+
+// OnTrigger processes the trigger event
+func (p *GenerateFlowFileProcessor) OnTrigger(ctx context.Context, session types.ProcessSession) error <span class="cov3" title="2">{
+        logger := session.GetLogger()
+
+        // Get processor context to access properties
+        processorCtx, ok := ctx.Value("processorContext").(types.ProcessorContext)
+        if !ok </span><span class="cov1" title="1">{
+                return fmt.Errorf("processor context not available")
+        }</span>
+
+        // Read configuration properties
+        <span class="cov1" title="1">fileSizeStr := processorCtx.GetPropertyValue("File Size")
+        content := processorCtx.GetPropertyValue("Content")
+        uniqueStr := processorCtx.GetPropertyValue("Unique FlowFiles")
+        customText := processorCtx.GetPropertyValue("Custom Text")
+
+        // Parse file size
+        var fileSize int64 = 1024 // default
+        if fileSizeStr != "" </span><span class="cov1" title="1">{
+                if _, err := fmt.Sscanf(fileSizeStr, "%d", &amp;fileSize); err != nil </span><span class="cov0" title="0">{
+                        logger.Warn("Invalid File Size, using default", "fileSize", fileSizeStr, "error", err)
+                }</span>
+        }
+
+        // Create new FlowFile
+        <span class="cov1" title="1">flowFile := session.Create()
+
+        // Generate content
+        generatedContent := p.generateContent(content, customText, uniqueStr == "true", fileSize)
+
+        // Write content to FlowFile
+        if err := session.Write(flowFile, []byte(generatedContent)); err != nil </span><span class="cov0" title="0">{
+                logger.Error("Failed to write content to FlowFile", "error", err)
+                session.Remove(flowFile)
+                return fmt.Errorf("failed to write content: %w", err)
+        }</span>
+
+        // Set standard attributes
+        <span class="cov1" title="1">session.PutAttribute(flowFile, "filename", fmt.Sprintf("generated_%s.txt", flowFile.ID.String()[:8]))
+        session.PutAttribute(flowFile, "generated.timestamp", time.Now().Format(time.RFC3339))
+        session.PutAttribute(flowFile, "generated.size", fmt.Sprintf("%d", fileSize))
+        session.PutAttribute(flowFile, "generator.type", "GenerateFlowFile")
+
+        // Add custom text as attribute if provided
+        if customText != "" </span><span class="cov1" title="1">{
+                session.PutAttribute(flowFile, "custom.text", customText)
+        }</span>
+
+        // Transfer to success relationship
+        <span class="cov1" title="1">session.Transfer(flowFile, types.RelationshipSuccess)
+
+        logger.Info("Generated FlowFile",
+                "flowFileId", flowFile.ID,
+                "size", fileSize,
+                "filename", fmt.Sprintf("generated_%s.txt", flowFile.ID.String()[:8]))
+
+        return nil</span>
+}
+
+// Validate validates the processor configuration
+func (p *GenerateFlowFileProcessor) Validate(config types.ProcessorConfig) []types.ValidationResult <span class="cov5" title="4">{
+        results := p.BaseProcessor.Validate(config)
+
+        // Additional validation
+        if fileSizeStr, exists := config.Properties["File Size"]; exists </span><span class="cov5" title="4">{
+                var fileSize int64
+                if _, err := fmt.Sscanf(fileSizeStr, "%d", &amp;fileSize); err != nil || fileSize &lt;= 0 </span><span class="cov3" title="2">{
+                        results = append(results, types.ValidationResult{
+                                Property: "File Size",
+                                Valid:    false,
+                                Message:  "File Size must be a positive integer",
+                        })
+                }</span> else<span class="cov3" title="2"> if fileSize &gt; 1024*1024*100 </span><span class="cov1" title="1">{ // 100MB limit
+                        results = append(results, types.ValidationResult{
+                                Property: "File Size",
+                                Valid:    false,
+                                Message:  "File Size cannot exceed 100MB",
+                        })
+                }</span>
+        }
+
+        <span class="cov5" title="4">return results</span>
+}
+
+// OnStopped cleanup when processor is stopped
+func (p *GenerateFlowFileProcessor) OnStopped(ctx context.Context) {<span class="cov1" title="1">
+        // No cleanup needed for this processor
+}</span>
+
+// generateContent generates content based on configuration
+func (p *GenerateFlowFileProcessor) generateContent(baseContent, customText string, unique bool, targetSize int64) string <span class="cov6" title="5">{
+        if baseContent == "" </span><span class="cov1" title="1">{
+                baseContent = "Hello, DataBridge!"
+        }</span>
+
+        // Add custom text if provided
+        <span class="cov6" title="5">if customText != "" </span><span class="cov5" title="4">{
+                baseContent = fmt.Sprintf("%s - %s", baseContent, customText)
+        }</span>
+
+        // Add unique identifier if requested
+        <span class="cov6" title="5">if unique </span><span class="cov3" title="2">{
+                baseContent = fmt.Sprintf("[%s] %s", uuid.New().String()[:8], baseContent)
+        }</span>
+
+        // Add timestamp
+        <span class="cov6" title="5">baseContent = fmt.Sprintf("[%s] %s", time.Now().Format("2006-01-02 15:04:05"), baseContent)
+
+        // Repeat content to reach target size
+        var result string
+        for int64(len(result)) &lt; targetSize </span><span class="cov10" title="13">{
+                if int64(len(result)+len(baseContent)) &lt;= targetSize </span><span class="cov8" title="8">{
+                        result += baseContent + "\n"
+                }</span> else<span class="cov6" title="5"> {
+                        // Add partial content to reach exact size
+                        remaining := targetSize - int64(len(result))
+                        result += baseContent[:remaining]
+                        break</span>
+                }
+        }
+
+        <span class="cov6" title="5">return result</span>
+}</pre>
+		
+		</div>
+	</body>
+	<script>
+	(function() {
+		var files = document.getElementById('files');
+		var visible;
+		files.addEventListener('change', onChange, false);
+		function select(part) {
+			if (visible)
+				visible.style.display = 'none';
+			visible = document.getElementById(part);
+			if (!visible)
+				return;
+			files.value = part;
+			visible.style.display = 'block';
+			location.hash = part;
+		}
+		function onChange() {
+			select(files.value);
+			window.scrollTo(0, 0);
+		}
+		if (location.hash != "") {
+			select(location.hash.substr(1));
+		}
+		if (!visible) {
+			select("file0");
+		}
+	})();
+	</script>
+</html>

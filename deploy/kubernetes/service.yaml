@@ -1,0 +1,41 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: databridge
+  namespace: databridge
+  labels:
+    app: databridge
+    component: backend
+spec:
+  type: LoadBalancer
+  ports:
+  - name: http
+    port: 8080
+    targetPort: 8080
+    protocol: TCP
+  selector:
+    app: databridge
+    component: backend
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: databridge-headless
+  namespace: databridge
+  labels:
+    app: databridge
+    component: backend
+spec:
+  clusterIP: None
+  ports:
+  - name: http
+    port: 8080
+    targetPort: 8080
+    protocol: TCP
+  - name: raft
+    port: 9000
+    targetPort: 9000
+    protocol: TCP
+  selector:
+    app: databridge
+    component: backend

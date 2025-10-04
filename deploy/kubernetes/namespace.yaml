@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: databridge
+  labels:
+    name: databridge
+    environment: production

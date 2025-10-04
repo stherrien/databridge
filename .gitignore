@@ -1,0 +1,52 @@
+# DataBridge specific
+data/
+data-dev/
+*.db
+*.mem
+*.vlog
+*.sst
+build/databridge
+
+# Go
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+*.test
+*.out
+go.work
+coverage.out
+coverage/
+*.prof
+
+# Frontend / Node
+node_modules/
+.next/
+out/
+dist/
+.cache/
+.turbo/
+
+# Environment
+.env
+.env.local
+.env.*.local
+*.env
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Logs
+*.log
+logs/
+
+# Temp files
+tmp/
+temp/
+*.tmp

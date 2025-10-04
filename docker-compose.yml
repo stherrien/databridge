@@ -1,0 +1,167 @@
+version: '3.8'
+
+services:
+  # Single DataBridge node
+  databridge:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        VERSION: ${VERSION:-dev}
+        BUILD_DATE: ${BUILD_DATE:-$(date -u +%Y-%m-%dT%H:%M:%SZ)}
+        GIT_COMMIT: ${GIT_COMMIT:-unknown}
+    image: databridge:${VERSION:-latest}
+    container_name: databridge
+    ports:
+      - "8080:8080"
+      - "3000:3000"
+    environment:
+      - DATA_DIR=/app/data
+      - LOG_LEVEL=${LOG_LEVEL:-info}
+      - API_PORT=8080
+      - CLUSTER_ENABLED=false
+    volumes:
+      - databridge-data:/app/data
+      - databridge-logs:/app/data/logs
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    networks:
+      - databridge-network
+
+  # DataBridge cluster setup (3 nodes)
+  databridge-node1:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: databridge:${VERSION:-latest}
+    container_name: databridge-node1
+    ports:
+      - "8081:8080"
+      - "9001:9000"
+    environment:
+      - DATA_DIR=/app/data
+      - LOG_LEVEL=${LOG_LEVEL:-info}
+      - API_PORT=8080
+      - CLUSTER_ENABLED=true
+      - CLUSTER_NODE_ID=node1
+      - CLUSTER_BIND_ADDR=0.0.0.0:9000
+      - CLUSTER_ADVERTISE_ADDR=databridge-node1:9000
+      - CLUSTER_PEERS=databridge-node1:9000,databridge-node2:9000,databridge-node3:9000
+      - RAFT_DIR=/app/data/raft
+    volumes:
+      - databridge-node1-data:/app/data
+    restart: unless-stopped
+    networks:
+      - databridge-network
+    profiles:
+      - cluster
+
+  databridge-node2:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: databridge:${VERSION:-latest}
+    container_name: databridge-node2
+    ports:
+      - "8082:8080"
+      - "9002:9000"
+    environment:
+      - DATA_DIR=/app/data
+      - LOG_LEVEL=${LOG_LEVEL:-info}
+      - API_PORT=8080
+      - CLUSTER_ENABLED=true
+      - CLUSTER_NODE_ID=node2
+      - CLUSTER_BIND_ADDR=0.0.0.0:9000
+      - CLUSTER_ADVERTISE_ADDR=databridge-node2:9000
+      - CLUSTER_PEERS=databridge-node1:9000,databridge-node2:9000,databridge-node3:9000
+      - RAFT_DIR=/app/data/raft
+    volumes:
+      - databridge-node2-data:/app/data
+    restart: unless-stopped
+    networks:
+      - databridge-network
+    profiles:
+      - cluster
+
+  databridge-node3:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: databridge:${VERSION:-latest}
+    container_name: databridge-node3
+    ports:
+      - "8083:8080"
+      - "9003:9000"
+    environment:
+      - DATA_DIR=/app/data
+      - LOG_LEVEL=${LOG_LEVEL:-info}
+      - API_PORT=8080
+      - CLUSTER_ENABLED=true
+      - CLUSTER_NODE_ID=node3
+      - CLUSTER_BIND_ADDR=0.0.0.0:9000
+      - CLUSTER_ADVERTISE_ADDR=databridge-node3:9000
+      - CLUSTER_PEERS=databridge-node1:9000,databridge-node2:9000,databridge-node3:9000
+      - RAFT_DIR=/app/data/raft
+    volumes:
+      - databridge-node3-data:/app/data
+    restart: unless-stopped
+    networks:
+      - databridge-network
+    profiles:
+      - cluster
+
+  # Monitoring stack (optional)
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: databridge-prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./deploy/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+      - prometheus-data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/usr/share/prometheus/console_libraries'
+      - '--web.console.templates=/usr/share/prometheus/consoles'
+    networks:
+      - databridge-network
+    profiles:
+      - monitoring
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: databridge-grafana
+    ports:
+      - "3001:3000"
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_PASSWORD:-admin}
+      - GF_USERS_ALLOW_SIGN_UP=false
+    volumes:
+      - ./deploy/grafana/provisioning:/etc/grafana/provisioning
+      - ./deploy/grafana/dashboards:/var/lib/grafana/dashboards
+      - grafana-data:/var/lib/grafana
+    networks:
+      - databridge-network
+    profiles:
+      - monitoring
+    depends_on:
+      - prometheus
+
+networks:
+  databridge-network:
+    driver: bridge
+
+volumes:
+  databridge-data:
+  databridge-logs:
+  databridge-node1-data:
+  databridge-node2-data:
+  databridge-node3-data:
+  prometheus-data:
+  grafana-data:

@@ -1,0 +1,122 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: databridge
+  namespace: databridge
+  labels:
+    app: databridge
+    component: backend
+spec:
+  serviceName: databridge-headless
+  replicas: 3
+  selector:
+    matchLabels:
+      app: databridge
+      component: backend
+  template:
+    metadata:
+      labels:
+        app: databridge
+        component: backend
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8080"
+        prometheus.io/path: "/api/metrics"
+    spec:
+      terminationGracePeriodSeconds: 30
+      securityContext:
+        runAsUser: 1000
+        runAsGroup: 1000
+        fsGroup: 1000
+      containers:
+      - name: databridge
+        image: databridge:latest
+        imagePullPolicy: IfNotPresent
+        ports:
+        - name: http
+          containerPort: 8080
+          protocol: TCP
+        - name: raft
+          containerPort: 9000
+          protocol: TCP
+        env:
+        - name: POD_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.name
+        - name: POD_NAMESPACE
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.namespace
+        - name: POD_IP
+          valueFrom:
+            fieldRef:
+              fieldPath: status.podIP
+        - name: CLUSTER_NODE_ID
+          value: "$(POD_NAME)"
+        - name: CLUSTER_BIND_ADDR
+          value: "0.0.0.0:9000"
+        - name: CLUSTER_ADVERTISE_ADDR
+          value: "$(POD_IP):9000"
+        - name: CLUSTER_PEERS
+          value: "databridge-0.databridge-headless.databridge.svc.cluster.local:9000,databridge-1.databridge-headless.databridge.svc.cluster.local:9000,databridge-2.databridge-headless.databridge.svc.cluster.local:9000"
+        - name: RAFT_DIR
+          value: "/app/data/raft"
+        envFrom:
+        - configMapRef:
+            name: databridge-config
+        - secretRef:
+            name: databridge-secret
+        volumeMounts:
+        - name: data
+          mountPath: /app/data
+        - name: logs
+          mountPath: /app/data/logs
+        resources:
+          requests:
+            cpu: 500m
+            memory: 512Mi
+          limits:
+            cpu: 2000m
+            memory: 2Gi
+        livenessProbe:
+          httpGet:
+            path: /api/health
+            port: 8080
+          initialDelaySeconds: 60
+          periodSeconds: 30
+          timeoutSeconds: 10
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /api/health
+            port: 8080
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+        startupProbe:
+          httpGet:
+            path: /api/health
+            port: 8080
+          initialDelaySeconds: 10
+          periodSeconds: 5
+          timeoutSeconds: 3
+          failureThreshold: 30
+  volumeClaimTemplates:
+  - metadata:
+      name: data
+    spec:
+      accessModes: [ "ReadWriteOnce" ]
+      storageClassName: standard
+      resources:
+        requests:
+          storage: 10Gi
+  - metadata:
+      name: logs
+    spec:
+      accessModes: [ "ReadWriteOnce" ]
+      storageClassName: standard
+      resources:
+        requests:
+          storage: 5Gi
