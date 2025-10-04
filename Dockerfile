@@ -41,7 +41,7 @@ COPY frontend/ ./
 RUN npm run build
 
 # Stage 3: Final runtime image
-FROM alpine:3.19
+FROM alpine:3.22
 
 # Install runtime dependencies
 RUN apk add --no-cache \
