@@ -1,6 +1,6 @@
 # Multi-stage Dockerfile for DataBridge
 # Stage 1: Build the Go backend
-FROM golang:1.21-alpine AS backend-builder
+FROM golang:1.25-alpine AS backend-builder
 
 # Install build dependencies
 RUN apk add --no-cache git make gcc musl-dev
