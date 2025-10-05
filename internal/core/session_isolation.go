@@ -197,12 +197,14 @@ func (m *SessionIsolationManager) CreateIsolatedSession(
 	}
 
 	// Create base session with tenant's isolated repositories
+	// Note: processorNode is nil for isolated sessions as they may not be tied to a specific processor
 	baseSession := NewProcessSession(
 		repos.flowFileRepo,
 		repos.contentRepo,
 		repos.provenanceRepo,
 		logger,
 		ctx,
+		nil, // processorNode - not available in isolation context
 		inputQueues,
 		outputConnections,
 	)

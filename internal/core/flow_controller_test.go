@@ -1,6 +1,7 @@
 package core
 
 import (
+	"bytes"
 	"context"
 	"io"
 	"testing"
@@ -133,6 +134,10 @@ func (r *mockFlowFileRepository) Close() error {
 	return nil
 }
 
+func (r *mockFlowFileRepository) Count() (int, error) {
+	return len(r.flowFiles), nil
+}
+
 type mockContentRepository struct {
 	content map[uuid.UUID][]byte
 }
@@ -187,6 +192,33 @@ func (r *mockContentRepository) DecrementRef(claim *types.ContentClaim) error {
 }
 
 func (r *mockContentRepository) Close() error {
+	return nil
+}
+
+func (r *mockContentRepository) ListClaims() ([]*types.ContentClaim, error) {
+	claims := make([]*types.ContentClaim, 0, len(r.content))
+	for id, content := range r.content {
+		claims = append(claims, &types.ContentClaim{
+			ID:        id,
+			Container: "mock",
+			Section:   "test",
+			Offset:    0,
+			Length:    int64(len(content)),
+			RefCount:  1,
+		})
+	}
+	return claims, nil
+}
+
+func (r *mockContentRepository) Read(claim *types.ContentClaim) (io.ReadCloser, error) {
+	if content, exists := r.content[claim.ID]; exists {
+		return io.NopCloser(bytes.NewReader(content)), nil
+	}
+	return nil, TestError{message: "Content not found"}
+}
+
+func (r *mockContentRepository) Write(claim *types.ContentClaim, data []byte) error {
+	r.content[claim.ID] = data
 	return nil
 }
 

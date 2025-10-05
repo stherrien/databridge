@@ -8,8 +8,27 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/shawntherrien/databridge/internal/plugin"
 	"github.com/shawntherrien/databridge/pkg/types"
 )
+
+func init() {
+	info := getGetFileInfo()
+	plugin.RegisterBuiltInProcessor("GetFile", func() types.Processor {
+		return NewGetFileProcessor()
+	}, info)
+}
+
+func getGetFileInfo() plugin.PluginInfo {
+	return plugin.NewProcessorInfo(
+		"GetFile",
+		"GetFile",
+		"1.0.0",
+		"DataBridge",
+		"Reads files from a directory with configurable filtering and batch processing",
+		[]string{"file", "source", "ingest"},
+	)
+}
 
 // GetFileProcessor reads files from a directory
 type GetFileProcessor struct {
@@ -27,48 +46,66 @@ func NewGetFileProcessor() *GetFileProcessor {
 		Properties: []types.PropertySpec{
 			{
 				Name:         "Input Directory",
+				DisplayName:  "Input Directory",
 				Description:  "Directory to scan for files",
 				Required:     true,
 				DefaultValue: "",
+				Type:         "directory",
+				Placeholder:  "/path/to/input/directory",
+				HelpText:     "Select or enter the directory path to monitor for new files",
 			},
 			{
 				Name:         "File Filter",
-				Description:  "Glob pattern for file matching (e.g., *.txt, *.json)",
+				DisplayName:  "File Filter",
+				Description:  "Glob pattern for file matching",
 				Required:     false,
 				DefaultValue: "*",
+				Type:         "string",
+				Placeholder:  "*.txt or data-*.json",
+				HelpText:     "Examples: *.txt (all text files), data-*.csv (CSV files starting with 'data-'), report_[0-9]*.pdf",
 			},
 			{
 				Name:         "Keep Source File",
+				DisplayName:  "Keep Source File",
 				Description:  "Whether to keep or delete source file after ingestion",
 				Required:     false,
 				DefaultValue: "false",
 				AllowedValues: []string{"true", "false"},
+				Type:         "boolean",
 			},
 			{
 				Name:         "Recurse Subdirectories",
+				DisplayName:  "Recurse Subdirectories",
 				Description:  "Whether to scan subdirectories",
 				Required:     false,
 				DefaultValue: "false",
 				AllowedValues: []string{"true", "false"},
+				Type:         "boolean",
 			},
 			{
 				Name:         "Minimum File Age",
+				DisplayName:  "Minimum File Age",
 				Description:  "Minimum age before file is picked up (e.g., 10s, 1m, 1h)",
 				Required:     false,
 				DefaultValue: "0s",
+				Type:         "string",
 			},
 			{
 				Name:         "Maximum File Age",
+				DisplayName:  "Maximum File Age",
 				Description:  "Maximum age (0s = no limit, e.g., 10s, 1m, 1h)",
 				Required:     false,
 				DefaultValue: "0s",
+				Type:         "string",
 			},
 			{
 				Name:         "Batch Size",
+				DisplayName:  "Batch Size",
 				Description:  "Max files to process per execution",
 				Required:     false,
 				DefaultValue: "10",
 				Pattern:      `^\d+$`,
+				Type:         "number",
 			},
 		},
 		Relationships: []types.Relationship{

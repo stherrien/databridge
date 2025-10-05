@@ -247,8 +247,8 @@ func TestGetRecentErrors(t *testing.T) {
 	analytics.RegisterInstance(instanceID, "TestProcessor", "test-instance")
 
 	// Record invocations with errors
-	errors := []string{"error 1", "error 2", "error 3"}
-	for _, errMsg := range errors {
+	errorMessages := []string{"error 1", "error 2", "error 3"}
+	for _, errMsg := range errorMessages {
 		analytics.RecordInvocation(
 			instanceID,
 			100*time.Millisecond,

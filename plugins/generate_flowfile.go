@@ -45,29 +45,37 @@ func NewGenerateFlowFileProcessor() *GenerateFlowFileProcessor {
 		Properties: []types.PropertySpec{
 			{
 				Name:         "File Size",
+				DisplayName:  "File Size",
 				Description:  "Size of the generated content in bytes",
 				Required:     true,
 				DefaultValue: "1024",
 				Pattern:      `^\d+$`,
+				Type:         "number",
 			},
 			{
 				Name:         "Content",
+				DisplayName:  "Content",
 				Description:  "Content to generate (will be repeated to reach file size)",
 				Required:     false,
 				DefaultValue: "Hello, DataBridge!",
+				Type:         "string",
 			},
 			{
 				Name:         "Unique FlowFiles",
+				DisplayName:  "Unique FlowFiles",
 				Description:  "Whether to generate unique content for each FlowFile",
 				Required:     false,
 				DefaultValue: "true",
 				AllowedValues: []string{"true", "false"},
+				Type:         "boolean",
 			},
 			{
 				Name:         "Custom Text",
+				DisplayName:  "Custom Text",
 				Description:  "Custom text to include in generated content",
 				Required:     false,
 				DefaultValue: "",
+				Type:         "multiline",
 			},
 		},
 		Relationships: []types.Relationship{

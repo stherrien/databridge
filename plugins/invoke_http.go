@@ -9,8 +9,27 @@ import (
 	"strings"
 	"time"
 
+	"github.com/shawntherrien/databridge/internal/plugin"
 	"github.com/shawntherrien/databridge/pkg/types"
 )
+
+func init() {
+	info := getInvokeHTTPInfo()
+	plugin.RegisterBuiltInProcessor("InvokeHTTP", func() types.Processor {
+		return NewInvokeHTTPProcessor()
+	}, info)
+}
+
+func getInvokeHTTPInfo() plugin.PluginInfo {
+	return plugin.NewProcessorInfo(
+		"InvokeHTTP",
+		"InvokeHTTP",
+		"1.0.0",
+		"DataBridge",
+		"Makes HTTP requests to interact with REST APIs",
+		[]string{"http", "rest", "api", "client"},
+	)
+}
 
 // InvokeHTTPProcessor makes HTTP requests
 type InvokeHTTPProcessor struct {

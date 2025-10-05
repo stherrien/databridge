@@ -213,7 +213,7 @@ func createTestSession() (*ProcessSessionImpl, *testFlowFileRepository, *testCon
 	inputQueues := []*FlowFileQueue{}
 	outputConnections := []*Connection{}
 
-	session := NewProcessSession(ffRepo, contentRepo, provRepo, logger, ctx, inputQueues, outputConnections)
+	session := NewProcessSession(ffRepo, contentRepo, provRepo, logger, ctx, nil, inputQueues, outputConnections)
 	return session, ffRepo, contentRepo, provRepo
 }
 
@@ -225,7 +225,7 @@ func createTestSessionWithQueues(inputQueues []*FlowFileQueue, outputConnections
 	logger := &testLogger{}
 	ctx := context.Background()
 
-	session := NewProcessSession(ffRepo, contentRepo, provRepo, logger, ctx, inputQueues, outputConnections)
+	session := NewProcessSession(ffRepo, contentRepo, provRepo, logger, ctx, nil, inputQueues, outputConnections)
 	return session, ffRepo, contentRepo, provRepo
 }
 

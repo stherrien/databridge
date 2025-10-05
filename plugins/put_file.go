@@ -7,8 +7,27 @@ import (
 	"path/filepath"
 	"strconv"
 
+	"github.com/shawntherrien/databridge/internal/plugin"
 	"github.com/shawntherrien/databridge/pkg/types"
 )
+
+func init() {
+	info := getPutFileInfo()
+	plugin.RegisterBuiltInProcessor("PutFile", func() types.Processor {
+		return NewPutFileProcessor()
+	}, info)
+}
+
+func getPutFileInfo() plugin.PluginInfo {
+	return plugin.NewProcessorInfo(
+		"PutFile",
+		"PutFile",
+		"1.0.0",
+		"DataBridge",
+		"Writes FlowFiles to the file system with configurable conflict resolution",
+		[]string{"file", "output", "write"},
+	)
+}
 
 // PutFileProcessor writes FlowFiles to the file system
 type PutFileProcessor struct {
@@ -36,37 +55,52 @@ func NewPutFileProcessor() *PutFileProcessor {
 		Properties: []types.PropertySpec{
 			{
 				Name:         "Directory",
+				DisplayName:  "Directory",
 				Description:  "Output directory where files will be written",
 				Required:     true,
 				DefaultValue: "",
+				Type:         "directory",
+				Placeholder:  "/path/to/output/directory",
+				HelpText:     "Select or enter the directory where files will be saved",
 			},
 			{
 				Name:         "Conflict Resolution Strategy",
+				DisplayName:  "Conflict Resolution Strategy",
 				Description:  "How to handle existing files",
 				Required:     false,
 				DefaultValue: "fail",
 				AllowedValues: []string{"fail", "replace", "ignore", "rename"},
+				Type:         "select",
+				HelpText:     "fail: error if file exists; replace: overwrite; ignore: skip; rename: add suffix",
 			},
 			{
 				Name:         "Create Missing Directories",
+				DisplayName:  "Create Missing Directories",
 				Description:  "Whether to create missing directories",
 				Required:     false,
 				DefaultValue: "true",
 				AllowedValues: []string{"true", "false"},
+				Type:         "boolean",
 			},
 			{
 				Name:         "Permissions",
-				Description:  "File permissions in octal format (e.g., 0644)",
+				DisplayName:  "Permissions",
+				Description:  "File permissions in octal format",
 				Required:     false,
 				DefaultValue: "0644",
 				Pattern:      `^0[0-7]{3}$`,
+				Type:         "permission",
+				Placeholder:  "0644",
+				HelpText:     "Common: 0644 (rw-r--r--), 0755 (rwxr-xr-x), 0600 (rw-------)",
 			},
 			{
 				Name:         "Maximum File Count",
+				DisplayName:  "Maximum File Count",
 				Description:  "Maximum number of files in directory (-1 = unlimited)",
 				Required:     false,
 				DefaultValue: "-1",
 				Pattern:      `^-?\d+$`,
+				Type:         "number",
 			},
 		},
 		Relationships: []types.Relationship{

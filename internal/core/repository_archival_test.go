@@ -148,7 +148,7 @@ func TestArchiveOldData(t *testing.T) {
 
 	ffRepo.On("List", 0, 0).Return([]*types.FlowFile{oldFF1, oldFF2}, nil)
 	contentRepo.On("ListClaims").Return([]*types.ContentClaim{}, nil)
-	provRepo.On("GetEvents", 0, 0).Return([]*types.ProvenanceEvent{}, nil)
+	provRepo.On("GetEvents", 0, 0).Return([]*ProvenanceEvent{}, nil)
 	ffRepo.On("Delete", mock.Anything).Return(nil)
 
 	archived, err := manager.ArchiveOldData()
@@ -184,7 +184,7 @@ func TestArchiveByPattern(t *testing.T) {
 
 	ffRepo.On("List", 0, 0).Return([]*types.FlowFile{matchingFF, nonMatchingFF}, nil)
 	contentRepo.On("ListClaims").Return([]*types.ContentClaim{}, nil)
-	provRepo.On("GetEvents", 0, 0).Return([]*types.ProvenanceEvent{}, nil)
+	provRepo.On("GetEvents", 0, 0).Return([]*ProvenanceEvent{}, nil)
 
 	archived, err := manager.ArchiveByPattern()
 	assert.NoError(t, err)
@@ -217,7 +217,7 @@ func TestArchiveFlowFile(t *testing.T) {
 
 		ffRepo.On("List", 0, 0).Return([]*types.FlowFile{}, nil).Once()
 		contentRepo.On("ListClaims").Return([]*types.ContentClaim{}, nil).Once()
-		provRepo.On("GetEvents", 0, 0).Return([]*types.ProvenanceEvent{}, nil).Once()
+		provRepo.On("GetEvents", 0, 0).Return([]*ProvenanceEvent{}, nil).Once()
 		ffRepo.On("Delete", ff.ID).Return(nil).Once()
 
 		err := manager.ArchiveFlowFile(ff, "manual")
@@ -245,7 +245,7 @@ func TestArchiveFlowFile(t *testing.T) {
 
 		ffRepo.On("List", 0, 0).Return([]*types.FlowFile{}, nil).Once()
 		contentRepo.On("ListClaims").Return([]*types.ContentClaim{}, nil).Once()
-		provRepo.On("GetEvents", 0, 0).Return([]*types.ProvenanceEvent{}, nil).Once()
+		provRepo.On("GetEvents", 0, 0).Return([]*ProvenanceEvent{}, nil).Once()
 
 		err := manager.ArchiveFlowFile(ff, "test")
 		assert.NoError(t, err)
@@ -262,7 +262,7 @@ func TestArchiveFlowFile(t *testing.T) {
 
 		ffRepo.On("List", 0, 0).Return([]*types.FlowFile{}, nil).Once()
 		contentRepo.On("ListClaims").Return([]*types.ContentClaim{}, nil).Once()
-		provRepo.On("GetEvents", 0, 0).Return([]*types.ProvenanceEvent{}, nil).Once()
+		provRepo.On("GetEvents", 0, 0).Return([]*ProvenanceEvent{}, nil).Once()
 
 		// Archive first time
 		err := manager.ArchiveFlowFile(ff, "test")
@@ -295,7 +295,7 @@ func TestRestoreFromArchive(t *testing.T) {
 
 	ffRepo.On("List", 0, 0).Return([]*types.FlowFile{}, nil)
 	contentRepo.On("ListClaims").Return([]*types.ContentClaim{}, nil)
-	provRepo.On("GetEvents", 0, 0).Return([]*types.ProvenanceEvent{}, nil)
+	provRepo.On("GetEvents", 0, 0).Return([]*ProvenanceEvent{}, nil)
 	ffRepo.On("Delete", ff.ID).Return(nil)
 
 	err := manager.ArchiveFlowFile(ff, "test")
@@ -326,7 +326,7 @@ func TestListArchived(t *testing.T) {
 	// Archive multiple FlowFiles
 	ffRepo.On("List", 0, 0).Return([]*types.FlowFile{}, nil)
 	contentRepo.On("ListClaims").Return([]*types.ContentClaim{}, nil)
-	provRepo.On("GetEvents", 0, 0).Return([]*types.ProvenanceEvent{}, nil)
+	provRepo.On("GetEvents", 0, 0).Return([]*ProvenanceEvent{}, nil)
 
 	ff1 := types.NewFlowFile()
 	ff2 := types.NewFlowFile()
@@ -359,7 +359,7 @@ func TestPurgeExpiredArchives(t *testing.T) {
 	// Archive FlowFiles
 	ffRepo.On("List", 0, 0).Return([]*types.FlowFile{}, nil)
 	contentRepo.On("ListClaims").Return([]*types.ContentClaim{}, nil)
-	provRepo.On("GetEvents", 0, 0).Return([]*types.ProvenanceEvent{}, nil)
+	provRepo.On("GetEvents", 0, 0).Return([]*ProvenanceEvent{}, nil)
 
 	ff1 := types.NewFlowFile()
 	ff2 := types.NewFlowFile()
@@ -396,7 +396,7 @@ func TestGetStats(t *testing.T) {
 	// Archive FlowFiles with different reasons
 	ffRepo.On("List", 0, 0).Return([]*types.FlowFile{}, nil)
 	contentRepo.On("ListClaims").Return([]*types.ContentClaim{}, nil)
-	provRepo.On("GetEvents", 0, 0).Return([]*types.ProvenanceEvent{}, nil)
+	provRepo.On("GetEvents", 0, 0).Return([]*ProvenanceEvent{}, nil)
 
 	ff1 := types.NewFlowFile()
 	ff1.Size = 100
@@ -446,7 +446,7 @@ func TestRunArchivalCycle(t *testing.T) {
 
 	ffRepo.On("List", 0, 0).Return([]*types.FlowFile{oldFF, patternFF}, nil)
 	contentRepo.On("ListClaims").Return([]*types.ContentClaim{}, nil)
-	provRepo.On("GetEvents", 0, 0).Return([]*types.ProvenanceEvent{}, nil)
+	provRepo.On("GetEvents", 0, 0).Return([]*ProvenanceEvent{}, nil)
 
 	stats, err := manager.RunArchivalCycle()
 	assert.NoError(t, err)

@@ -306,7 +306,7 @@ func TestGetNodes(t *testing.T) {
 	assert.Contains(t, ids, "node-3")
 }
 
-func TestGetStats(t *testing.T) {
+func TestGetStatsWithClustering(t *testing.T) {
 	config := ReplicationConfig{Enabled: true, ReplicationFactor: 2}
 	ffRepo := new(MockFlowFileRepo)
 	contentRepo := new(MockContentRepo)

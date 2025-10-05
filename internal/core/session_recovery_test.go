@@ -55,7 +55,7 @@ func TestCheckpointSession(t *testing.T) {
 	mgr, _ := NewSessionRecoveryManager(config, ffRepo, contentRepo, provRepo, logger)
 
 	ctx := context.Background()
-	session := NewProcessSession(ffRepo, contentRepo, provRepo, logger, ctx, nil, nil)
+	session := NewProcessSession(ffRepo, contentRepo, provRepo, logger, ctx, nil, nil, nil)
 
 	// Create some FlowFiles in the session
 	ff1 := session.Create()
@@ -100,7 +100,7 @@ func TestRecoverSession(t *testing.T) {
 	ctx := context.Background()
 
 	// Create and checkpoint a session
-	originalSession := NewProcessSession(ffRepo, contentRepo, provRepo, logger, ctx, nil, nil)
+	originalSession := NewProcessSession(ffRepo, contentRepo, provRepo, logger, ctx, nil, nil, nil)
 	ff1 := originalSession.Create()
 	ff2 := originalSession.Create()
 	ff1.Attributes["test"] = "value1"
@@ -157,7 +157,7 @@ func TestRecoverCommittedSession(t *testing.T) {
 	ctx := context.Background()
 
 	// Create, checkpoint, and commit a session
-	session := NewProcessSession(ffRepo, contentRepo, provRepo, logger, ctx, nil, nil)
+	session := NewProcessSession(ffRepo, contentRepo, provRepo, logger, ctx, nil, nil, nil)
 	session.Create()
 	mgr.CheckpointSession(session)
 
@@ -187,9 +187,9 @@ func TestRecoverAllSessions(t *testing.T) {
 	ctx := context.Background()
 
 	// Create multiple sessions
-	session1 := NewProcessSession(ffRepo, contentRepo, provRepo, logger, ctx, nil, nil)
-	session2 := NewProcessSession(ffRepo, contentRepo, provRepo, logger, ctx, nil, nil)
-	session3 := NewProcessSession(ffRepo, contentRepo, provRepo, logger, ctx, nil, nil)
+	session1 := NewProcessSession(ffRepo, contentRepo, provRepo, logger, ctx, nil, nil, nil)
+	session2 := NewProcessSession(ffRepo, contentRepo, provRepo, logger, ctx, nil, nil, nil)
+	session3 := NewProcessSession(ffRepo, contentRepo, provRepo, logger, ctx, nil, nil, nil)
 
 	session1.Create()
 	session2.Create()
@@ -230,7 +230,7 @@ func TestDeleteCheckpoint(t *testing.T) {
 	mgr, _ := NewSessionRecoveryManager(config, ffRepo, contentRepo, provRepo, logger)
 
 	ctx := context.Background()
-	session := NewProcessSession(ffRepo, contentRepo, provRepo, logger, ctx, nil, nil)
+	session := NewProcessSession(ffRepo, contentRepo, provRepo, logger, ctx, nil, nil, nil)
 
 	// Checkpoint session
 	mgr.CheckpointSession(session)
@@ -265,9 +265,9 @@ func TestListCheckpoints(t *testing.T) {
 	ctx := context.Background()
 
 	// Create and checkpoint multiple sessions
-	session1 := NewProcessSession(ffRepo, contentRepo, provRepo, logger, ctx, nil, nil)
-	session2 := NewProcessSession(ffRepo, contentRepo, provRepo, logger, ctx, nil, nil)
-	session3 := NewProcessSession(ffRepo, contentRepo, provRepo, logger, ctx, nil, nil)
+	session1 := NewProcessSession(ffRepo, contentRepo, provRepo, logger, ctx, nil, nil, nil)
+	session2 := NewProcessSession(ffRepo, contentRepo, provRepo, logger, ctx, nil, nil, nil)
+	session3 := NewProcessSession(ffRepo, contentRepo, provRepo, logger, ctx, nil, nil, nil)
 
 	mgr.CheckpointSession(session1)
 	mgr.CheckpointSession(session2)
@@ -292,8 +292,8 @@ func TestPurgeOldCheckpoints(t *testing.T) {
 	ctx := context.Background()
 
 	// Create sessions
-	oldSession := NewProcessSession(ffRepo, contentRepo, provRepo, logger, ctx, nil, nil)
-	newSession := NewProcessSession(ffRepo, contentRepo, provRepo, logger, ctx, nil, nil)
+	oldSession := NewProcessSession(ffRepo, contentRepo, provRepo, logger, ctx, nil, nil, nil)
+	newSession := NewProcessSession(ffRepo, contentRepo, provRepo, logger, ctx, nil, nil, nil)
 
 	mgr.CheckpointSession(oldSession)
 	mgr.CheckpointSession(newSession)
@@ -329,9 +329,9 @@ func TestGetRecoveryStats(t *testing.T) {
 	ctx := context.Background()
 
 	// Create sessions with different states
-	session1 := NewProcessSession(ffRepo, contentRepo, provRepo, logger, ctx, nil, nil)
-	session2 := NewProcessSession(ffRepo, contentRepo, provRepo, logger, ctx, nil, nil)
-	session3 := NewProcessSession(ffRepo, contentRepo, provRepo, logger, ctx, nil, nil)
+	session1 := NewProcessSession(ffRepo, contentRepo, provRepo, logger, ctx, nil, nil, nil)
+	session2 := NewProcessSession(ffRepo, contentRepo, provRepo, logger, ctx, nil, nil, nil)
+	session3 := NewProcessSession(ffRepo, contentRepo, provRepo, logger, ctx, nil, nil, nil)
 
 	mgr.CheckpointSession(session1)
 	mgr.CheckpointSession(session2)
@@ -421,7 +421,7 @@ func TestRecoverableSessionCommit(t *testing.T) {
 	recoveryMgr, _ := NewSessionRecoveryManager(config, ffRepo, contentRepo, provRepo, logger)
 
 	ctx := context.Background()
-	baseSession := NewProcessSession(ffRepo, contentRepo, provRepo, logger, ctx, nil, nil)
+	baseSession := NewProcessSession(ffRepo, contentRepo, provRepo, logger, ctx, nil, nil, nil)
 
 	// Wrap with recovery
 	recoverableSession := recoveryMgr.WrapWithRecovery(baseSession)
@@ -450,7 +450,7 @@ func TestRecoverableSessionRollback(t *testing.T) {
 	recoveryMgr, _ := NewSessionRecoveryManager(config, ffRepo, contentRepo, provRepo, logger)
 
 	ctx := context.Background()
-	baseSession := NewProcessSession(ffRepo, contentRepo, provRepo, logger, ctx, nil, nil)
+	baseSession := NewProcessSession(ffRepo, contentRepo, provRepo, logger, ctx, nil, nil, nil)
 
 	// Wrap with recovery
 	recoverableSession := recoveryMgr.WrapWithRecovery(baseSession)
@@ -481,7 +481,7 @@ func TestAutoCheckpoint(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 300*time.Millisecond)
 	defer cancel()
 
-	baseSession := NewProcessSession(ffRepo, contentRepo, provRepo, logger, ctx, nil, nil)
+	baseSession := NewProcessSession(ffRepo, contentRepo, provRepo, logger, ctx, nil, nil, nil)
 	recoverableSession := recoveryMgr.WrapWithRecovery(baseSession)
 
 	// Start auto-checkpointing every 100ms
@@ -511,7 +511,7 @@ func TestLoadCheckpoints(t *testing.T) {
 	mgr1, _ := NewSessionRecoveryManager(config, ffRepo, contentRepo, provRepo, logger)
 
 	ctx := context.Background()
-	session := NewProcessSession(ffRepo, contentRepo, provRepo, logger, ctx, nil, nil)
+	session := NewProcessSession(ffRepo, contentRepo, provRepo, logger, ctx, nil, nil, nil)
 	session.Create()
 	mgr1.CheckpointSession(session)
 

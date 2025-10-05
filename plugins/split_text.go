@@ -6,8 +6,27 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/shawntherrien/databridge/internal/plugin"
 	"github.com/shawntherrien/databridge/pkg/types"
 )
+
+func init() {
+	info := getSplitTextInfo()
+	plugin.RegisterBuiltInProcessor("SplitText", func() types.Processor {
+		return NewSplitTextProcessor()
+	}, info)
+}
+
+func getSplitTextInfo() plugin.PluginInfo {
+	return plugin.NewProcessorInfo(
+		"SplitText",
+		"SplitText",
+		"1.0.0",
+		"DataBridge",
+		"Splits text content into multiple FlowFiles based on line count or size",
+		[]string{"text", "split", "transform"},
+	)
+}
 
 // SplitTextProcessor splits text content into multiple FlowFiles
 type SplitTextProcessor struct {

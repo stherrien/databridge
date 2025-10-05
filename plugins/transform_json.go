@@ -7,8 +7,27 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/shawntherrien/databridge/internal/plugin"
 	"github.com/shawntherrien/databridge/pkg/types"
 )
+
+func init() {
+	info := getTransformJSONInfo()
+	plugin.RegisterBuiltInProcessor("TransformJSON", func() types.Processor {
+		return NewTransformJSONProcessor()
+	}, info)
+}
+
+func getTransformJSONInfo() plugin.PluginInfo {
+	return plugin.NewProcessorInfo(
+		"TransformJSON",
+		"TransformJSON",
+		"1.0.0",
+		"DataBridge",
+		"Extracts and transforms JSON data using simplified JSONPath expressions",
+		[]string{"json", "transform", "extract", "parse"},
+	)
+}
 
 // TransformJSONProcessor transforms JSON using path expressions
 type TransformJSONProcessor struct {
