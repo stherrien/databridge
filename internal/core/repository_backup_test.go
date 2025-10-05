@@ -1,6 +1,7 @@
 package core
 
 import (
+	"bytes"
 	"io"
 	"os"
 	"path/filepath"
@@ -242,7 +243,7 @@ func TestCreateBackup(t *testing.T) {
 
 	ffRepo.On("List", 0, 0).Return(flowFiles, nil)
 	contentRepo.On("ListClaims").Return(claims, nil)
-	contentRepo.On("Read", mock.Anything).Return(make([]byte, 100), nil)
+	contentRepo.On("Read", mock.Anything).Return(io.NopCloser(bytes.NewReader(make([]byte, 100))), nil)
 	provRepo.On("GetEvents", 0, 0).Return(events, nil)
 
 	t.Run("Full Backup Uncompressed", func(t *testing.T) {
