@@ -316,7 +316,11 @@ func TestExportFlow(t *testing.T) {
 	require.NoError(t, err)
 
 	// Verify export data
-	assert.Equal(t, flow.ID.String(), exportData["id"])
+	exportID := exportData["id"]
+	if id, ok := exportID.(uuid.UUID); ok {
+		exportID = id.String()
+	}
+	assert.Equal(t, flow.ID.String(), exportID)
 	assert.Equal(t, "Export Test", exportData["name"])
 	assert.Equal(t, "1.0", exportData["version"])
 	assert.NotEmpty(t, exportData["exportedAt"])
@@ -328,7 +332,13 @@ func TestExportFlow(t *testing.T) {
 	proc1 := processors[0]
 	assert.Equal(t, "TestProcessor", proc1["name"])
 	assert.Equal(t, "GenerateFlowFile", proc1["type"])
-	assert.Equal(t, "TIMER", proc1["scheduleType"])
+
+	// ScheduleType is an enum type, convert to string
+	scheduleType := proc1["scheduleType"]
+	if st, ok := scheduleType.(types.ScheduleType); ok {
+		scheduleType = string(st)
+	}
+	assert.Equal(t, string(types.ScheduleTypeTimer), scheduleType)
 	assert.Equal(t, "2s", proc1["scheduleValue"])
 	assert.Equal(t, 2, proc1["concurrency"])
 
@@ -390,7 +400,7 @@ func TestImportFlow(t *testing.T) {
 				"name":          "ImportedSource",
 				"type":          "GenerateFlowFile",
 				"properties":    map[string]interface{}{"data": "test"},
-				"scheduleType":  "TIMER",
+				"scheduleType":  string(types.ScheduleTypeTimer),
 				"scheduleValue": "3s",
 				"concurrency":   float64(3),
 				"autoTerminate": map[string]interface{}{"failure": true},
@@ -401,7 +411,7 @@ func TestImportFlow(t *testing.T) {
 				"name":          "ImportedDest",
 				"type":          "PutFile",
 				"properties":    map[string]interface{}{"directory": "/tmp"},
-				"scheduleType":  "EVENT",
+				"scheduleType":  string(types.ScheduleTypeEvent),
 				"scheduleValue": "1",
 				"concurrency":   float64(1),
 				"autoTerminate": map[string]interface{}{},
@@ -495,7 +505,7 @@ func TestValidateFlow(t *testing.T) {
 		ScheduleType:   types.ScheduleTypeTimer,
 		ScheduleValue:  "1s",
 		Concurrency:    1,
-		Properties:     make(map[string]string),
+		Properties:     map[string]string{"File Size": "1024"},
 		AutoTerminate:  map[string]bool{"success": true, "failure": true},
 		ProcessGroupID: &flow.ID,
 	}
@@ -533,7 +543,7 @@ func TestValidateFlowWithWarnings(t *testing.T) {
 		ScheduleType:   types.ScheduleTypeTimer,
 		ScheduleValue:  "1s",
 		Concurrency:    1,
-		Properties:     make(map[string]string),
+		Properties:     map[string]string{"Directory": "/tmp", "Conflict Resolution Strategy": "replace"},
 		AutoTerminate:  make(map[string]bool),
 		ProcessGroupID: &flow.ID,
 	}
@@ -572,7 +582,7 @@ func TestValidateFlowWithCycle(t *testing.T) {
 		ScheduleType:   types.ScheduleTypeTimer,
 		ScheduleValue:  "1s",
 		Concurrency:    1,
-		Properties:     make(map[string]string),
+		Properties:     map[string]string{"File Size": "1024"},
 		AutoTerminate:  make(map[string]bool),
 		ProcessGroupID: &flow.ID,
 	}
