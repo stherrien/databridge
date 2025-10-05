@@ -8,25 +8,25 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/robfig/cron/v3"
-	"github.com/sirupsen/logrus"
 	"github.com/shawntherrien/databridge/pkg/types"
+	"github.com/sirupsen/logrus"
 )
 
 // ProcessScheduler manages the execution of processors
 type ProcessScheduler struct {
-	mu               sync.RWMutex
-	flowController   *FlowController
-	logger           *logrus.Logger
-	ctx              context.Context
-	cancel           context.CancelFunc
+	mu             sync.RWMutex
+	flowController *FlowController
+	logger         *logrus.Logger
+	ctx            context.Context
+	cancel         context.CancelFunc
 
 	// Scheduling
-	scheduledTasks   map[uuid.UUID]*ScheduledTask
-	timerScheduler   *time.Ticker
-	timerInterval    time.Duration
-	cronScheduler    *cron.Cron
-	workerPool       *WorkerPool
-	running          bool
+	scheduledTasks map[uuid.UUID]*ScheduledTask
+	timerScheduler *time.Ticker
+	timerInterval  time.Duration
+	cronScheduler  *cron.Cron
+	workerPool     *WorkerPool
+	running        bool
 
 	// Enhanced scheduling
 	loadScheduler        *LoadBasedScheduler

@@ -249,7 +249,7 @@ func TestFlowFileQueue_GetBackPressureMetrics(t *testing.T) {
 
 	metrics := queue.GetBackPressureMetrics()
 	assert.Equal(t, int64(2), metrics.TriggeredCount) // Items 8 and 9 trigger
-	assert.Equal(t, int64(2), metrics.DroppedCount) // Items 8 and 9 drop oldest
+	assert.Equal(t, int64(2), metrics.DroppedCount)   // Items 8 and 9 drop oldest
 	assert.False(t, metrics.LastTriggered.IsZero())
 }
 

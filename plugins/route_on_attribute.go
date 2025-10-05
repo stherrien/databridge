@@ -351,4 +351,3 @@ func evaluateComparison(left, op, right string) (bool, error) {
 
 	return false, fmt.Errorf("unsupported operator: %s", op)
 }
-

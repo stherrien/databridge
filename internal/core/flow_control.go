@@ -29,12 +29,12 @@ type BackPressureConfig struct {
 
 // BackPressureMetrics tracks back pressure statistics
 type BackPressureMetrics struct {
-	TriggeredCount    int64 // Number of times back pressure was triggered
-	DroppedCount      int64 // Number of FlowFiles dropped
-	BlockedDuration   int64 // Total time spent blocked (nanoseconds)
-	PenaltyCount      int64 // Number of times penalty was applied
-	LastTriggered     time.Time
-	mu                sync.RWMutex
+	TriggeredCount  int64 // Number of times back pressure was triggered
+	DroppedCount    int64 // Number of FlowFiles dropped
+	BlockedDuration int64 // Total time spent blocked (nanoseconds)
+	PenaltyCount    int64 // Number of times penalty was applied
+	LastTriggered   time.Time
+	mu              sync.RWMutex
 }
 
 // DefaultBackPressureConfig returns a default back pressure configuration
@@ -316,15 +316,15 @@ func (c *Connection) ClearPenalty() {
 
 // ConnectionBackPressureInfo contains back pressure information for a connection
 type ConnectionBackPressureInfo struct {
-	ConnectionID      string
-	ConnectionName    string
-	CurrentSize       int64
-	MaxSize           int64
-	PercentageFull    int64
+	ConnectionID       string
+	ConnectionName     string
+	CurrentSize        int64
+	MaxSize            int64
+	PercentageFull     int64
 	BackPressureStatus string
-	IsPenalized       bool
-	PenaltyRemaining  time.Duration
-	Metrics           BackPressureMetrics
+	IsPenalized        bool
+	PenaltyRemaining   time.Duration
+	Metrics            BackPressureMetrics
 }
 
 // GetBackPressureInfo returns comprehensive back pressure information

@@ -5,15 +5,15 @@ import (
 	"sync"
 	"time"
 
-	"github.com/sirupsen/logrus"
 	"github.com/shawntherrien/databridge/pkg/types"
+	"github.com/sirupsen/logrus"
 )
 
 // builtInRegistry stores built-in processor factories
 var (
-	builtInRegistry   = make(map[string]ProcessorFactory)
-	builtInInfo       = make(map[string]PluginInfo)
-	builtInMutex      sync.RWMutex
+	builtInRegistry     = make(map[string]ProcessorFactory)
+	builtInInfo         = make(map[string]PluginInfo)
+	builtInMutex        sync.RWMutex
 	registryInitialized bool
 )
 
@@ -242,13 +242,13 @@ func ProcessorInfoFromProcessorInfo(id string, procInfo types.ProcessorInfo) Plu
 
 // PluginManager combines all plugin management functionality
 type PluginManager struct {
-	Registry    *PluginRegistry
-	Loader      *PluginLoader
-	BuiltIns    *BuiltInRegistryManager
-	Validator   *PluginValidator
-	Namespaces  *NamespaceManager
-	Monitor     *ResourceMonitor
-	logger      *logrus.Logger
+	Registry   *PluginRegistry
+	Loader     *PluginLoader
+	BuiltIns   *BuiltInRegistryManager
+	Validator  *PluginValidator
+	Namespaces *NamespaceManager
+	Monitor    *ResourceMonitor
+	logger     *logrus.Logger
 }
 
 // PluginManagerConfig configures the plugin manager

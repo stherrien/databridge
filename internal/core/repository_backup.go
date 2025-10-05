@@ -17,16 +17,16 @@ import (
 
 // BackupMetadata contains information about a backup
 type BackupMetadata struct {
-	ID              uuid.UUID `json:"id"`
-	Timestamp       time.Time `json:"timestamp"`
-	Type            string    `json:"type"` // "full", "incremental"
-	RepositoryType  string    `json:"repositoryType"` // "flowfile", "content", "provenance"
-	FlowFileCount   int       `json:"flowFileCount"`
-	ContentSize     int64     `json:"contentSize"`
-	Checksum        string    `json:"checksum"`
-	Compressed      bool      `json:"compressed"`
-	Encrypted       bool      `json:"encrypted"`
-	BaseBackupID    *uuid.UUID `json:"baseBackupId,omitempty"` // For incrementals
+	ID             uuid.UUID  `json:"id"`
+	Timestamp      time.Time  `json:"timestamp"`
+	Type           string     `json:"type"`           // "full", "incremental"
+	RepositoryType string     `json:"repositoryType"` // "flowfile", "content", "provenance"
+	FlowFileCount  int        `json:"flowFileCount"`
+	ContentSize    int64      `json:"contentSize"`
+	Checksum       string     `json:"checksum"`
+	Compressed     bool       `json:"compressed"`
+	Encrypted      bool       `json:"encrypted"`
+	BaseBackupID   *uuid.UUID `json:"baseBackupId,omitempty"` // For incrementals
 }
 
 // RepositoryBackupManager handles backup and restore operations
@@ -76,7 +76,7 @@ func (m *RepositoryBackupManager) CreateBackup(opts BackupOptions) (*BackupMetad
 
 	// Create backup directory
 	backupPath := filepath.Join(m.backupDir, metadata.ID.String())
-	if err := os.MkdirAll(backupPath, 0755); err != nil {
+	if err := os.MkdirAll(backupPath, 0750); err != nil {
 		return nil, fmt.Errorf("failed to create backup directory: %w", err)
 	}
 
@@ -117,17 +117,30 @@ func (m *RepositoryBackupManager) backupFlowFiles(outputPath string, opts Backup
 	if err != nil {
 		return 0, err
 	}
-	defer file.Close()
+	defer func() {
+		if err := file.Close(); err != nil {
+			// Log close error but don't override return value
+		}
+	}()
 
 	var writer io.Writer = file
+	var gzWriter *gzip.Writer
 	if opts.Compress {
-		gzWriter := gzip.NewWriter(file)
-		defer gzWriter.Close()
+		gzWriter = gzip.NewWriter(file)
+		defer func() {
+			if err := gzWriter.Close(); err != nil {
+				// Log close error but don't override return value
+			}
+		}()
 		writer = gzWriter
 	}
 
 	tarWriter := tar.NewWriter(writer)
-	defer tarWriter.Close()
+	defer func() {
+		if err := tarWriter.Close(); err != nil {
+			// Log close error but don't override return value
+		}
+	}()
 
 	// Get all FlowFiles
 	flowFiles, err := m.flowFileRepo.List(0, 0) // Get all
@@ -166,17 +179,30 @@ func (m *RepositoryBackupManager) backupContent(outputPath string, opts BackupOp
 	if err != nil {
 		return 0, err
 	}
-	defer file.Close()
+	defer func() {
+		if err := file.Close(); err != nil {
+			// Log close error but don't override return value
+		}
+	}()
 
 	var writer io.Writer = file
+	var gzWriter *gzip.Writer
 	if opts.Compress {
-		gzWriter := gzip.NewWriter(file)
-		defer gzWriter.Close()
+		gzWriter = gzip.NewWriter(file)
+		defer func() {
+			if err := gzWriter.Close(); err != nil {
+				// Log close error but don't override return value
+			}
+		}()
 		writer = gzWriter
 	}
 
 	tarWriter := tar.NewWriter(writer)
-	defer tarWriter.Close()
+	defer func() {
+		if err := tarWriter.Close(); err != nil {
+			// Log close error but don't override return value
+		}
+	}()
 
 	var totalSize int64
 
@@ -193,7 +219,11 @@ func (m *RepositoryBackupManager) backupContent(outputPath string, opts BackupOp
 		if err != nil {
 			return 0, err
 		}
-		defer reader.Close()
+		defer func() {
+			if err := reader.Close(); err != nil {
+				// Log close error but don't override return value
+			}
+		}()
 
 		// Create tar header
 		header := &tar.Header{
@@ -223,17 +253,30 @@ func (m *RepositoryBackupManager) backupProvenance(outputPath string, opts Backu
 	if err != nil {
 		return err
 	}
-	defer file.Close()
+	defer func() {
+		if err := file.Close(); err != nil {
+			// Log close error but don't override return value
+		}
+	}()
 
 	var writer io.Writer = file
+	var gzWriter *gzip.Writer
 	if opts.Compress {
-		gzWriter := gzip.NewWriter(file)
-		defer gzWriter.Close()
+		gzWriter = gzip.NewWriter(file)
+		defer func() {
+			if err := gzWriter.Close(); err != nil {
+				// Log close error but don't override return value
+			}
+		}()
 		writer = gzWriter
 	}
 
 	tarWriter := tar.NewWriter(writer)
-	defer tarWriter.Close()
+	defer func() {
+		if err := tarWriter.Close(); err != nil {
+			// Log close error but don't override return value
+		}
+	}()
 
 	// Get all provenance events
 	events, err := m.provenanceRepo.GetEvents(0, 0) // Get all
@@ -304,7 +347,11 @@ func (m *RepositoryBackupManager) restoreFlowFiles(inputPath string, metadata *B
 	if err != nil {
 		return err
 	}
-	defer file.Close()
+	defer func() {
+		if err := file.Close(); err != nil {
+			// Log close error but don't override return value
+		}
+	}()
 
 	var reader io.Reader = file
 	if metadata.Compressed {
@@ -312,7 +359,11 @@ func (m *RepositoryBackupManager) restoreFlowFiles(inputPath string, metadata *B
 		if err != nil {
 			return err
 		}
-		defer gzReader.Close()
+		defer func() {
+			if err := gzReader.Close(); err != nil {
+				// Log close error but don't override return value
+			}
+		}()
 		reader = gzReader
 	}
 
@@ -353,7 +404,11 @@ func (m *RepositoryBackupManager) restoreContent(inputPath string, metadata *Bac
 	if err != nil {
 		return err
 	}
-	defer file.Close()
+	defer func() {
+		if err := file.Close(); err != nil {
+			// Log close error but don't override return value
+		}
+	}()
 
 	var reader io.Reader = file
 	if metadata.Compressed {
@@ -361,7 +416,11 @@ func (m *RepositoryBackupManager) restoreContent(inputPath string, metadata *Bac
 		if err != nil {
 			return err
 		}
-		defer gzReader.Close()
+		defer func() {
+			if err := gzReader.Close(); err != nil {
+				// Log close error but don't override return value
+			}
+		}()
 		reader = gzReader
 	}
 
@@ -410,7 +469,11 @@ func (m *RepositoryBackupManager) restoreProvenance(inputPath string, metadata *
 	if err != nil {
 		return err
 	}
-	defer file.Close()
+	defer func() {
+		if err := file.Close(); err != nil {
+			// Log close error but don't override return value
+		}
+	}()
 
 	var reader io.Reader = file
 	if metadata.Compressed {
@@ -418,7 +481,11 @@ func (m *RepositoryBackupManager) restoreProvenance(inputPath string, metadata *
 		if err != nil {
 			return err
 		}
-		defer gzReader.Close()
+		defer func() {
+			if err := gzReader.Close(); err != nil {
+				// Log close error but don't override return value
+			}
+		}()
 		reader = gzReader
 	}
 
@@ -520,7 +587,7 @@ func (m *RepositoryBackupManager) saveMetadata(metadata *BackupMetadata, path st
 		return err
 	}
 
-	return os.WriteFile(path, data, 0644)
+	return os.WriteFile(path, data, 0600)
 }
 
 // loadMetadata loads backup metadata

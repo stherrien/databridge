@@ -19,51 +19,51 @@ type Settings struct {
 
 // GeneralSettings represents general system settings
 type GeneralSettings struct {
-	SystemName        string `json:"systemName"`
+	SystemName         string `json:"systemName"`
 	MaxConcurrentTasks int    `json:"maxConcurrentTasks"`
-	DefaultSchedule   string `json:"defaultSchedule"`
-	TimeZone          string `json:"timeZone"`
-	LogLevel          string `json:"logLevel"`
+	DefaultSchedule    string `json:"defaultSchedule"`
+	TimeZone           string `json:"timeZone"`
+	LogLevel           string `json:"logLevel"`
 }
 
 // FlowSettings represents flow-related settings
 type FlowSettings struct {
-	AutoSave              bool `json:"autoSave"`
-	AutoSaveInterval      int  `json:"autoSaveInterval"` // seconds
-	MaxFlowFileSize       int64 `json:"maxFlowFileSize"` // bytes
-	DefaultBackPressure   int  `json:"defaultBackPressure"`
-	EnableCompression     bool `json:"enableCompression"`
+	AutoSave            bool  `json:"autoSave"`
+	AutoSaveInterval    int   `json:"autoSaveInterval"` // seconds
+	MaxFlowFileSize     int64 `json:"maxFlowFileSize"`  // bytes
+	DefaultBackPressure int   `json:"defaultBackPressure"`
+	EnableCompression   bool  `json:"enableCompression"`
 }
 
 // StorageSettings represents storage-related settings
 type StorageSettings struct {
-	DataDirectory         string `json:"dataDirectory"`
-	ContentRepository     string `json:"contentRepository"`
-	FlowFileRepository    string `json:"flowFileRepository"`
-	ProvenanceRepository  string `json:"provenanceRepository"`
-	MaxStorageSize        int64  `json:"maxStorageSize"` // bytes
-	CleanupOlderThan      int    `json:"cleanupOlderThan"` // days
-	EnableAutoCleanup     bool   `json:"enableAutoCleanup"`
+	DataDirectory        string `json:"dataDirectory"`
+	ContentRepository    string `json:"contentRepository"`
+	FlowFileRepository   string `json:"flowFileRepository"`
+	ProvenanceRepository string `json:"provenanceRepository"`
+	MaxStorageSize       int64  `json:"maxStorageSize"`   // bytes
+	CleanupOlderThan     int    `json:"cleanupOlderThan"` // days
+	EnableAutoCleanup    bool   `json:"enableAutoCleanup"`
 }
 
 // MonitoringSettings represents monitoring-related settings
 type MonitoringSettings struct {
-	EnableMetrics         bool `json:"enableMetrics"`
-	MetricsRetention      int  `json:"metricsRetention"` // days
-	EnableProvenance      bool `json:"enableProvenance"`
-	ProvenanceRetention   int  `json:"provenanceRetention"` // days
-	EnableHealthChecks    bool `json:"enableHealthChecks"`
-	HealthCheckInterval   int  `json:"healthCheckInterval"` // seconds
+	EnableMetrics       bool `json:"enableMetrics"`
+	MetricsRetention    int  `json:"metricsRetention"` // days
+	EnableProvenance    bool `json:"enableProvenance"`
+	ProvenanceRetention int  `json:"provenanceRetention"` // days
+	EnableHealthChecks  bool `json:"enableHealthChecks"`
+	HealthCheckInterval int  `json:"healthCheckInterval"` // seconds
 }
 
 // SecuritySettings represents security-related settings
 type SecuritySettings struct {
-	EnableAuthentication  bool   `json:"enableAuthentication"`
-	EnableAuthorization   bool   `json:"enableAuthorization"`
-	SessionTimeout        int    `json:"sessionTimeout"` // minutes
-	PasswordMinLength     int    `json:"passwordMinLength"`
-	RequireStrongPassword bool   `json:"requireStrongPassword"`
-	EnableAuditLog        bool   `json:"enableAuditLog"`
+	EnableAuthentication  bool `json:"enableAuthentication"`
+	EnableAuthorization   bool `json:"enableAuthorization"`
+	SessionTimeout        int  `json:"sessionTimeout"` // minutes
+	PasswordMinLength     int  `json:"passwordMinLength"`
+	RequireStrongPassword bool `json:"requireStrongPassword"`
+	EnableAuditLog        bool `json:"enableAuditLog"`
 }
 
 // SettingsHandlers handles settings-related HTTP requests

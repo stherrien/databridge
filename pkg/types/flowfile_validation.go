@@ -25,12 +25,12 @@ type ValidationSchema struct {
 
 // ConstraintConfig defines constraints for specific attributes
 type ConstraintConfig struct {
-	Type         string   // "string", "number", "boolean", "regex"
-	MinLength    int      // For strings
-	MaxLength    int      // For strings
-	MinValue     float64  // For numbers
-	MaxValue     float64  // For numbers
-	Pattern      string   // Regex pattern
+	Type          string   // "string", "number", "boolean", "regex"
+	MinLength     int      // For strings
+	MaxLength     int      // For strings
+	MinValue      float64  // For numbers
+	MaxValue      float64  // For numbers
+	Pattern       string   // Regex pattern
 	AllowedValues []string // Whitelist of values
 }
 

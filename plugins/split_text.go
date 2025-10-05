@@ -58,10 +58,10 @@ func NewSplitTextProcessor() *SplitTextProcessor {
 				Pattern:      `^\d+$`,
 			},
 			{
-				Name:         "Remove Trailing Newlines",
-				Description:  "Whether to remove trailing newlines from splits",
-				Required:     false,
-				DefaultValue: "true",
+				Name:          "Remove Trailing Newlines",
+				Description:   "Whether to remove trailing newlines from splits",
+				Required:      false,
+				DefaultValue:  "true",
 				AllowedValues: []string{"true", "false"},
 			},
 			{
@@ -80,8 +80,8 @@ func NewSplitTextProcessor() *SplitTextProcessor {
 			},
 		},
 		Relationships: []types.Relationship{
-			types.RelationshipSuccess,  // Original FlowFile
-			RelationshipSplits,         // Split FlowFiles
+			types.RelationshipSuccess, // Original FlowFile
+			RelationshipSplits,        // Split FlowFiles
 			types.RelationshipFailure,
 		},
 	}

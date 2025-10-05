@@ -23,41 +23,41 @@ type AuditAction string
 
 const (
 	// Authentication actions
-	AuditActionLogin         AuditAction = "login"
-	AuditActionLogout        AuditAction = "logout"
-	AuditActionRefreshToken  AuditAction = "refresh_token"
-	AuditActionLoginFailed   AuditAction = "login_failed"
+	AuditActionLogin        AuditAction = "login"
+	AuditActionLogout       AuditAction = "logout"
+	AuditActionRefreshToken AuditAction = "refresh_token"
+	AuditActionLoginFailed  AuditAction = "login_failed"
 
 	// User management actions
-	AuditActionUserCreate    AuditAction = "user_create"
-	AuditActionUserUpdate    AuditAction = "user_update"
-	AuditActionUserDelete    AuditAction = "user_delete"
-	AuditActionUserDisable   AuditAction = "user_disable"
-	AuditActionUserEnable    AuditAction = "user_enable"
+	AuditActionUserCreate  AuditAction = "user_create"
+	AuditActionUserUpdate  AuditAction = "user_update"
+	AuditActionUserDelete  AuditAction = "user_delete"
+	AuditActionUserDisable AuditAction = "user_disable"
+	AuditActionUserEnable  AuditAction = "user_enable"
 
 	// Role management actions
-	AuditActionRoleCreate    AuditAction = "role_create"
-	AuditActionRoleUpdate    AuditAction = "role_update"
-	AuditActionRoleDelete    AuditAction = "role_delete"
-	AuditActionRoleAssign    AuditAction = "role_assign"
-	AuditActionRoleRemove    AuditAction = "role_remove"
+	AuditActionRoleCreate AuditAction = "role_create"
+	AuditActionRoleUpdate AuditAction = "role_update"
+	AuditActionRoleDelete AuditAction = "role_delete"
+	AuditActionRoleAssign AuditAction = "role_assign"
+	AuditActionRoleRemove AuditAction = "role_remove"
 
 	// Permission actions
 	AuditActionPermissionGrant  AuditAction = "permission_grant"
 	AuditActionPermissionRevoke AuditAction = "permission_revoke"
 
 	// API key actions
-	AuditActionAPIKeyCreate  AuditAction = "apikey_create"
-	AuditActionAPIKeyRevoke  AuditAction = "apikey_revoke"
-	AuditActionAPIKeyDelete  AuditAction = "apikey_delete"
-	AuditActionAPIKeyUsed    AuditAction = "apikey_used"
+	AuditActionAPIKeyCreate AuditAction = "apikey_create"
+	AuditActionAPIKeyRevoke AuditAction = "apikey_revoke"
+	AuditActionAPIKeyDelete AuditAction = "apikey_delete"
+	AuditActionAPIKeyUsed   AuditAction = "apikey_used"
 
 	// Flow management actions
-	AuditActionFlowCreate    AuditAction = "flow_create"
-	AuditActionFlowUpdate    AuditAction = "flow_update"
-	AuditActionFlowDelete    AuditAction = "flow_delete"
-	AuditActionFlowStart     AuditAction = "flow_start"
-	AuditActionFlowStop      AuditAction = "flow_stop"
+	AuditActionFlowCreate AuditAction = "flow_create"
+	AuditActionFlowUpdate AuditAction = "flow_update"
+	AuditActionFlowDelete AuditAction = "flow_delete"
+	AuditActionFlowStart  AuditAction = "flow_start"
+	AuditActionFlowStop   AuditAction = "flow_stop"
 
 	// Processor actions
 	AuditActionProcessorCreate AuditAction = "processor_create"
@@ -314,12 +314,12 @@ func (al *AuditLogger) Query(ctx context.Context, filter AuditFilter) ([]*AuditE
 
 // AuditFilter defines filters for querying audit events
 type AuditFilter struct {
-	UserID     string
-	Action     string
-	Resource   string
-	Result     AuditResult
-	StartTime  *time.Time
-	EndTime    *time.Time
-	Limit      int
-	Offset     int
+	UserID    string
+	Action    string
+	Resource  string
+	Result    AuditResult
+	StartTime *time.Time
+	EndTime   *time.Time
+	Limit     int
+	Offset    int
 }

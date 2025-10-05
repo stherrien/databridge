@@ -337,7 +337,7 @@ func TestInMemoryProvenanceRepository(t *testing.T) {
 	event3 := &ProvenanceEvent{
 		ID:            uuid.New(),
 		EventType:     "DROP",
-		FlowFileID:    uuid.New(), // Different FlowFile
+		FlowFileID:    uuid.New(),         // Different FlowFile
 		ProcessorID:   event2.ProcessorID, // Same processor as event2
 		ProcessorName: "TestProcessor2",
 		EventTime:     time.Now().Add(2 * time.Second),

@@ -12,28 +12,28 @@ import (
 
 // ProcessSessionImpl implements the ProcessSession interface
 type ProcessSessionImpl struct {
-	id               uuid.UUID
-	flowFileRepo     FlowFileRepository
-	contentRepo      ContentRepository
-	provenanceRepo   ProvenanceRepository
-	logger           types.Logger
-	ctx              context.Context
-	processorNode    *ProcessorNode // Reference to processor for auto-termination checks
+	id             uuid.UUID
+	flowFileRepo   FlowFileRepository
+	contentRepo    ContentRepository
+	provenanceRepo ProvenanceRepository
+	logger         types.Logger
+	ctx            context.Context
+	processorNode  *ProcessorNode // Reference to processor for auto-termination checks
 
 	// Queue integration
-	inputQueues      []*FlowFileQueue
+	inputQueues       []*FlowFileQueue
 	outputConnections []*Connection
 	currentQueueIndex int
 
 	// Transaction state
-	mu               sync.RWMutex
-	flowFiles        map[uuid.UUID]*types.FlowFile
-	transfers        map[uuid.UUID]types.Relationship
-	removals         []uuid.UUID
-	creations        []*types.FlowFile
-	modifications    map[uuid.UUID]*types.FlowFile
-	committed        bool
-	rolledBack       bool
+	mu            sync.RWMutex
+	flowFiles     map[uuid.UUID]*types.FlowFile
+	transfers     map[uuid.UUID]types.Relationship
+	removals      []uuid.UUID
+	creations     []*types.FlowFile
+	modifications map[uuid.UUID]*types.FlowFile
+	committed     bool
+	rolledBack    bool
 }
 
 // NewProcessSession creates a new process session
@@ -381,13 +381,13 @@ func (s *ProcessSessionImpl) Commit() error {
 
 				// Create provenance event for auto-termination
 				event := &ProvenanceEvent{
-					ID:          uuid.New(),
-					EventType:   "DROP",
-					FlowFileID:  id,
-					ProcessorID: s.getProcessorID(),
+					ID:            uuid.New(),
+					EventType:     "DROP",
+					FlowFileID:    id,
+					ProcessorID:   s.getProcessorID(),
 					ProcessorName: s.getProcessorName(),
-					EventTime:   time.Now(),
-					Details:     fmt.Sprintf("Auto-terminated for relationship %s", relationship.Name),
+					EventTime:     time.Now(),
+					Details:       fmt.Sprintf("Auto-terminated for relationship %s", relationship.Name),
 				}
 				if err := s.provenanceRepo.Store(event); err != nil {
 					s.logger.Warn("Failed to store provenance event", "error", err)

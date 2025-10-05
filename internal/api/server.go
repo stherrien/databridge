@@ -14,12 +14,12 @@ import (
 
 // Server represents the REST API server
 type Server struct {
-	httpServer  *http.Server
-	router      *mux.Router
-	logger      *logrus.Logger
-	collector   *MetricsCollector
-	sseHandler  *SSEHandler
-	port        int
+	httpServer *http.Server
+	router     *mux.Router
+	logger     *logrus.Logger
+	collector  *MetricsCollector
+	sseHandler *SSEHandler
+	port       int
 }
 
 // Config represents server configuration

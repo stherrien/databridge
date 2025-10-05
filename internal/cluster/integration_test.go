@@ -317,4 +317,3 @@ func TestStatistics(t *testing.T) {
 	assert.Equal(t, 1, stats.TotalNodes)
 	assert.NotEmpty(t, stats.NodeStats)
 }
-

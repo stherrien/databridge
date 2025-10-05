@@ -11,51 +11,51 @@ import (
 type CircuitState string
 
 const (
-	CircuitClosed    CircuitState = "closed"     // Normal operation
-	CircuitOpen      CircuitState = "open"       // Failing, reject requests
-	CircuitHalfOpen  CircuitState = "half_open"  // Testing recovery
+	CircuitClosed   CircuitState = "closed"    // Normal operation
+	CircuitOpen     CircuitState = "open"      // Failing, reject requests
+	CircuitHalfOpen CircuitState = "half_open" // Testing recovery
 )
 
 // CircuitBreaker prevents cascading failures
 type CircuitBreaker struct {
-	name              string
-	state             CircuitState
-	failureThreshold  int           // Failures before opening
-	successThreshold  int           // Successes to close from half-open
-	timeout           time.Duration // Time before half-open attempt
-	maxTimeout        time.Duration // Maximum timeout for exponential backoff
-	failureCount      int32
-	successCount      int32
+	name                 string
+	state                CircuitState
+	failureThreshold     int           // Failures before opening
+	successThreshold     int           // Successes to close from half-open
+	timeout              time.Duration // Time before half-open attempt
+	maxTimeout           time.Duration // Maximum timeout for exponential backoff
+	failureCount         int32
+	successCount         int32
 	consecutiveSuccesses int32
-	lastFailureTime   time.Time
-	lastStateChange   time.Time
-	attemptCount      int32         // Number of half-open attempts
-	mu                sync.RWMutex
-	metrics           *CircuitBreakerMetrics
+	lastFailureTime      time.Time
+	lastStateChange      time.Time
+	attemptCount         int32 // Number of half-open attempts
+	mu                   sync.RWMutex
+	metrics              *CircuitBreakerMetrics
 }
 
 // CircuitBreakerConfig configures circuit breaker behavior
 type CircuitBreakerConfig struct {
-	Enabled           bool
-	FailureThreshold  int           // Failures before opening (default: 5)
-	SuccessThreshold  int           // Successes to close from half-open (default: 2)
-	Timeout           time.Duration // Time before half-open attempt (default: 30s)
-	MaxTimeout        time.Duration // Max timeout for exponential backoff (default: 5m)
-	UseExponentialBackoff bool      // Enable exponential backoff
+	Enabled               bool
+	FailureThreshold      int           // Failures before opening (default: 5)
+	SuccessThreshold      int           // Successes to close from half-open (default: 2)
+	Timeout               time.Duration // Time before half-open attempt (default: 30s)
+	MaxTimeout            time.Duration // Max timeout for exponential backoff (default: 5m)
+	UseExponentialBackoff bool          // Enable exponential backoff
 }
 
 // CircuitBreakerMetrics tracks circuit breaker statistics
 type CircuitBreakerMetrics struct {
-	TotalRequests     int64
+	TotalRequests      int64
 	SuccessfulRequests int64
-	FailedRequests    int64
-	RejectedRequests  int64
-	StateTransitions  int64
-	TimeInOpen        int64 // Nanoseconds spent in open state
-	TimeInHalfOpen    int64 // Nanoseconds spent in half-open state
-	LastOpenTime      time.Time
-	LastCloseTime     time.Time
-	mu                sync.RWMutex
+	FailedRequests     int64
+	RejectedRequests   int64
+	StateTransitions   int64
+	TimeInOpen         int64 // Nanoseconds spent in open state
+	TimeInHalfOpen     int64 // Nanoseconds spent in half-open state
+	LastOpenTime       time.Time
+	LastCloseTime      time.Time
+	mu                 sync.RWMutex
 }
 
 // NewCircuitBreaker creates a new circuit breaker
@@ -74,14 +74,14 @@ func NewCircuitBreaker(name string, config CircuitBreakerConfig) *CircuitBreaker
 	}
 
 	return &CircuitBreaker{
-		name:              name,
-		state:             CircuitClosed,
-		failureThreshold:  config.FailureThreshold,
-		successThreshold:  config.SuccessThreshold,
-		timeout:           config.Timeout,
-		maxTimeout:        config.MaxTimeout,
-		lastStateChange:   time.Now(),
-		metrics:           &CircuitBreakerMetrics{},
+		name:             name,
+		state:            CircuitClosed,
+		failureThreshold: config.FailureThreshold,
+		successThreshold: config.SuccessThreshold,
+		timeout:          config.Timeout,
+		maxTimeout:       config.MaxTimeout,
+		lastStateChange:  time.Now(),
+		metrics:          &CircuitBreakerMetrics{},
 	}
 }
 
@@ -392,17 +392,17 @@ func (cb *CircuitBreaker) GetTimeUntilReset() time.Duration {
 
 // CircuitBreakerInfo contains comprehensive circuit breaker information
 type CircuitBreakerInfo struct {
-	Name              string
-	State             CircuitState
-	FailureCount      int
-	SuccessCount      int
-	FailureThreshold  int
-	SuccessThreshold  int
-	TimeUntilReset    time.Duration
-	LastFailureTime   time.Time
-	LastStateChange   time.Time
-	AttemptCount      int
-	Metrics           CircuitBreakerMetrics
+	Name             string
+	State            CircuitState
+	FailureCount     int
+	SuccessCount     int
+	FailureThreshold int
+	SuccessThreshold int
+	TimeUntilReset   time.Duration
+	LastFailureTime  time.Time
+	LastStateChange  time.Time
+	AttemptCount     int
+	Metrics          CircuitBreakerMetrics
 }
 
 // GetInfo returns comprehensive circuit breaker information
@@ -411,16 +411,16 @@ func (cb *CircuitBreaker) GetInfo() CircuitBreakerInfo {
 	defer cb.mu.RUnlock()
 
 	return CircuitBreakerInfo{
-		Name:              cb.name,
-		State:             cb.state,
-		FailureCount:      int(atomic.LoadInt32(&cb.failureCount)),
-		SuccessCount:      int(atomic.LoadInt32(&cb.consecutiveSuccesses)),
-		FailureThreshold:  cb.failureThreshold,
-		SuccessThreshold:  cb.successThreshold,
-		TimeUntilReset:    cb.GetTimeUntilReset(),
-		LastFailureTime:   cb.lastFailureTime,
-		LastStateChange:   cb.lastStateChange,
-		AttemptCount:      int(atomic.LoadInt32(&cb.attemptCount)),
-		Metrics:           cb.GetMetrics(),
+		Name:             cb.name,
+		State:            cb.state,
+		FailureCount:     int(atomic.LoadInt32(&cb.failureCount)),
+		SuccessCount:     int(atomic.LoadInt32(&cb.consecutiveSuccesses)),
+		FailureThreshold: cb.failureThreshold,
+		SuccessThreshold: cb.successThreshold,
+		TimeUntilReset:   cb.GetTimeUntilReset(),
+		LastFailureTime:  cb.lastFailureTime,
+		LastStateChange:  cb.lastStateChange,
+		AttemptCount:     int(atomic.LoadInt32(&cb.attemptCount)),
+		Metrics:          cb.GetMetrics(),
 	}
 }

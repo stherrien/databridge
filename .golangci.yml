@@ -3,11 +3,6 @@
 run:
   timeout: 5m
   tests: true
-  skip-dirs:
-    - frontend
-    - data
-    - data-dev
-    - build
 
 linters:
   enable:
@@ -36,16 +31,25 @@ linters-settings:
       - G204  # Allow subprocess calls with variable arguments
   
   govet:
-    check-shadowing: true
+    enable:
+      - shadow
   
   misspell:
     locale: US
+
+output:
+  formats:
+    - format: colored-line-number
 
 issues:
   exclude-use-default: false
   max-issues-per-linter: 0
   max-same-issues: 0
-  
+  exclude-dirs:
+    - frontend
+    - data
+    - data-dev
+    - build
   exclude-rules:
     # Exclude some linters from running on tests files
     - path: _test\.go

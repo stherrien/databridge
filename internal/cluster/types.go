@@ -57,15 +57,15 @@ const (
 
 // ClusterNode represents a node in the cluster
 type ClusterNode struct {
-	ID            string                 `json:"id"`
-	Address       string                 `json:"address"`
-	Port          int                    `json:"port"`
-	Role          NodeRole               `json:"role"`
-	State         NodeState              `json:"state"`
-	LastHeartbeat time.Time              `json:"lastHeartbeat"`
-	Metadata      map[string]string      `json:"metadata"`
-	Capacity      ResourceCapacity       `json:"capacity"`
-	Load          *NodeLoad              `json:"load,omitempty"`
+	ID            string            `json:"id"`
+	Address       string            `json:"address"`
+	Port          int               `json:"port"`
+	Role          NodeRole          `json:"role"`
+	State         NodeState         `json:"state"`
+	LastHeartbeat time.Time         `json:"lastHeartbeat"`
+	Metadata      map[string]string `json:"metadata"`
+	Capacity      ResourceCapacity  `json:"capacity"`
+	Load          *NodeLoad         `json:"load,omitempty"`
 	mu            sync.RWMutex
 }
 
@@ -89,11 +89,11 @@ type NodeLoad struct {
 
 // ClusterState holds the replicated cluster state
 type ClusterState struct {
-	Nodes           map[string]*ClusterNode    `json:"nodes"`
-	FlowAssignments map[string]string          `json:"flowAssignments"`   // flowID -> nodeID
-	ProcessorLeases map[string]string          `json:"processorLeases"`   // processorID -> nodeID
-	SharedConfig    map[string]interface{}     `json:"sharedConfig"`
-	Version         uint64                     `json:"version"`
+	Nodes           map[string]*ClusterNode `json:"nodes"`
+	FlowAssignments map[string]string       `json:"flowAssignments"` // flowID -> nodeID
+	ProcessorLeases map[string]string       `json:"processorLeases"` // processorID -> nodeID
+	SharedConfig    map[string]interface{}  `json:"sharedConfig"`
+	Version         uint64                  `json:"version"`
 	mu              sync.RWMutex
 }
 
@@ -164,12 +164,12 @@ type FlowAssignment struct {
 
 // ReplicationRequest represents a state replication request
 type ReplicationRequest struct {
-	RequestID   string                 `json:"requestId"`
-	StateType   string                 `json:"stateType"`
-	Data        interface{}            `json:"data"`
-	Version     uint64                 `json:"version"`
-	Timestamp   time.Time              `json:"timestamp"`
-	AckRequired bool                   `json:"ackRequired"`
+	RequestID   string      `json:"requestId"`
+	StateType   string      `json:"stateType"`
+	Data        interface{} `json:"data"`
+	Version     uint64      `json:"version"`
+	Timestamp   time.Time   `json:"timestamp"`
+	AckRequired bool        `json:"ackRequired"`
 }
 
 // ReplicationResponse represents a replication acknowledgment
@@ -183,24 +183,24 @@ type ReplicationResponse struct {
 
 // ClusterStatistics holds cluster-wide statistics
 type ClusterStatistics struct {
-	TotalNodes       int                `json:"totalNodes"`
-	HealthyNodes     int                `json:"healthyNodes"`
-	Leader           string             `json:"leader"`
-	TotalProcessors  int                `json:"totalProcessors"`
-	ActiveProcessors int                `json:"activeProcessors"`
-	AverageLoad      float64            `json:"averageLoad"`
+	TotalNodes       int                   `json:"totalNodes"`
+	HealthyNodes     int                   `json:"healthyNodes"`
+	Leader           string                `json:"leader"`
+	TotalProcessors  int                   `json:"totalProcessors"`
+	ActiveProcessors int                   `json:"activeProcessors"`
+	AverageLoad      float64               `json:"averageLoad"`
 	NodeStats        map[string]*NodeStats `json:"nodeStats"`
-	LastUpdated      time.Time          `json:"lastUpdated"`
+	LastUpdated      time.Time             `json:"lastUpdated"`
 }
 
 // NodeStats holds statistics for a single node
 type NodeStats struct {
-	NodeID           string    `json:"nodeId"`
-	Uptime           time.Duration `json:"uptime"`
-	ProcessorsCount  int       `json:"processorsCount"`
-	QueueDepth       int       `json:"queueDepth"`
-	ProcessedCount   int64     `json:"processedCount"`
-	LastHeartbeat    time.Time `json:"lastHeartbeat"`
+	NodeID          string        `json:"nodeId"`
+	Uptime          time.Duration `json:"uptime"`
+	ProcessorsCount int           `json:"processorsCount"`
+	QueueDepth      int           `json:"queueDepth"`
+	ProcessedCount  int64         `json:"processedCount"`
+	LastHeartbeat   time.Time     `json:"lastHeartbeat"`
 }
 
 // Helper methods for ClusterNode

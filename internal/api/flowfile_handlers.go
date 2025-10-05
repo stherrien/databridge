@@ -23,37 +23,37 @@ func NewFlowFileHandlers(flowController *core.FlowController) *FlowFileHandlers 
 
 // FlowFileDetails represents detailed FlowFile information for inspection
 type FlowFileDetails struct {
-	ID          uuid.UUID         `json:"id"`
-	Size        int64            `json:"size"`
-	Attributes  map[string]string `json:"attributes"`
-	ContentPreview string         `json:"contentPreview"`
-	Provenance  []FlowFileProvenanceEvent `json:"provenance"`
+	ID             uuid.UUID                 `json:"id"`
+	Size           int64                     `json:"size"`
+	Attributes     map[string]string         `json:"attributes"`
+	ContentPreview string                    `json:"contentPreview"`
+	Provenance     []FlowFileProvenanceEvent `json:"provenance"`
 }
 
 // FlowFileProvenanceEvent represents a simple provenance event for the FlowFile
 type FlowFileProvenanceEvent struct {
-	Type      string    `json:"type"`
-	Timestamp string    `json:"timestamp"`
-	Details   string    `json:"details"`
+	Type      string `json:"type"`
+	Timestamp string `json:"timestamp"`
+	Details   string `json:"details"`
 }
 
 // QueueInfo represents information about a connection queue
 type QueueInfo struct {
-	ConnectionID   uuid.UUID   `json:"connectionId"`
-	SourceID       uuid.UUID   `json:"sourceId"`
-	DestinationID  uuid.UUID   `json:"destinationId"`
-	Relationship   string      `json:"relationship"`
-	FlowFileCount  int         `json:"flowFileCount"`
-	TotalSize      int64       `json:"totalSize"`
-	FlowFiles      []FlowFileSummary `json:"flowFiles"`
+	ConnectionID  uuid.UUID         `json:"connectionId"`
+	SourceID      uuid.UUID         `json:"sourceId"`
+	DestinationID uuid.UUID         `json:"destinationId"`
+	Relationship  string            `json:"relationship"`
+	FlowFileCount int               `json:"flowFileCount"`
+	TotalSize     int64             `json:"totalSize"`
+	FlowFiles     []FlowFileSummary `json:"flowFiles"`
 }
 
 // FlowFileSummary represents a summary of a FlowFile in a queue
 type FlowFileSummary struct {
 	ID         uuid.UUID         `json:"id"`
-	Size       int64            `json:"size"`
+	Size       int64             `json:"size"`
 	Attributes map[string]string `json:"attributes"`
-	QueuedTime string           `json:"queuedTime"`
+	QueuedTime string            `json:"queuedTime"`
 }
 
 // HandleGetFlowFile handles GET /api/flowfiles/{id}
@@ -79,7 +79,11 @@ func (h *FlowFileHandlers) HandleGetFlowFile(w http.ResponseWriter, r *http.Requ
 	if flowFile.ContentClaim != nil {
 		reader, err := h.flowController.GetContentRepository().Read(flowFile.ContentClaim)
 		if err == nil {
-			defer reader.Close()
+			defer func() {
+				if err := reader.Close(); err != nil {
+					// Log close error but don't override response
+				}
+			}()
 			previewBytes := make([]byte, 1024)
 			n, _ := reader.Read(previewBytes)
 			contentPreview = string(previewBytes[:n])
@@ -122,13 +126,13 @@ func (h *FlowFileHandlers) HandleGetConnectionQueue(w http.ResponseWriter, r *ht
 	queue := connection.Queue
 	if queue == nil {
 		queueInfo := QueueInfo{
-			ConnectionID:   connection.ID,
-			SourceID:       connection.Source.ID,
-			DestinationID:  connection.Destination.ID,
-			Relationship:   connection.Relationship.Name,
-			FlowFileCount:  0,
-			TotalSize:      0,
-			FlowFiles:      []FlowFileSummary{},
+			ConnectionID:  connection.ID,
+			SourceID:      connection.Source.ID,
+			DestinationID: connection.Destination.ID,
+			Relationship:  connection.Relationship.Name,
+			FlowFileCount: 0,
+			TotalSize:     0,
+			FlowFiles:     []FlowFileSummary{},
 		}
 		respondJSON(w, http.StatusOK, queueInfo)
 		return
@@ -150,13 +154,13 @@ func (h *FlowFileHandlers) HandleGetConnectionQueue(w http.ResponseWriter, r *ht
 	}
 
 	queueInfo := QueueInfo{
-		ConnectionID:   connection.ID,
-		SourceID:       connection.Source.ID,
-		DestinationID:  connection.Destination.ID,
-		Relationship:   connection.Relationship.Name,
-		FlowFileCount:  len(flowFiles),
-		TotalSize:      totalSize,
-		FlowFiles:      summaries,
+		ConnectionID:  connection.ID,
+		SourceID:      connection.Source.ID,
+		DestinationID: connection.Destination.ID,
+		Relationship:  connection.Relationship.Name,
+		FlowFileCount: len(flowFiles),
+		TotalSize:     totalSize,
+		FlowFiles:     summaries,
 	}
 
 	respondJSON(w, http.StatusOK, queueInfo)
@@ -219,7 +223,11 @@ func (h *FlowFileHandlers) HandleGetFlowFileContent(w http.ResponseWriter, r *ht
 		respondError(w, http.StatusInternalServerError, "Failed to read content")
 		return
 	}
-	defer reader.Close()
+	defer func() {
+		if err := reader.Close(); err != nil {
+			// Log close error but don't override response
+		}
+	}()
 
 	// Set content type if available in attributes
 	if mimeType, ok := flowFile.Attributes["mime.type"]; ok {
@@ -236,5 +244,5 @@ func (h *FlowFileHandlers) HandleGetFlowFileContent(w http.ResponseWriter, r *ht
 		respondError(w, http.StatusInternalServerError, "Failed to read content")
 		return
 	}
-	w.Write(contentBytes)
+	_, _ = w.Write(contentBytes) // Best effort write
 }

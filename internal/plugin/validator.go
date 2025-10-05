@@ -5,7 +5,6 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
@@ -154,7 +153,7 @@ func (v *PluginValidator) validateManifestFile(path string) error {
 
 // readManifest reads and parses the manifest
 func (v *PluginValidator) readManifest(path string) (map[string]interface{}, error) {
-	data, err := ioutil.ReadFile(path)
+	data, err := os.ReadFile(path)
 	if err != nil {
 		return nil, err
 	}
@@ -290,7 +289,7 @@ func (v *PluginValidator) validateChecksum(pluginPath string, manifest map[strin
 
 // readChecksumFile reads checksums from a file
 func (v *PluginValidator) readChecksumFile(path string) (map[string]string, error) {
-	data, err := ioutil.ReadFile(path)
+	data, err := os.ReadFile(path)
 	if err != nil {
 		return nil, err
 	}
@@ -317,7 +316,7 @@ func (v *PluginValidator) readChecksumFile(path string) (map[string]string, erro
 
 // calculateChecksum calculates SHA256 checksum of a file
 func (v *PluginValidator) calculateChecksum(path string) (string, error) {
-	data, err := ioutil.ReadFile(path)
+	data, err := os.ReadFile(path)
 	if err != nil {
 		return "", err
 	}
@@ -396,15 +395,21 @@ func (v *PluginValidator) performSecurityScan(pluginPath string) []string {
 	// 5. Integrate with external security tools
 
 	// Check file permissions
-	entries, err := ioutil.ReadDir(pluginPath)
+	entries, err := os.ReadDir(pluginPath)
 	if err != nil {
 		warnings = append(warnings, fmt.Sprintf("Failed to scan directory: %v", err))
 		return warnings
 	}
 
 	for _, entry := range entries {
+		// Get file info to check mode
+		info, err := entry.Info()
+		if err != nil {
+			continue
+		}
+
 		// Check for executable files outside of expected locations
-		if entry.Mode()&0111 != 0 && !strings.HasSuffix(entry.Name(), ".so") {
+		if info.Mode()&0111 != 0 && !strings.HasSuffix(entry.Name(), ".so") {
 			warnings = append(warnings, fmt.Sprintf("Unexpected executable file: %s", entry.Name()))
 		}
 
@@ -479,5 +484,5 @@ func (v *PluginValidator) GenerateChecksum(pluginPath string) error {
 
 	// Write checksums to file
 	content := strings.Join(checksums, "\n") + "\n"
-	return ioutil.WriteFile(checksumFile, []byte(content), 0644)
+	return os.WriteFile(checksumFile, []byte(content), 0600)
 }

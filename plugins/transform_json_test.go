@@ -337,10 +337,10 @@ func TestTransformJSONProcessorDestinationAttribute(t *testing.T) {
 
 	processorCtx := &mockProcessorContext{
 		properties: map[string]string{
-			"JSON Path Expression": ".status",
-			"Destination":          "flowfile-attribute",
+			"JSON Path Expression":  ".status",
+			"Destination":           "flowfile-attribute",
 			"Destination Attribute": "user.status",
-			"Return Type":          "string",
+			"Return Type":           "string",
 		},
 	}
 

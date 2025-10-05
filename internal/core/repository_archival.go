@@ -45,23 +45,23 @@ type ArchivalManager struct {
 
 // ArchivalRecord tracks archived FlowFiles
 type ArchivalRecord struct {
-	FlowFileID     uuid.UUID `json:"flowFileId"`
-	ArchivedAt     time.Time `json:"archivedAt"`
-	OriginalSize   int64     `json:"originalSize"`
-	ArchivePath    string    `json:"archivePath"`
+	FlowFileID      uuid.UUID `json:"flowFileId"`
+	ArchivedAt      time.Time `json:"archivedAt"`
+	OriginalSize    int64     `json:"originalSize"`
+	ArchivePath     string    `json:"archivePath"`
 	ArchiveBackupID uuid.UUID `json:"archiveBackupId"`
-	Reason         string    `json:"reason"` // "age", "size", "pattern", "manual"
+	Reason          string    `json:"reason"` // "age", "size", "pattern", "manual"
 }
 
 // ArchivalStats provides archival metrics
 type ArchivalStats struct {
-	TotalArchived    int
-	TotalSize        int64
-	ArchivedByAge    int
-	ArchivedBySize   int
+	TotalArchived     int
+	TotalSize         int64
+	ArchivedByAge     int
+	ArchivedBySize    int
 	ArchivedByPattern int
-	ArchivedManually int
-	LastArchivalTime time.Time
+	ArchivedManually  int
+	LastArchivalTime  time.Time
 }
 
 // NewArchivalManager creates a new archival manager

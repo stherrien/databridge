@@ -8,8 +8,8 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/sirupsen/logrus"
 	"github.com/shawntherrien/databridge/pkg/types"
+	"github.com/sirupsen/logrus"
 )
 
 // ResourceLimits restricts plugin resource usage
@@ -24,11 +24,11 @@ type ResourceLimits struct {
 // DefaultResourceLimits returns default resource limits
 func DefaultResourceLimits() ResourceLimits {
 	return ResourceLimits{
-		MaxMemoryMB:    512,    // 512MB default
-		MaxCPUPercent:  50.0,   // 50% CPU
-		MaxGoroutines:  100,    // 100 goroutines
-		MaxFileHandles: 100,    // 100 file handles
-		MaxExecutionMS: 30000,  // 30 seconds
+		MaxMemoryMB:    512,   // 512MB default
+		MaxCPUPercent:  50.0,  // 50% CPU
+		MaxGoroutines:  100,   // 100 goroutines
+		MaxFileHandles: 100,   // 100 file handles
+		MaxExecutionMS: 30000, // 30 seconds
 	}
 }
 

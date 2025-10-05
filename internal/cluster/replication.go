@@ -253,13 +253,13 @@ func (sr *StateReplicator) GetReplicationStatus(requestID string) (*ReplicationS
 	responses := sr.responses[requestID]
 
 	status := &ReplicationStatus{
-		RequestID:       requestID,
-		StateType:       req.StateType,
-		TotalNodes:      0, // Would track from original request
+		RequestID:         requestID,
+		StateType:         req.StateType,
+		TotalNodes:        0, // Would track from original request
 		AcknowledgedNodes: len(responses),
-		Pending:         req.AckRequired && len(responses) == 0,
-		Completed:       !req.AckRequired || len(responses) > 0,
-		Timestamp:       req.Timestamp,
+		Pending:           req.AckRequired && len(responses) == 0,
+		Completed:         !req.AckRequired || len(responses) > 0,
+		Timestamp:         req.Timestamp,
 	}
 
 	return status, nil

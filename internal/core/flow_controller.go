@@ -7,81 +7,81 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/sirupsen/logrus"
 	"github.com/shawntherrien/databridge/internal/plugin"
 	"github.com/shawntherrien/databridge/pkg/types"
+	"github.com/sirupsen/logrus"
 )
 
 // FlowController is the central orchestrator for data flow management
 type FlowController struct {
-	mu                sync.RWMutex
-	ctx               context.Context
-	cancel            context.CancelFunc
-	logger            *logrus.Logger
+	mu     sync.RWMutex
+	ctx    context.Context
+	cancel context.CancelFunc
+	logger *logrus.Logger
 
 	// Repositories
-	flowFileRepo      FlowFileRepository
-	contentRepo       ContentRepository
-	provenanceRepo    ProvenanceRepository
+	flowFileRepo   FlowFileRepository
+	contentRepo    ContentRepository
+	provenanceRepo ProvenanceRepository
 
 	// Components
-	processors        map[uuid.UUID]*ProcessorNode
-	connections       map[uuid.UUID]*Connection
-	processGroups     map[uuid.UUID]*ProcessGroup
+	processors    map[uuid.UUID]*ProcessorNode
+	connections   map[uuid.UUID]*Connection
+	processGroups map[uuid.UUID]*ProcessGroup
 
 	// Scheduling
-	scheduler         *ProcessScheduler
-	running           bool
+	scheduler *ProcessScheduler
+	running   bool
 
 	// Plugin Management
-	pluginManager     *plugin.PluginManager
+	pluginManager *plugin.PluginManager
 
 	// Cluster Management
-	clusterManager    interface{}  // *cluster.ClusterManager (interface to avoid circular import)
-	isClusteredMode   bool
+	clusterManager  interface{} // *cluster.ClusterManager (interface to avoid circular import)
+	isClusteredMode bool
 }
 
 // ProcessorNode wraps a processor with its configuration and runtime state
 type ProcessorNode struct {
-	ID              uuid.UUID                `json:"id"`
-	Name            string                   `json:"name"`
-	Type            string                   `json:"type"`
-	Processor       types.Processor          `json:"-"`
-	Config          types.ProcessorConfig    `json:"config"`
-	Status          types.ProcessorStatus    `json:"status"`
-	Context         *ProcessorContextImpl    `json:"-"`
-	Connections     []*Connection           `json:"-"`
-	RateLimiter     *ProcessorRateLimiter   `json:"-"`
-	CircuitBreaker  *CircuitBreaker         `json:"-"`
-	RetryPolicy     *RetryPolicy            `json:"-"`
-	RetryQueue      *RetryQueue             `json:"-"`
-	mu              sync.RWMutex
+	ID             uuid.UUID             `json:"id"`
+	Name           string                `json:"name"`
+	Type           string                `json:"type"`
+	Processor      types.Processor       `json:"-"`
+	Config         types.ProcessorConfig `json:"config"`
+	Status         types.ProcessorStatus `json:"status"`
+	Context        *ProcessorContextImpl `json:"-"`
+	Connections    []*Connection         `json:"-"`
+	RateLimiter    *ProcessorRateLimiter `json:"-"`
+	CircuitBreaker *CircuitBreaker       `json:"-"`
+	RetryPolicy    *RetryPolicy          `json:"-"`
+	RetryQueue     *RetryQueue           `json:"-"`
+	mu             sync.RWMutex
 }
 
 // Connection represents a connection between processors
 type Connection struct {
-	ID                uuid.UUID          `json:"id"`
-	Name              string             `json:"name"`
-	Source            *ProcessorNode     `json:"source"`
-	Destination       *ProcessorNode     `json:"destination"`
-	Relationship      types.Relationship `json:"relationship"`
-	Queue             *FlowFileQueue     `json:"-"`
-	BackPressureSize  int64             `json:"backPressureSize"`
+	ID                 uuid.UUID          `json:"id"`
+	Name               string             `json:"name"`
+	Source             *ProcessorNode     `json:"source"`
+	Destination        *ProcessorNode     `json:"destination"`
+	Relationship       types.Relationship `json:"relationship"`
+	Queue              *FlowFileQueue     `json:"-"`
+	BackPressureSize   int64              `json:"backPressureSize"`
 	BackPressureConfig BackPressureConfig `json:"backPressureConfig"`
-	RateLimitConfig   *RateLimitConfig   `json:"rateLimitConfig,omitempty"`
-	lastPenaltyTime   *time.Time
-	penaltyDuration   time.Duration
-	mu                sync.RWMutex
+	RateLimitConfig    *RateLimitConfig   `json:"rateLimitConfig,omitempty"`
+	lastPenaltyTime    *time.Time
+	penaltyDuration    time.Duration
+	mu                 sync.RWMutex
 }
 
 // ProcessGroup provides hierarchical organization of components
 type ProcessGroup struct {
 	ID          uuid.UUID                    `json:"id"`
-	Name        string                      `json:"name"`
-	Parent      *ProcessGroup               `json:"parent,omitempty"`
-	Children    map[uuid.UUID]*ProcessGroup `json:"children"`
+	Name        string                       `json:"name"`
+	Parent      *ProcessGroup                `json:"parent,omitempty"`
+	Children    map[uuid.UUID]*ProcessGroup  `json:"children"`
 	Processors  map[uuid.UUID]*ProcessorNode `json:"processors"`
-	Connections map[uuid.UUID]*Connection   `json:"connections"`
+	Connections map[uuid.UUID]*Connection    `json:"connections"`
 	mu          sync.RWMutex
 }
 
@@ -217,11 +217,11 @@ func (fc *FlowController) AddProcessor(processor types.Processor, config types.P
 	}
 
 	processorNode := &ProcessorNode{
-		ID:             config.ID,
-		Name:           config.Name,
-		Type:           config.Type,
-		Processor:      processor,
-		Config:         config,
+		ID:        config.ID,
+		Name:      config.Name,
+		Type:      config.Type,
+		Processor: processor,
+		Config:    config,
 		Status: types.ProcessorStatus{
 			ID:    config.ID,
 			Name:  config.Name,
@@ -1101,15 +1101,15 @@ func (fc *FlowController) ExportFlow(id uuid.UUID) (map[string]interface{}, erro
 			position = map[string]float64{"x": proc.Config.Position.X, "y": proc.Config.Position.Y}
 		}
 		processors = append(processors, map[string]interface{}{
-			"id":              proc.ID,
-			"name":            proc.Name,
-			"type":            proc.Type,
-			"properties":      proc.Config.Properties,
-			"scheduleType":    proc.Config.ScheduleType,
-			"scheduleValue":   proc.Config.ScheduleValue,
-			"concurrency":     proc.Config.Concurrency,
-			"autoTerminate":   proc.Config.AutoTerminate,
-			"position":        position,
+			"id":            proc.ID,
+			"name":          proc.Name,
+			"type":          proc.Type,
+			"properties":    proc.Config.Properties,
+			"scheduleType":  proc.Config.ScheduleType,
+			"scheduleValue": proc.Config.ScheduleValue,
+			"concurrency":   proc.Config.Concurrency,
+			"autoTerminate": proc.Config.AutoTerminate,
+			"position":      position,
 		})
 		proc.RUnlock()
 	}
@@ -1119,12 +1119,12 @@ func (fc *FlowController) ExportFlow(id uuid.UUID) (map[string]interface{}, erro
 	for _, conn := range flow.Connections {
 		conn.RLock()
 		connections = append(connections, map[string]interface{}{
-			"id":                 conn.ID,
-			"name":               conn.Name,
-			"sourceId":           conn.Source.ID,
-			"destinationId":      conn.Destination.ID,
-			"relationship":       conn.Relationship.Name,
-			"backPressureSize":   conn.BackPressureSize,
+			"id":               conn.ID,
+			"name":             conn.Name,
+			"sourceId":         conn.Source.ID,
+			"destinationId":    conn.Destination.ID,
+			"relationship":     conn.Relationship.Name,
+			"backPressureSize": conn.BackPressureSize,
 		})
 		conn.RUnlock()
 	}
@@ -1383,7 +1383,7 @@ func (fc *FlowController) ValidateFlow(id uuid.UUID) (*FlowValidationResult, err
 
 		// Source processors don't need incoming connections
 		isSource := proc.Type == "GenerateFlowFile" || proc.Type == "GetFile" ||
-		           proc.Type == "ConsumeKafka" || proc.Type == "ExecuteSQL"
+			proc.Type == "ConsumeKafka" || proc.Type == "ExecuteSQL"
 
 		if !isSource && !hasIncoming {
 			result.Warnings = append(result.Warnings,

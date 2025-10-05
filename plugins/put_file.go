@@ -64,23 +64,23 @@ func NewPutFileProcessor() *PutFileProcessor {
 				HelpText:     "Select or enter the directory where files will be saved",
 			},
 			{
-				Name:         "Conflict Resolution Strategy",
-				DisplayName:  "Conflict Resolution Strategy",
-				Description:  "How to handle existing files",
-				Required:     false,
-				DefaultValue: "fail",
+				Name:          "Conflict Resolution Strategy",
+				DisplayName:   "Conflict Resolution Strategy",
+				Description:   "How to handle existing files",
+				Required:      false,
+				DefaultValue:  "fail",
 				AllowedValues: []string{"fail", "replace", "ignore", "rename"},
-				Type:         "select",
-				HelpText:     "fail: error if file exists; replace: overwrite; ignore: skip; rename: add suffix",
+				Type:          "select",
+				HelpText:      "fail: error if file exists; replace: overwrite; ignore: skip; rename: add suffix",
 			},
 			{
-				Name:         "Create Missing Directories",
-				DisplayName:  "Create Missing Directories",
-				Description:  "Whether to create missing directories",
-				Required:     false,
-				DefaultValue: "true",
+				Name:          "Create Missing Directories",
+				DisplayName:   "Create Missing Directories",
+				Description:   "Whether to create missing directories",
+				Required:      false,
+				DefaultValue:  "true",
 				AllowedValues: []string{"true", "false"},
-				Type:         "boolean",
+				Type:          "boolean",
 			},
 			{
 				Name:         "Permissions",
@@ -192,14 +192,17 @@ func (p *PutFileProcessor) OnTrigger(ctx context.Context, session types.ProcessS
 	// Parse max file count
 	maxFileCount := -1
 	if maxFileCountStr != "" {
-		if val, err := strconv.Atoi(maxFileCountStr); err == nil {
+		var val int
+		val, err = strconv.Atoi(maxFileCountStr)
+		if err == nil {
 			maxFileCount = val
 		}
 	}
 
 	// Create directory if needed
 	if createMissing {
-		if err := os.MkdirAll(directory, 0755); err != nil {
+		err = os.MkdirAll(directory, 0750)
+		if err != nil {
 			logger.Error("Failed to create directory", "directory", directory, "error", err)
 			session.Transfer(flowFile, types.RelationshipFailure)
 			return nil
@@ -208,7 +211,8 @@ func (p *PutFileProcessor) OnTrigger(ctx context.Context, session types.ProcessS
 
 	// Check max file count
 	if maxFileCount > 0 {
-		count, err := p.countFilesInDirectory(directory)
+		var count int
+		count, err = p.countFilesInDirectory(directory)
 		if err != nil {
 			logger.Error("Failed to count files in directory", "error", err)
 			session.Transfer(flowFile, types.RelationshipFailure)
@@ -232,7 +236,8 @@ func (p *PutFileProcessor) OnTrigger(ctx context.Context, session types.ProcessS
 	fullPath := filepath.Join(directory, filename)
 
 	// Handle conflicts
-	finalPath, err := p.handleConflict(fullPath, strategy, logger)
+	var finalPath string
+	finalPath, err = p.handleConflict(fullPath, strategy, logger)
 	if err != nil {
 		logger.Error("Failed to handle file conflict", "path", fullPath, "error", err)
 		session.Transfer(flowFile, types.RelationshipFailure)
@@ -247,7 +252,8 @@ func (p *PutFileProcessor) OnTrigger(ctx context.Context, session types.ProcessS
 	}
 
 	// Read FlowFile content
-	content, err := session.Read(flowFile)
+	var content []byte
+	content, err = session.Read(flowFile)
 	if err != nil {
 		logger.Error("Failed to read FlowFile content", "error", err)
 		session.Transfer(flowFile, types.RelationshipFailure)
@@ -255,7 +261,8 @@ func (p *PutFileProcessor) OnTrigger(ctx context.Context, session types.ProcessS
 	}
 
 	// Write file
-	if err := os.WriteFile(finalPath, content, os.FileMode(permissions)); err != nil {
+	err = os.WriteFile(finalPath, content, os.FileMode(permissions))
+	if err != nil {
 		logger.Error("Failed to write file", "path", finalPath, "error", err)
 		session.Transfer(flowFile, types.RelationshipFailure)
 		return nil
@@ -343,12 +350,14 @@ func (p *PutFileProcessor) countFilesInDirectory(directory string) (int, error) 
 // Validate validates the processor configuration
 func (p *PutFileProcessor) Validate(config types.ProcessorConfig) []types.ValidationResult {
 	results := p.BaseProcessor.Validate(config)
+	var err error
 
 	// Validate Directory (check parent exists if create missing is false)
 	if directory, exists := config.Properties["Directory"]; exists && directory != "" {
 		createMissing := config.Properties["Create Missing Directories"] != "false"
 
-		info, err := os.Stat(directory)
+		var info os.FileInfo
+		info, err = os.Stat(directory)
 		if err != nil {
 			if os.IsNotExist(err) {
 				if !createMissing {
@@ -360,7 +369,9 @@ func (p *PutFileProcessor) Validate(config types.ProcessorConfig) []types.Valida
 				}
 				// If createMissing is true, we should check if parent exists
 				parent := filepath.Dir(directory)
-				if parentInfo, err := os.Stat(parent); err != nil {
+				var parentInfo os.FileInfo
+				parentInfo, err = os.Stat(parent)
+				if err != nil {
 					results = append(results, types.ValidationResult{
 						Property: "Directory",
 						Valid:    false,
@@ -410,7 +421,8 @@ func (p *PutFileProcessor) Validate(config types.ProcessorConfig) []types.Valida
 
 	// Validate Permissions
 	if permStr, exists := config.Properties["Permissions"]; exists && permStr != "" {
-		if _, err := strconv.ParseUint(permStr, 8, 32); err != nil {
+		_, err = strconv.ParseUint(permStr, 8, 32)
+		if err != nil {
 			results = append(results, types.ValidationResult{
 				Property: "Permissions",
 				Valid:    false,
@@ -421,7 +433,8 @@ func (p *PutFileProcessor) Validate(config types.ProcessorConfig) []types.Valida
 
 	// Validate Maximum File Count
 	if maxCountStr, exists := config.Properties["Maximum File Count"]; exists && maxCountStr != "" {
-		if _, err := strconv.Atoi(maxCountStr); err != nil {
+		_, err = strconv.Atoi(maxCountStr)
+		if err != nil {
 			results = append(results, types.ValidationResult{
 				Property: "Maximum File Count",
 				Valid:    false,

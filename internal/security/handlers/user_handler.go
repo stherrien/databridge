@@ -23,10 +23,10 @@ func NewUserHandler(authManager *security.AuthManager) *UserHandler {
 
 // CreateUserRequest represents a user creation request
 type CreateUserRequest struct {
-	Username string            `json:"username" binding:"required"`
-	Email    string            `json:"email"`
-	Password string            `json:"password" binding:"required"`
-	Roles    []string          `json:"roles"`
+	Username   string            `json:"username" binding:"required"`
+	Email      string            `json:"email"`
+	Password   string            `json:"password" binding:"required"`
+	Roles      []string          `json:"roles"`
 	Attributes map[string]string `json:"attributes"`
 }
 

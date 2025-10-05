@@ -135,7 +135,7 @@ func (h *FilesystemHandlers) HandleBrowseFilesystem(w http.ResponseWriter, r *ht
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(response)
+	json.NewEncoder(w).Encode(response) // Best effort encoding
 }
 
 // HandleValidatePath handles POST /api/filesystem/validate

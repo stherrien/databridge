@@ -33,17 +33,17 @@ type ReplicationConfig struct {
 
 // RepositoryCluster manages distributed repository operations
 type RepositoryCluster struct {
-	nodeID            string
-	nodes             map[string]*ClusterNode
-	leader            string
-	config            ReplicationConfig
-	flowFileRepo      FlowFileRepository
-	contentRepo       ContentRepository
-	provenanceRepo    ProvenanceRepository
-	replicationQueue  chan *ReplicationTask
-	mu                sync.RWMutex
-	stopCh            chan struct{}
-	replicationLog    []*ReplicationLogEntry
+	nodeID           string
+	nodes            map[string]*ClusterNode
+	leader           string
+	config           ReplicationConfig
+	flowFileRepo     FlowFileRepository
+	contentRepo      ContentRepository
+	provenanceRepo   ProvenanceRepository
+	replicationQueue chan *ReplicationTask
+	mu               sync.RWMutex
+	stopCh           chan struct{}
+	replicationLog   []*ReplicationLogEntry
 }
 
 // ReplicationTask represents a replication operation
@@ -60,14 +60,14 @@ type ReplicationTask struct {
 
 // ReplicationLogEntry tracks replication history
 type ReplicationLogEntry struct {
-	TaskID      uuid.UUID
-	Operation   string
-	Type        string
-	Status      string
-	StartTime   time.Time
-	EndTime     time.Time
+	TaskID       uuid.UUID
+	Operation    string
+	Type         string
+	Status       string
+	StartTime    time.Time
+	EndTime      time.Time
 	ReplicaCount int
-	Errors      []string
+	Errors       []string
 }
 
 // ClusterStats provides cluster statistics
@@ -546,4 +546,3 @@ func (c *RepositoryCluster) GetConfig() ReplicationConfig {
 	defer c.mu.RUnlock()
 	return c.config
 }
-

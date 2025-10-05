@@ -8,13 +8,13 @@ import (
 
 // FlowFile represents a data unit in the flow with metadata and content reference
 type FlowFile struct {
-	ID          uuid.UUID         `json:"id"`
-	ContentClaim *ContentClaim    `json:"contentClaim,omitempty"`
+	ID           uuid.UUID         `json:"id"`
+	ContentClaim *ContentClaim     `json:"contentClaim,omitempty"`
 	Attributes   map[string]string `json:"attributes"`
-	Size         int64            `json:"size"`
-	CreatedAt    time.Time        `json:"createdAt"`
-	UpdatedAt    time.Time        `json:"updatedAt"`
-	Lineage      LineageInfo      `json:"lineage"`
+	Size         int64             `json:"size"`
+	CreatedAt    time.Time         `json:"createdAt"`
+	UpdatedAt    time.Time         `json:"updatedAt"`
+	Lineage      LineageInfo       `json:"lineage"`
 }
 
 // ContentClaim represents a reference to stored content

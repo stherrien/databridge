@@ -65,22 +65,22 @@ func NewGetFileProcessor() *GetFileProcessor {
 				HelpText:     "Examples: *.txt (all text files), data-*.csv (CSV files starting with 'data-'), report_[0-9]*.pdf",
 			},
 			{
-				Name:         "Keep Source File",
-				DisplayName:  "Keep Source File",
-				Description:  "Whether to keep or delete source file after ingestion",
-				Required:     false,
-				DefaultValue: "false",
+				Name:          "Keep Source File",
+				DisplayName:   "Keep Source File",
+				Description:   "Whether to keep or delete source file after ingestion",
+				Required:      false,
+				DefaultValue:  "false",
 				AllowedValues: []string{"true", "false"},
-				Type:         "boolean",
+				Type:          "boolean",
 			},
 			{
-				Name:         "Recurse Subdirectories",
-				DisplayName:  "Recurse Subdirectories",
-				Description:  "Whether to scan subdirectories",
-				Required:     false,
-				DefaultValue: "false",
+				Name:          "Recurse Subdirectories",
+				DisplayName:   "Recurse Subdirectories",
+				Description:   "Whether to scan subdirectories",
+				Required:      false,
+				DefaultValue:  "false",
 				AllowedValues: []string{"true", "false"},
-				Type:         "boolean",
+				Type:          "boolean",
 			},
 			{
 				Name:         "Minimum File Age",
@@ -176,7 +176,10 @@ func (p *GetFileProcessor) OnTrigger(ctx context.Context, session types.ProcessS
 	// Parse batch size
 	batchSize := 10
 	if batchSizeStr != "" {
-		if val, err := strconv.Atoi(batchSizeStr); err == nil && val > 0 {
+		var val int
+		var err error
+		val, err = strconv.Atoi(batchSizeStr)
+		if err == nil && val > 0 {
 			batchSize = val
 		}
 	}
@@ -201,7 +204,8 @@ func (p *GetFileProcessor) OnTrigger(ctx context.Context, session types.ProcessS
 
 	// Process each file
 	for _, filePath := range files {
-		if err := p.processFile(filePath, session, keepSource, logger); err != nil {
+		err = p.processFile(filePath, session, keepSource, logger)
+		if err != nil {
 			logger.Error("Failed to process file", "file", filePath, "error", err)
 			// Continue processing other files
 		}
@@ -229,8 +233,10 @@ func (p *GetFileProcessor) findFiles(inputDir, pattern string, recurse bool, min
 		}
 
 		// Match pattern
-		matched, err := filepath.Match(pattern, info.Name())
-		if err != nil || !matched {
+		var matched bool
+		var matchErr error
+		matched, matchErr = filepath.Match(pattern, info.Name())
+		if matchErr != nil || !matched {
 			return nil
 		}
 
@@ -277,7 +283,8 @@ func (p *GetFileProcessor) processFile(filePath string, session types.ProcessSes
 	}
 
 	// Get file info
-	fileInfo, err := os.Stat(filePath)
+	var fileInfo os.FileInfo
+	fileInfo, err = os.Stat(filePath)
 	if err != nil {
 		logger.Error("Failed to stat file", "file", filePath, "error", err)
 		return err
@@ -287,7 +294,8 @@ func (p *GetFileProcessor) processFile(filePath string, session types.ProcessSes
 	flowFile := session.Create()
 
 	// Write content
-	if err := session.Write(flowFile, content); err != nil {
+	err = session.Write(flowFile, content)
+	if err != nil {
 		logger.Error("Failed to write content to FlowFile", "file", filePath, "error", err)
 		session.Remove(flowFile)
 		return err
@@ -311,7 +319,8 @@ func (p *GetFileProcessor) processFile(filePath string, session types.ProcessSes
 
 	// Delete source file if requested
 	if !keepSource {
-		if err := os.Remove(filePath); err != nil {
+		err = os.Remove(filePath)
+		if err != nil {
 			logger.Warn("Failed to delete source file", "file", filePath, "error", err)
 			// Don't fail the overall processing
 		} else {
@@ -328,7 +337,9 @@ func (p *GetFileProcessor) Validate(config types.ProcessorConfig) []types.Valida
 
 	// Validate Input Directory
 	if inputDir, exists := config.Properties["Input Directory"]; exists && inputDir != "" {
-		info, err := os.Stat(inputDir)
+		var info os.FileInfo
+		var err error
+		info, err = os.Stat(inputDir)
 		if err != nil {
 			results = append(results, types.ValidationResult{
 				Property: "Input Directory",
@@ -346,7 +357,9 @@ func (p *GetFileProcessor) Validate(config types.ProcessorConfig) []types.Valida
 
 	// Validate Batch Size
 	if batchSizeStr, exists := config.Properties["Batch Size"]; exists && batchSizeStr != "" {
-		batchSize, err := strconv.Atoi(batchSizeStr)
+		var batchSize int
+		var err error
+		batchSize, err = strconv.Atoi(batchSizeStr)
 		if err != nil || batchSize <= 0 {
 			results = append(results, types.ValidationResult{
 				Property: "Batch Size",
@@ -358,7 +371,9 @@ func (p *GetFileProcessor) Validate(config types.ProcessorConfig) []types.Valida
 
 	// Validate age durations
 	if minAgeStr, exists := config.Properties["Minimum File Age"]; exists && minAgeStr != "" {
-		if _, err := time.ParseDuration(minAgeStr); err != nil {
+		var err error
+		_, err = time.ParseDuration(minAgeStr)
+		if err != nil {
 			results = append(results, types.ValidationResult{
 				Property: "Minimum File Age",
 				Valid:    false,
@@ -368,7 +383,9 @@ func (p *GetFileProcessor) Validate(config types.ProcessorConfig) []types.Valida
 	}
 
 	if maxAgeStr, exists := config.Properties["Maximum File Age"]; exists && maxAgeStr != "" {
-		if _, err := time.ParseDuration(maxAgeStr); err != nil {
+		var err error
+		_, err = time.ParseDuration(maxAgeStr)
+		if err != nil {
 			results = append(results, types.ValidationResult{
 				Property: "Maximum File Age",
 				Valid:    false,

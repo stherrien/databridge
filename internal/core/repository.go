@@ -57,29 +57,29 @@ type ContentWriter interface {
 
 // ProvenanceEvent represents a data lineage event
 type ProvenanceEvent struct {
-	ID              uuid.UUID         `json:"id"`
-	EventType       string           `json:"eventType"`
-	FlowFileID      uuid.UUID        `json:"flowFileId"`
-	ProcessorID     uuid.UUID        `json:"processorId"`
-	ProcessorName   string           `json:"processorName"`
-	EventTime       time.Time        `json:"eventTime"`
-	Duration        time.Duration    `json:"duration"`
-	Attributes      map[string]string `json:"attributes"`
-	ParentIDs       []uuid.UUID      `json:"parentIds,omitempty"`
-	ChildIDs        []uuid.UUID      `json:"childIds,omitempty"`
-	Details         string           `json:"details"`
-	ContentClaim    *types.ContentClaim `json:"contentClaim,omitempty"`
+	ID            uuid.UUID           `json:"id"`
+	EventType     string              `json:"eventType"`
+	FlowFileID    uuid.UUID           `json:"flowFileId"`
+	ProcessorID   uuid.UUID           `json:"processorId"`
+	ProcessorName string              `json:"processorName"`
+	EventTime     time.Time           `json:"eventTime"`
+	Duration      time.Duration       `json:"duration"`
+	Attributes    map[string]string   `json:"attributes"`
+	ParentIDs     []uuid.UUID         `json:"parentIds,omitempty"`
+	ChildIDs      []uuid.UUID         `json:"childIds,omitempty"`
+	Details       string              `json:"details"`
+	ContentClaim  *types.ContentClaim `json:"contentClaim,omitempty"`
 }
 
 // ProvenanceQuery defines search criteria for provenance events
 type ProvenanceQuery struct {
-	StartTime    *time.Time `json:"startTime,omitempty"`
-	EndTime      *time.Time `json:"endTime,omitempty"`
-	FlowFileID   *uuid.UUID `json:"flowFileId,omitempty"`
-	ProcessorID  *uuid.UUID `json:"processorId,omitempty"`
-	EventType    string     `json:"eventType,omitempty"`
-	Limit        int        `json:"limit"`
-	Offset       int        `json:"offset"`
+	StartTime   *time.Time `json:"startTime,omitempty"`
+	EndTime     *time.Time `json:"endTime,omitempty"`
+	FlowFileID  *uuid.UUID `json:"flowFileId,omitempty"`
+	ProcessorID *uuid.UUID `json:"processorId,omitempty"`
+	EventType   string     `json:"eventType,omitempty"`
+	Limit       int        `json:"limit"`
+	Offset      int        `json:"offset"`
 }
 
 // LineageGraph represents data flow lineage
@@ -110,7 +110,7 @@ type BadgerFlowFileRepository struct {
 // NewBadgerFlowFileRepository creates a new BadgerDB-based FlowFile repository
 func NewBadgerFlowFileRepository(dbPath string) (*BadgerFlowFileRepository, error) {
 	opts := badger.DefaultOptions(dbPath).
-		WithLogger(nil). // Disable badger logging
+		WithLogger(nil).      // Disable badger logging
 		WithSyncWrites(false) // Async writes for performance
 
 	db, err := badger.Open(opts)
@@ -294,7 +294,7 @@ type FileSystemContentRepository struct {
 
 // NewFileSystemContentRepository creates a new filesystem-based content repository
 func NewFileSystemContentRepository(basePath string) (*FileSystemContentRepository, error) {
-	if err := os.MkdirAll(basePath, 0755); err != nil {
+	if err := os.MkdirAll(basePath, 0750); err != nil {
 		return nil, fmt.Errorf("failed to create content repository directory: %w", err)
 	}
 
@@ -315,12 +315,12 @@ func (r *FileSystemContentRepository) Store(content []byte) (*types.ContentClaim
 	}
 
 	sectionPath := filepath.Join(r.basePath, claim.Container, claim.Section)
-	if err := os.MkdirAll(sectionPath, 0755); err != nil {
+	if err := os.MkdirAll(sectionPath, 0750); err != nil {
 		return nil, fmt.Errorf("failed to create section directory: %w", err)
 	}
 
 	filePath := filepath.Join(sectionPath, claim.ID.String())
-	if err := os.WriteFile(filePath, content, 0644); err != nil {
+	if err := os.WriteFile(filePath, content, 0600); err != nil {
 		return nil, fmt.Errorf("failed to write content file: %w", err)
 	}
 
@@ -363,7 +363,7 @@ func (r *FileSystemContentRepository) GetReader(claim *types.ContentClaim) (io.R
 
 	if claim.Offset > 0 {
 		if _, err := file.Seek(claim.Offset, io.SeekStart); err != nil {
-			file.Close()
+			_ = file.Close() // Best effort cleanup on error
 			return nil, fmt.Errorf("failed to seek to offset: %w", err)
 		}
 	}
@@ -382,7 +382,7 @@ func (r *FileSystemContentRepository) GetWriter() (ContentWriter, error) {
 	}
 
 	sectionPath := filepath.Join(r.basePath, claim.Container, claim.Section)
-	if err := os.MkdirAll(sectionPath, 0755); err != nil {
+	if err := os.MkdirAll(sectionPath, 0750); err != nil {
 		return nil, fmt.Errorf("failed to create section directory: %w", err)
 	}
 
@@ -503,12 +503,12 @@ func (r *FileSystemContentRepository) Read(claim *types.ContentClaim) (io.ReadCl
 // Write writes data to a content claim
 func (r *FileSystemContentRepository) Write(claim *types.ContentClaim, data []byte) error {
 	sectionPath := filepath.Join(r.basePath, claim.Container, claim.Section)
-	if err := os.MkdirAll(sectionPath, 0755); err != nil {
+	if err := os.MkdirAll(sectionPath, 0750); err != nil {
 		return fmt.Errorf("failed to create section directory: %w", err)
 	}
 
 	filePath := filepath.Join(sectionPath, claim.ID.String())
-	if err := os.WriteFile(filePath, data, 0644); err != nil {
+	if err := os.WriteFile(filePath, data, 0600); err != nil {
 		return fmt.Errorf("failed to write content file: %w", err)
 	}
 
@@ -678,7 +678,7 @@ func (r *InMemoryContentRepository) GetReader(claim *types.ContentClaim) (io.Rea
 
 func (r *InMemoryContentRepository) GetWriter() (ContentWriter, error) {
 	return &memoryContentWriter{
-		repo:  r,
+		repo: r,
 		claim: &types.ContentClaim{
 			ID:        uuid.New(),
 			Container: "memory",

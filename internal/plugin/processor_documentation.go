@@ -14,10 +14,10 @@ import (
 
 // DocumentationGenerator generates processor documentation
 type DocumentationGenerator struct {
-	registry       *PluginRegistry
+	registry        *PluginRegistry
 	versionRegistry *ProcessorVersionRegistry
-	outputFormats  map[string]DocumentFormatter
-	templates      map[string]*template.Template
+	outputFormats   map[string]DocumentFormatter
+	templates       map[string]*template.Template
 }
 
 // DocumentFormatter formats documentation in a specific format
@@ -28,52 +28,52 @@ type DocumentFormatter interface {
 
 // ProcessorDocumentation contains complete processor documentation
 type ProcessorDocumentation struct {
-	Name            string                  `json:"name"`
-	Type            string                  `json:"type"`
-	Description     string                  `json:"description"`
-	Version         string                  `json:"version"`
-	Author          string                  `json:"author"`
-	Tags            []string                `json:"tags"`
-	Category        string                  `json:"category"`
-	Properties      []PropertyDocumentation `json:"properties"`
+	Name            string                      `json:"name"`
+	Type            string                      `json:"type"`
+	Description     string                      `json:"description"`
+	Version         string                      `json:"version"`
+	Author          string                      `json:"author"`
+	Tags            []string                    `json:"tags"`
+	Category        string                      `json:"category"`
+	Properties      []PropertyDocumentation     `json:"properties"`
 	Relationships   []RelationshipDocumentation `json:"relationships"`
-	Examples        []UsageExample          `json:"examples"`
-	SeeAlso         []string                `json:"seeAlso,omitempty"`
-	AdditionalNotes string                  `json:"additionalNotes,omitempty"`
-	VersionHistory  []VersionInfo           `json:"versionHistory,omitempty"`
-	GeneratedAt     time.Time               `json:"generatedAt"`
+	Examples        []UsageExample              `json:"examples"`
+	SeeAlso         []string                    `json:"seeAlso,omitempty"`
+	AdditionalNotes string                      `json:"additionalNotes,omitempty"`
+	VersionHistory  []VersionInfo               `json:"versionHistory,omitempty"`
+	GeneratedAt     time.Time                   `json:"generatedAt"`
 }
 
 // PropertyDocumentation contains detailed property documentation
 type PropertyDocumentation struct {
-	Name            string   `json:"name"`
-	DisplayName     string   `json:"displayName"`
-	Description     string   `json:"description"`
-	Required        bool     `json:"required"`
-	Sensitive       bool     `json:"sensitive"`
-	DefaultValue    string   `json:"defaultValue"`
-	AllowedValues   []string `json:"allowedValues,omitempty"`
-	Pattern         string   `json:"pattern,omitempty"`
-	ExampleValue    string   `json:"exampleValue,omitempty"`
-	SupportsEL      bool     `json:"supportsExpressionLanguage"`
-	Dependencies    []string `json:"dependencies,omitempty"`
+	Name          string   `json:"name"`
+	DisplayName   string   `json:"displayName"`
+	Description   string   `json:"description"`
+	Required      bool     `json:"required"`
+	Sensitive     bool     `json:"sensitive"`
+	DefaultValue  string   `json:"defaultValue"`
+	AllowedValues []string `json:"allowedValues,omitempty"`
+	Pattern       string   `json:"pattern,omitempty"`
+	ExampleValue  string   `json:"exampleValue,omitempty"`
+	SupportsEL    bool     `json:"supportsExpressionLanguage"`
+	Dependencies  []string `json:"dependencies,omitempty"`
 }
 
 // RelationshipDocumentation contains relationship documentation
 type RelationshipDocumentation struct {
-	Name        string `json:"name"`
-	Description string `json:"description"`
-	AutoTerminate bool `json:"autoTerminate"`
+	Name          string `json:"name"`
+	Description   string `json:"description"`
+	AutoTerminate bool   `json:"autoTerminate"`
 }
 
 // UsageExample provides a usage example
 type UsageExample struct {
-	Title       string            `json:"title"`
-	Description string            `json:"description"`
+	Title         string            `json:"title"`
+	Description   string            `json:"description"`
 	Configuration map[string]string `json:"configuration"`
-	InputData   string            `json:"inputData,omitempty"`
-	OutputData  string            `json:"outputData,omitempty"`
-	Notes       string            `json:"notes,omitempty"`
+	InputData     string            `json:"inputData,omitempty"`
+	OutputData    string            `json:"outputData,omitempty"`
+	Notes         string            `json:"notes,omitempty"`
 }
 
 // VersionInfo contains version information
@@ -122,14 +122,14 @@ func (g *DocumentationGenerator) GenerateDocumentation(processorType string) (*P
 	info := processor.GetInfo()
 
 	doc := &ProcessorDocumentation{
-		Name:          info.Name,
-		Type:          processorType,
-		Description:   info.Description,
-		Version:       info.Version,
-		Author:        info.Author,
-		Tags:          info.Tags,
-		Category:      categorizeProcessor(info.Tags),
-		GeneratedAt:   time.Now(),
+		Name:        info.Name,
+		Type:        processorType,
+		Description: info.Description,
+		Version:     info.Version,
+		Author:      info.Author,
+		Tags:        info.Tags,
+		Category:    categorizeProcessor(info.Tags),
+		GeneratedAt: time.Now(),
 	}
 
 	// Convert properties
@@ -208,7 +208,7 @@ func (g *DocumentationGenerator) ExportDocumentation(
 
 // ExportAllDocumentation exports all documentation to files
 func (g *DocumentationGenerator) ExportAllDocumentation(outputDir, format string) error {
-	if err := os.MkdirAll(outputDir, 0755); err != nil {
+	if err := os.MkdirAll(outputDir, 0750); err != nil {
 		return fmt.Errorf("failed to create output directory: %w", err)
 	}
 
@@ -229,7 +229,7 @@ func (g *DocumentationGenerator) ExportAllDocumentation(outputDir, format string
 		}
 
 		filename := filepath.Join(outputDir, fmt.Sprintf("%s.%s", processorType, formatter.FileExtension()))
-		if err := os.WriteFile(filename, []byte(content), 0644); err != nil {
+		if err := os.WriteFile(filename, []byte(content), 0600); err != nil {
 			return fmt.Errorf("failed to write file %s: %w", filename, err)
 		}
 	}
@@ -244,7 +244,7 @@ func (g *DocumentationGenerator) ExportAllDocumentation(outputDir, format string
 
 // categoryDocs groups processors by category
 type categoryDocs struct {
-	Category  string
+	Category   string
 	Processors []*ProcessorDocumentation
 }
 
@@ -287,7 +287,7 @@ func (g *DocumentationGenerator) generateIndex(
 	}
 
 	filename := filepath.Join(outputDir, fmt.Sprintf("index.%s", g.outputFormats[format].FileExtension()))
-	return os.WriteFile(filename, []byte(content), 0644)
+	return os.WriteFile(filename, []byte(content), 0600)
 }
 
 func (g *DocumentationGenerator) generateMarkdownIndex(categories []categoryDocs) string {

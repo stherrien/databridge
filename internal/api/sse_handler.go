@@ -13,12 +13,12 @@ import (
 
 // SSEHandler manages Server-Sent Events for real-time updates
 type SSEHandler struct {
-	collector     *MetricsCollector
-	logger        *logrus.Logger
-	clients       map[chan MonitoringEvent]bool
-	mu            sync.RWMutex
-	ctx           context.Context
-	cancel        context.CancelFunc
+	collector      *MetricsCollector
+	logger         *logrus.Logger
+	clients        map[chan MonitoringEvent]bool
+	mu             sync.RWMutex
+	ctx            context.Context
+	cancel         context.CancelFunc
 	updateInterval time.Duration
 }
 

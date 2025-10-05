@@ -12,30 +12,30 @@ import (
 
 // ProcessorAnalytics tracks usage metrics and performance for processors
 type ProcessorAnalytics struct {
-	mu                sync.RWMutex
-	processorMetrics  map[string]*ProcessorMetrics
-	instanceMetrics   map[uuid.UUID]*InstanceMetrics
-	aggregateMetrics  *AggregateMetrics
-	retentionPeriod   time.Duration
-	logger            types.Logger
+	mu               sync.RWMutex
+	processorMetrics map[string]*ProcessorMetrics
+	instanceMetrics  map[uuid.UUID]*InstanceMetrics
+	aggregateMetrics *AggregateMetrics
+	retentionPeriod  time.Duration
+	logger           types.Logger
 }
 
 // ProcessorMetrics tracks metrics for a processor type
 type ProcessorMetrics struct {
-	ProcessorType     string
-	TotalInvocations  int64
-	TotalFlowFiles    int64
-	TotalBytes        int64
-	TotalSuccesses    int64
-	TotalFailures     int64
-	TotalErrors       int64
-	AverageExecTime   time.Duration
-	MinExecTime       time.Duration
-	MaxExecTime       time.Duration
-	LastInvoked       time.Time
-	FirstInvoked      time.Time
-	ActiveInstances   int
-	execTimes         []time.Duration // For calculating percentiles
+	ProcessorType    string
+	TotalInvocations int64
+	TotalFlowFiles   int64
+	TotalBytes       int64
+	TotalSuccesses   int64
+	TotalFailures    int64
+	TotalErrors      int64
+	AverageExecTime  time.Duration
+	MinExecTime      time.Duration
+	MaxExecTime      time.Duration
+	LastInvoked      time.Time
+	FirstInvoked     time.Time
+	ActiveInstances  int
+	execTimes        []time.Duration // For calculating percentiles
 }
 
 // InstanceMetrics tracks metrics for a specific processor instance
@@ -72,27 +72,27 @@ type InvocationRecord struct {
 
 // AggregateMetrics tracks overall system metrics
 type AggregateMetrics struct {
-	TotalProcessors   int
-	TotalInstances    int
-	TotalInvocations  int64
-	TotalFlowFiles    int64
-	TotalBytes        int64
-	AverageExecTime   time.Duration
-	SystemStartTime   time.Time
-	LastUpdateTime    time.Time
+	TotalProcessors  int
+	TotalInstances   int
+	TotalInvocations int64
+	TotalFlowFiles   int64
+	TotalBytes       int64
+	AverageExecTime  time.Duration
+	SystemStartTime  time.Time
+	LastUpdateTime   time.Time
 }
 
 // PerformanceStats provides statistical analysis
 type PerformanceStats struct {
-	ProcessorType   string
-	Mean            time.Duration
-	Median          time.Duration
-	P95             time.Duration
-	P99             time.Duration
-	StdDev          time.Duration
+	ProcessorType    string
+	Mean             time.Duration
+	Median           time.Duration
+	P95              time.Duration
+	P99              time.Duration
+	StdDev           time.Duration
 	ThroughputPerSec float64
-	ErrorRate       float64
-	SuccessRate     float64
+	ErrorRate        float64
+	SuccessRate      float64
 }
 
 // NewProcessorAnalytics creates a new analytics tracker

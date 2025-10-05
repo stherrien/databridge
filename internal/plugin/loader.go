@@ -3,15 +3,14 @@ package plugin
 import (
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"plugin"
 	"strings"
 	"time"
 
-	"github.com/sirupsen/logrus"
 	"github.com/shawntherrien/databridge/pkg/types"
+	"github.com/sirupsen/logrus"
 )
 
 // PluginLoader handles dynamic plugin loading
@@ -63,14 +62,14 @@ func (l *PluginLoader) LoadAll() error {
 	// Check if directory exists
 	if _, err := os.Stat(l.pluginDir); os.IsNotExist(err) {
 		l.logger.WithField("pluginDir", l.pluginDir).Warn("Plugin directory does not exist, creating it")
-		if err := os.MkdirAll(l.pluginDir, 0755); err != nil {
+		if err := os.MkdirAll(l.pluginDir, 0750); err != nil {
 			return fmt.Errorf("failed to create plugin directory: %w", err)
 		}
 		return nil
 	}
 
 	// Walk through the plugin directory
-	entries, err := ioutil.ReadDir(l.pluginDir)
+	entries, err := os.ReadDir(l.pluginDir)
 	if err != nil {
 		return fmt.Errorf("failed to read plugin directory: %w", err)
 	}
@@ -250,7 +249,7 @@ func (l *PluginLoader) watchLoop(interval time.Duration) {
 
 // checkForChanges checks for new or modified plugins
 func (l *PluginLoader) checkForChanges(knownPlugins map[string]time.Time) {
-	entries, err := ioutil.ReadDir(l.pluginDir)
+	entries, err := os.ReadDir(l.pluginDir)
 	if err != nil {
 		l.logger.WithError(err).Error("Failed to read plugin directory")
 		return
@@ -286,7 +285,7 @@ func (l *PluginLoader) checkForChanges(knownPlugins map[string]time.Time) {
 // Private helper methods
 
 func (l *PluginLoader) readManifest(path string) (*PluginManifest, error) {
-	data, err := ioutil.ReadFile(path)
+	data, err := os.ReadFile(path)
 	if err != nil {
 		return nil, err
 	}

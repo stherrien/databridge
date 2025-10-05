@@ -50,10 +50,10 @@ func NewTransformJSONProcessor() *TransformJSONProcessor {
 				DefaultValue: "",
 			},
 			{
-				Name:         "Destination",
-				Description:  "Where to put the result",
-				Required:     false,
-				DefaultValue: "flowfile-content",
+				Name:          "Destination",
+				Description:   "Where to put the result",
+				Required:      false,
+				DefaultValue:  "flowfile-content",
 				AllowedValues: []string{"flowfile-content", "flowfile-attribute"},
 			},
 			{
@@ -63,10 +63,10 @@ func NewTransformJSONProcessor() *TransformJSONProcessor {
 				DefaultValue: "json.result",
 			},
 			{
-				Name:         "Return Type",
-				Description:  "How to format the result",
-				Required:     false,
-				DefaultValue: "auto",
+				Name:          "Return Type",
+				Description:   "How to format the result",
+				Required:      false,
+				DefaultValue:  "auto",
 				AllowedValues: []string{"auto", "json", "string"},
 			},
 		},
@@ -194,9 +194,7 @@ func (p *TransformJSONProcessor) OnTrigger(ctx context.Context, session types.Pr
 // applyJSONPath applies a simplified JSONPath expression
 func (p *TransformJSONProcessor) applyJSONPath(data interface{}, path string) (interface{}, error) {
 	// Remove leading dot if present
-	if strings.HasPrefix(path, ".") {
-		path = path[1:]
-	}
+	path = strings.TrimPrefix(path, ".")
 
 	if path == "" {
 		return data, nil

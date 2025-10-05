@@ -2,7 +2,6 @@ package security
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"sync"
@@ -57,10 +56,10 @@ type AuditRepository interface {
 
 // InMemoryUserRepository is an in-memory implementation of UserRepository
 type InMemoryUserRepository struct {
-	users   map[string]*User
-	byEmail map[string]string // email -> userID
+	users      map[string]*User
+	byEmail    map[string]string // email -> userID
 	byUsername map[string]string // username -> userID
-	mu      sync.RWMutex
+	mu         sync.RWMutex
 }
 
 // NewInMemoryUserRepository creates a new in-memory user repository
@@ -185,11 +184,11 @@ func (r *InMemoryUserRepository) List(ctx context.Context) ([]*User, error) {
 
 // InMemoryRoleRepository is an in-memory implementation of RoleRepository
 type InMemoryRoleRepository struct {
-	roles       map[string]*Role
-	byName      map[string]string // roleName -> roleID
-	userRoles   map[string][]string // userID -> roleIDs
-	userPerms   map[string][]Permission // userID -> permissions
-	mu          sync.RWMutex
+	roles     map[string]*Role
+	byName    map[string]string       // roleName -> roleID
+	userRoles map[string][]string     // userID -> roleIDs
+	userPerms map[string][]Permission // userID -> permissions
+	mu        sync.RWMutex
 }
 
 // NewInMemoryRoleRepository creates a new in-memory role repository
@@ -582,10 +581,4 @@ func (r *InMemoryAuditRepository) Delete(ctx context.Context, id string) error {
 
 	delete(r.events, id)
 	return nil
-}
-
-// Helper function to convert struct to JSON
-func toJSON(v interface{}) string {
-	data, _ := json.MarshalIndent(v, "", "  ")
-	return string(data)
 }

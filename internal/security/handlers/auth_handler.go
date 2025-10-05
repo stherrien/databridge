@@ -27,11 +27,11 @@ type LoginRequest struct {
 
 // LoginResponse represents a login response
 type LoginResponse struct {
-	AccessToken  string      `json:"access_token"`
-	RefreshToken string      `json:"refresh_token"`
-	TokenType    string      `json:"token_type"`
-	ExpiresIn    int         `json:"expires_in"`
-	User         UserDTO     `json:"user"`
+	AccessToken  string  `json:"access_token"`
+	RefreshToken string  `json:"refresh_token"`
+	TokenType    string  `json:"token_type"`
+	ExpiresIn    int     `json:"expires_in"`
+	User         UserDTO `json:"user"`
 }
 
 // RefreshRequest represents a token refresh request
@@ -48,10 +48,10 @@ type RefreshResponse struct {
 
 // UserDTO represents a user data transfer object
 type UserDTO struct {
-	ID       string            `json:"id"`
-	Username string            `json:"username"`
-	Email    string            `json:"email"`
-	Roles    []string          `json:"roles"`
+	ID         string            `json:"id"`
+	Username   string            `json:"username"`
+	Email      string            `json:"email"`
+	Roles      []string          `json:"roles"`
 	Attributes map[string]string `json:"attributes,omitempty"`
 }
 

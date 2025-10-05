@@ -50,11 +50,11 @@ import (
 
 type testFlowFileRepository struct {
 	*mockFlowFileRepository
-	mu           sync.RWMutex
-	storeError   error
-	getError     error
-	deleteError  error
-	updateError  error
+	mu          sync.RWMutex
+	storeError  error
+	getError    error
+	deleteError error
+	updateError error
 }
 
 func newTestFlowFileRepository() *testFlowFileRepository {
@@ -101,11 +101,11 @@ func (m *testFlowFileRepository) UpdateAttributes(id uuid.UUID, attributes map[s
 
 type testContentRepository struct {
 	*mockContentRepository
-	mu           sync.RWMutex
-	refCounts    map[uuid.UUID]int
-	storeError   error
-	getError     error
-	deleteError  error
+	mu          sync.RWMutex
+	refCounts   map[uuid.UUID]int
+	storeError  error
+	getError    error
+	deleteError error
 }
 
 func newTestContentRepository() *testContentRepository {
@@ -161,9 +161,9 @@ func (m *testContentRepository) DecrementRef(claim *types.ContentClaim) error {
 }
 
 type testProvenanceRepository struct {
-	mu          sync.RWMutex
-	events      map[uuid.UUID]*ProvenanceEvent
-	storeError  error
+	mu         sync.RWMutex
+	events     map[uuid.UUID]*ProvenanceEvent
+	storeError error
 }
 
 func newTestProvenanceRepository() *testProvenanceRepository {

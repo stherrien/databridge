@@ -23,19 +23,19 @@ const (
 // EncryptionConfig holds encryption configuration
 type EncryptionConfig struct {
 	Algorithm  EncryptionAlgorithm
-	KeySize    int    // Key size in bytes (16 for AES-128, 32 for AES-256)
-	Iterations int    // PBKDF2 iterations
-	SaltSize   int    // Salt size in bytes
-	NonceSize  int    // Nonce size in bytes
+	KeySize    int // Key size in bytes (16 for AES-128, 32 for AES-256)
+	Iterations int // PBKDF2 iterations
+	SaltSize   int // Salt size in bytes
+	NonceSize  int // Nonce size in bytes
 }
 
 // EncryptedData represents encrypted content with metadata
 type EncryptedData struct {
-	Algorithm    EncryptionAlgorithm `json:"algorithm"`
-	Ciphertext   []byte              `json:"ciphertext"`
-	Nonce        []byte              `json:"nonce"`
-	Salt         []byte              `json:"salt"`
-	KeyVersion   string              `json:"keyVersion,omitempty"`
+	Algorithm  EncryptionAlgorithm `json:"algorithm"`
+	Ciphertext []byte              `json:"ciphertext"`
+	Nonce      []byte              `json:"nonce"`
+	Salt       []byte              `json:"salt"`
+	KeyVersion string              `json:"keyVersion,omitempty"`
 }
 
 // FlowFileEncryption provides encryption/decryption for FlowFile content

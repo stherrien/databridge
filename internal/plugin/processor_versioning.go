@@ -14,18 +14,18 @@ import (
 
 // ProcessorVersion represents a specific version of a processor
 type ProcessorVersion struct {
-	ProcessorType    string                 `json:"processorType"`
-	Version          string                 `json:"version"`
-	MinimumVersion   string                 `json:"minimumVersion,omitempty"`
-	DeprecatedIn     string                 `json:"deprecatedIn,omitempty"`
-	RemovedIn        string                 `json:"removedIn,omitempty"`
-	ReleaseDate      time.Time              `json:"releaseDate"`
-	ChangeLog        []VersionChange        `json:"changeLog"`
-	Properties       []types.PropertySpec   `json:"properties"`
-	MigrationGuide   string                 `json:"migrationGuide,omitempty"`
-	BreakingChanges  []string               `json:"breakingChanges,omitempty"`
-	Factory          ProcessorFactory       `json:"-"`
-	Metadata         map[string]interface{} `json:"metadata,omitempty"`
+	ProcessorType   string                 `json:"processorType"`
+	Version         string                 `json:"version"`
+	MinimumVersion  string                 `json:"minimumVersion,omitempty"`
+	DeprecatedIn    string                 `json:"deprecatedIn,omitempty"`
+	RemovedIn       string                 `json:"removedIn,omitempty"`
+	ReleaseDate     time.Time              `json:"releaseDate"`
+	ChangeLog       []VersionChange        `json:"changeLog"`
+	Properties      []types.PropertySpec   `json:"properties"`
+	MigrationGuide  string                 `json:"migrationGuide,omitempty"`
+	BreakingChanges []string               `json:"breakingChanges,omitempty"`
+	Factory         ProcessorFactory       `json:"-"`
+	Metadata        map[string]interface{} `json:"metadata,omitempty"`
 }
 
 // VersionChange describes a change in a version
@@ -40,12 +40,12 @@ type VersionChange struct {
 type ChangeType string
 
 const (
-	ChangeTypeFeature      ChangeType = "FEATURE"
-	ChangeTypeBugFix       ChangeType = "BUGFIX"
-	ChangeTypeImprovement  ChangeType = "IMPROVEMENT"
-	ChangeTypeDeprecation  ChangeType = "DEPRECATION"
-	ChangeTypeBreaking     ChangeType = "BREAKING"
-	ChangeTypeSecurity     ChangeType = "SECURITY"
+	ChangeTypeFeature     ChangeType = "FEATURE"
+	ChangeTypeBugFix      ChangeType = "BUGFIX"
+	ChangeTypeImprovement ChangeType = "IMPROVEMENT"
+	ChangeTypeDeprecation ChangeType = "DEPRECATION"
+	ChangeTypeBreaking    ChangeType = "BREAKING"
+	ChangeTypeSecurity    ChangeType = "SECURITY"
 )
 
 // Impact describes the impact of a change
@@ -61,22 +61,22 @@ const (
 
 // ProcessorMigration defines how to migrate from one version to another
 type ProcessorMigration struct {
-	FromVersion string                     `json:"fromVersion"`
-	ToVersion   string                     `json:"toVersion"`
-	Strategies  []MigrationStrategy        `json:"strategies"`
-	AutoMigrate bool                       `json:"autoMigrate"`
-	Manual      bool                       `json:"manual"`
-	Script      string                     `json:"script,omitempty"`
+	FromVersion string              `json:"fromVersion"`
+	ToVersion   string              `json:"toVersion"`
+	Strategies  []MigrationStrategy `json:"strategies"`
+	AutoMigrate bool                `json:"autoMigrate"`
+	Manual      bool                `json:"manual"`
+	Script      string              `json:"script,omitempty"`
 }
 
 // MigrationStrategy defines a specific migration operation
 type MigrationStrategy struct {
-	Type        MigrationType      `json:"type"`
-	Description string             `json:"description"`
-	OldProperty string             `json:"oldProperty,omitempty"`
-	NewProperty string             `json:"newProperty,omitempty"`
-	Transform   PropertyTransform  `json:"-"`
-	Config      map[string]string  `json:"config,omitempty"`
+	Type        MigrationType     `json:"type"`
+	Description string            `json:"description"`
+	OldProperty string            `json:"oldProperty,omitempty"`
+	NewProperty string            `json:"newProperty,omitempty"`
+	Transform   PropertyTransform `json:"-"`
+	Config      map[string]string `json:"config,omitempty"`
 }
 
 // MigrationType categorizes migration strategies
@@ -97,9 +97,9 @@ type PropertyTransform func(oldValue string, config map[string]string) (string, 
 // ProcessorVersionRegistry manages processor versions and migrations
 type ProcessorVersionRegistry struct {
 	mu         sync.RWMutex
-	versions   map[string][]*ProcessorVersion // processorType -> versions
+	versions   map[string][]*ProcessorVersion   // processorType -> versions
 	migrations map[string][]*ProcessorMigration // processorType -> migrations
-	transforms map[string]PropertyTransform // transform name -> function
+	transforms map[string]PropertyTransform     // transform name -> function
 	logger     types.Logger
 }
 
@@ -361,7 +361,7 @@ func (r *ProcessorVersionRegistry) ExportVersionManifest(outputDir string) error
 	r.mu.RLock()
 	defer r.mu.RUnlock()
 
-	if err := os.MkdirAll(outputDir, 0755); err != nil {
+	if err := os.MkdirAll(outputDir, 0750); err != nil {
 		return fmt.Errorf("failed to create output directory: %w", err)
 	}
 
@@ -379,7 +379,7 @@ func (r *ProcessorVersionRegistry) ExportVersionManifest(outputDir string) error
 		}
 
 		filename := filepath.Join(outputDir, fmt.Sprintf("%s-versions.json", processorType))
-		if err := os.WriteFile(filename, data, 0644); err != nil {
+		if err := os.WriteFile(filename, data, 0600); err != nil {
 			return fmt.Errorf("failed to write manifest for %s: %w", processorType, err)
 		}
 
@@ -439,10 +439,10 @@ func (r *ProcessorVersionRegistry) ImportVersionManifest(inputDir string) error 
 
 // VersionManifest represents exported version information
 type VersionManifest struct {
-	ProcessorType string                 `json:"processorType"`
-	Versions      []*ProcessorVersion    `json:"versions"`
-	Migrations    []*ProcessorMigration  `json:"migrations"`
-	ExportedAt    time.Time              `json:"exportedAt"`
+	ProcessorType string                `json:"processorType"`
+	Versions      []*ProcessorVersion   `json:"versions"`
+	Migrations    []*ProcessorMigration `json:"migrations"`
+	ExportedAt    time.Time             `json:"exportedAt"`
 }
 
 // GetVersionStats returns statistics about registered versions
@@ -451,8 +451,8 @@ func (r *ProcessorVersionRegistry) GetVersionStats() VersionStats {
 	defer r.mu.RUnlock()
 
 	stats := VersionStats{
-		ProcessorTypes: len(r.versions),
-		TotalVersions:  0,
+		ProcessorTypes:  len(r.versions),
+		TotalVersions:   0,
 		TotalMigrations: 0,
 	}
 

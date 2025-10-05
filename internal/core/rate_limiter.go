@@ -9,14 +9,14 @@ import (
 
 // RateLimiter controls throughput using token bucket algorithm
 type RateLimiter struct {
-	rate          int           // Tokens per period
-	period        time.Duration // Time period for rate
-	burstSize     int           // Maximum burst size (tokens)
-	tokens        int64         // Current available tokens (atomic)
-	lastRefill    time.Time
-	mu            sync.Mutex
-	enabled       bool
-	metrics       *RateLimiterMetrics
+	rate       int           // Tokens per period
+	period     time.Duration // Time period for rate
+	burstSize  int           // Maximum burst size (tokens)
+	tokens     int64         // Current available tokens (atomic)
+	lastRefill time.Time
+	mu         sync.Mutex
+	enabled    bool
+	metrics    *RateLimiterMetrics
 }
 
 // RateLimitConfig configures rate limiting behavior
@@ -30,20 +30,20 @@ type RateLimitConfig struct {
 
 // ProcessorRateLimiter wraps rate limiting for processors
 type ProcessorRateLimiter struct {
-	limiter         *RateLimiter
-	config          RateLimitConfig
-	activeCount     int32 // Current active executions
-	mu              sync.RWMutex
+	limiter     *RateLimiter
+	config      RateLimitConfig
+	activeCount int32 // Current active executions
+	mu          sync.RWMutex
 }
 
 // RateLimiterMetrics tracks rate limiting statistics
 type RateLimiterMetrics struct {
-	RequestCount      int64 // Total requests
-	AllowedCount      int64 // Requests allowed
-	ThrottledCount    int64 // Requests throttled
-	TotalWaitTime     int64 // Total wait time in nanoseconds
-	LastThrottled     time.Time
-	mu                sync.RWMutex
+	RequestCount   int64 // Total requests
+	AllowedCount   int64 // Requests allowed
+	ThrottledCount int64 // Requests throttled
+	TotalWaitTime  int64 // Total wait time in nanoseconds
+	LastThrottled  time.Time
+	mu             sync.RWMutex
 }
 
 // NewRateLimiter creates a new rate limiter with token bucket algorithm

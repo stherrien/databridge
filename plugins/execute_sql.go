@@ -44,10 +44,10 @@ func NewExecuteSQLProcessor() *ExecuteSQLProcessor {
 		Tags:        []string{"sql", "database", "query", "rdbms", "data"},
 		Properties: []types.PropertySpec{
 			{
-				Name:         "Database Type",
-				Description:  "Type of database to connect to",
-				Required:     true,
-				DefaultValue: "postgres",
+				Name:          "Database Type",
+				Description:   "Type of database to connect to",
+				Required:      true,
+				DefaultValue:  "postgres",
 				AllowedValues: []string{"postgres", "mysql", "sqlite3"},
 			},
 			{
@@ -76,10 +76,10 @@ func NewExecuteSQLProcessor() *ExecuteSQLProcessor {
 				DefaultValue: "0",
 			},
 			{
-				Name:         "Result Format",
-				Description:  "Format for query results",
-				Required:     false,
-				DefaultValue: "json",
+				Name:          "Result Format",
+				Description:   "Format for query results",
+				Required:      false,
+				DefaultValue:  "json",
 				AllowedValues: []string{"json", "csv", "avro"},
 			},
 			{
@@ -101,24 +101,24 @@ func NewExecuteSQLProcessor() *ExecuteSQLProcessor {
 				DefaultValue: "30m",
 			},
 			{
-				Name:         "Normalize Column Names",
-				Description:  "Convert column names to lowercase",
-				Required:     false,
-				DefaultValue: "true",
+				Name:          "Normalize Column Names",
+				Description:   "Convert column names to lowercase",
+				Required:      false,
+				DefaultValue:  "true",
 				AllowedValues: []string{"true", "false"},
 			},
 			{
-				Name:         "Output Empty Results",
-				Description:  "Create FlowFile even if query returns no rows",
-				Required:     false,
-				DefaultValue: "false",
+				Name:          "Output Empty Results",
+				Description:   "Create FlowFile even if query returns no rows",
+				Required:      false,
+				DefaultValue:  "false",
 				AllowedValues: []string{"true", "false"},
 			},
 			{
-				Name:         "Query Mode",
-				Description:  "How to execute the query",
-				Required:     false,
-				DefaultValue: "select",
+				Name:          "Query Mode",
+				Description:   "How to execute the query",
+				Required:      false,
+				DefaultValue:  "select",
 				AllowedValues: []string{"select", "update", "transaction"},
 			},
 		},
@@ -320,10 +320,10 @@ func (p *ExecuteSQLProcessor) OnTrigger(ctx context.Context, session types.Proce
 
 	// Add attributes
 	attributes := map[string]string{
-		"sql.result.count":  strconv.Itoa(result.Count),
-		"sql.result.format": resultFormat,
-		"mime.type":         mimeType,
-		"sql.query":         sqlQuery,
+		"sql.result.count":   strconv.Itoa(result.Count),
+		"sql.result.format":  resultFormat,
+		"mime.type":          mimeType,
+		"sql.query":          sqlQuery,
 		"sql.execution.time": time.Now().Format(time.RFC3339),
 	}
 

@@ -12,22 +12,22 @@ import (
 
 // MetricsCollector collects and aggregates metrics from the system
 type MetricsCollector struct {
-	mu              sync.RWMutex
-	flowController  *core.FlowController
-	scheduler       *core.ProcessScheduler
-	startTime       time.Time
+	mu             sync.RWMutex
+	flowController *core.FlowController
+	scheduler      *core.ProcessScheduler
+	startTime      time.Time
 
 	// Cached metrics
-	lastUpdate      time.Time
-	cacheInterval   time.Duration
-	cachedMetrics   *SystemMetrics
+	lastUpdate    time.Time
+	cacheInterval time.Duration
+	cachedMetrics *SystemMetrics
 
 	// Counters for throughput calculations
-	totalFlowFiles  int64
-	totalBytes      int64
-	lastFlowFiles   int64
-	lastBytes       int64
-	lastCheckTime   time.Time
+	totalFlowFiles int64
+	totalBytes     int64
+	lastFlowFiles  int64
+	lastBytes      int64
+	lastCheckTime  time.Time
 }
 
 // NewMetricsCollector creates a new MetricsCollector
@@ -322,10 +322,10 @@ func (mc *MetricsCollector) getSchedulerStatus() SchedulerStatus {
 	// Access scheduler status through public methods
 	// Note: We'll need to add methods to ProcessScheduler to expose this
 	return SchedulerStatus{
-		Running:        true,  // Assume running if FlowController is running
-		ScheduledTasks: 0,     // Would need scheduler access
-		ActiveWorkers:  0,     // Would need worker pool access
-		MaxWorkers:     10,    // Default from scheduler
+		Running:        true, // Assume running if FlowController is running
+		ScheduledTasks: 0,    // Would need scheduler access
+		ActiveWorkers:  0,    // Would need worker pool access
+		MaxWorkers:     10,   // Default from scheduler
 	}
 }
 

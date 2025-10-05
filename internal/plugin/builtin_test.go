@@ -3,8 +3,8 @@ package plugin
 import (
 	"testing"
 
-	"github.com/sirupsen/logrus"
 	"github.com/shawntherrien/databridge/pkg/types"
+	"github.com/sirupsen/logrus"
 )
 
 func TestRegisterBuiltInProcessor(t *testing.T) {

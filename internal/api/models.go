@@ -9,82 +9,82 @@ import (
 
 // SystemStatus represents the overall system status
 type SystemStatus struct {
-	Status           string              `json:"status"`
-	Uptime           time.Duration       `json:"uptime"`
-	UptimeSeconds    int64               `json:"uptimeSeconds"`
+	Status           string               `json:"status"`
+	Uptime           time.Duration        `json:"uptime"`
+	UptimeSeconds    int64                `json:"uptimeSeconds"`
 	FlowController   FlowControllerStatus `json:"flowController"`
-	Scheduler        SchedulerStatus     `json:"scheduler"`
-	ActiveProcessors int                 `json:"activeProcessors"`
-	TotalProcessors  int                 `json:"totalProcessors"`
-	TotalConnections int                 `json:"totalConnections"`
-	Timestamp        time.Time           `json:"timestamp"`
+	Scheduler        SchedulerStatus      `json:"scheduler"`
+	ActiveProcessors int                  `json:"activeProcessors"`
+	TotalProcessors  int                  `json:"totalProcessors"`
+	TotalConnections int                  `json:"totalConnections"`
+	Timestamp        time.Time            `json:"timestamp"`
 }
 
 // FlowControllerStatus represents FlowController status
 type FlowControllerStatus struct {
-	Running      bool   `json:"running"`
-	State        string `json:"state"`
+	Running bool   `json:"running"`
+	State   string `json:"state"`
 }
 
 // SchedulerStatus represents ProcessScheduler status
 type SchedulerStatus struct {
-	Running          bool   `json:"running"`
-	ScheduledTasks   int    `json:"scheduledTasks"`
-	ActiveWorkers    int    `json:"activeWorkers"`
-	MaxWorkers       int    `json:"maxWorkers"`
+	Running        bool `json:"running"`
+	ScheduledTasks int  `json:"scheduledTasks"`
+	ActiveWorkers  int  `json:"activeWorkers"`
+	MaxWorkers     int  `json:"maxWorkers"`
 }
 
 // HealthStatus represents health check results
 type HealthStatus struct {
-	Status       string            `json:"status"` // healthy, degraded, unhealthy
-	Components   map[string]ComponentHealth `json:"components"`
-	Timestamp    time.Time         `json:"timestamp"`
+	Status     string                     `json:"status"` // healthy, degraded, unhealthy
+	Components map[string]ComponentHealth `json:"components"`
+	Timestamp  time.Time                  `json:"timestamp"`
 }
 
 // ComponentHealth represents health of a component
 type ComponentHealth struct {
-	Status  string `json:"status"`  // healthy, degraded, unhealthy
+	Status  string `json:"status"` // healthy, degraded, unhealthy
 	Message string `json:"message,omitempty"`
 }
 
 // SystemMetrics represents system-wide metrics
 type SystemMetrics struct {
-	Throughput       ThroughputMetrics  `json:"throughput"`
-	Memory           MemoryMetrics      `json:"memory"`
-	CPU              CPUMetrics         `json:"cpu"`
-	Repository       RepositoryMetrics  `json:"repository"`
-	Timestamp        time.Time          `json:"timestamp"`
+	Throughput ThroughputMetrics `json:"throughput"`
+	Memory     MemoryMetrics     `json:"memory"`
+	CPU        CPUMetrics        `json:"cpu"`
+	Repository RepositoryMetrics `json:"repository"`
+	Timestamp  time.Time         `json:"timestamp"`
 }
 
 // ThroughputMetrics represents throughput statistics
 type ThroughputMetrics struct {
-	FlowFilesProcessed     int64   `json:"flowFilesProcessed"`
-	FlowFilesPerSecond     float64 `json:"flowFilesPerSecond"`
-	FlowFilesPerMinute     float64 `json:"flowFilesPerMinute"`
-	FlowFilesPerHour       float64 `json:"flowFilesPerHour"`
-	BytesProcessed         int64   `json:"bytesProcessed"`
-	BytesPerSecond         float64 `json:"bytesPerSecond"`
-	TotalTransactions      int64   `json:"totalTransactions"`
+	FlowFilesProcessed int64   `json:"flowFilesProcessed"`
+	FlowFilesPerSecond float64 `json:"flowFilesPerSecond"`
+	FlowFilesPerMinute float64 `json:"flowFilesPerMinute"`
+	FlowFilesPerHour   float64 `json:"flowFilesPerHour"`
+	BytesProcessed     int64   `json:"bytesProcessed"`
+	BytesPerSecond     float64 `json:"bytesPerSecond"`
+	TotalTransactions  int64   `json:"totalTransactions"`
 }
 
 // MemoryMetrics represents memory usage
 type MemoryMetrics struct {
-	AllocMB         float64 `json:"allocMB"`
-	TotalAllocMB    float64 `json:"totalAllocMB"`
-	SysMB           float64 `json:"sysMB"`
-	NumGC           uint32  `json:"numGC"`
-	GCPauseMS       float64 `json:"gcPauseMS"`
+	AllocMB      float64 `json:"allocMB"`
+	TotalAllocMB float64 `json:"totalAllocMB"`
+	SysMB        float64 `json:"sysMB"`
+	NumGC        uint32  `json:"numGC"`
+	GCPauseMS    float64 `json:"gcPauseMS"`
 }
 
 // CPUMetrics represents CPU usage
 type CPUMetrics struct {
-	NumCPU       int     `json:"numCPU"`
-	NumGoroutine int     `json:"numGoroutine"`
+	NumCPU       int `json:"numCPU"`
+	NumGoroutine int `json:"numGoroutine"`
 }
 
 // RepositoryMetrics represents repository statistics
 type RepositoryMetrics struct {
-	FlowFileCount    int64 `json:"flowFileCount"`
+	FlowFileCount     int64 `json:"flowFileCount"`
 	ContentClaimCount int64 `json:"contentClaimCount"`
 	FlowFileRepoSize  int64 `json:"flowFileRepoSizeMB"`
 	ContentRepoSize   int64 `json:"contentRepoSizeMB"`
@@ -106,45 +106,45 @@ type StatsSummary struct {
 
 // ProcessorStatsSummary represents processor statistics summary
 type ProcessorStatsSummary struct {
-	ID              uuid.UUID      `json:"id"`
-	Name            string         `json:"name"`
-	Type            string         `json:"type"`
-	State           types.ProcessorState `json:"state"`
-	TasksCompleted  int64          `json:"tasksCompleted"`
-	TasksFailed     int64          `json:"tasksFailed"`
-	FlowFilesIn     int64          `json:"flowFilesIn"`
-	FlowFilesOut    int64          `json:"flowFilesOut"`
-	BytesIn         int64          `json:"bytesIn"`
-	BytesOut        int64          `json:"bytesOut"`
+	ID             uuid.UUID            `json:"id"`
+	Name           string               `json:"name"`
+	Type           string               `json:"type"`
+	State          types.ProcessorState `json:"state"`
+	TasksCompleted int64                `json:"tasksCompleted"`
+	TasksFailed    int64                `json:"tasksFailed"`
+	FlowFilesIn    int64                `json:"flowFilesIn"`
+	FlowFilesOut   int64                `json:"flowFilesOut"`
+	BytesIn        int64                `json:"bytesIn"`
+	BytesOut       int64                `json:"bytesOut"`
 }
 
 // ConnectionStatsSummary represents connection statistics summary
 type ConnectionStatsSummary struct {
-	ID             uuid.UUID `json:"id"`
-	Name           string    `json:"name"`
-	QueueDepth     int64     `json:"queueDepth"`
-	FlowFilesQueued int64    `json:"flowFilesQueued"`
+	ID              uuid.UUID `json:"id"`
+	Name            string    `json:"name"`
+	QueueDepth      int64     `json:"queueDepth"`
+	FlowFilesQueued int64     `json:"flowFilesQueued"`
 }
 
 // ProcessorMetrics represents detailed processor metrics
 type ProcessorMetrics struct {
-	ID                    uuid.UUID            `json:"id"`
-	Name                  string               `json:"name"`
-	Type                  string               `json:"type"`
-	State                 types.ProcessorState `json:"state"`
-	TasksCompleted        int64                `json:"tasksCompleted"`
-	TasksFailed           int64                `json:"tasksFailed"`
-	TasksRunning          int                  `json:"tasksRunning"`
-	FlowFilesIn           int64                `json:"flowFilesIn"`
-	FlowFilesOut          int64                `json:"flowFilesOut"`
-	BytesIn               int64                `json:"bytesIn"`
-	BytesOut              int64                `json:"bytesOut"`
-	AverageExecutionTime  time.Duration        `json:"averageExecutionTime"`
-	AverageExecutionTimeMS float64             `json:"averageExecutionTimeMS"`
-	LastRunTime           time.Time            `json:"lastRunTime"`
-	RunCount              int64                `json:"runCount"`
-	Throughput            ProcessorThroughput  `json:"throughput"`
-	Timestamp             time.Time            `json:"timestamp"`
+	ID                     uuid.UUID            `json:"id"`
+	Name                   string               `json:"name"`
+	Type                   string               `json:"type"`
+	State                  types.ProcessorState `json:"state"`
+	TasksCompleted         int64                `json:"tasksCompleted"`
+	TasksFailed            int64                `json:"tasksFailed"`
+	TasksRunning           int                  `json:"tasksRunning"`
+	FlowFilesIn            int64                `json:"flowFilesIn"`
+	FlowFilesOut           int64                `json:"flowFilesOut"`
+	BytesIn                int64                `json:"bytesIn"`
+	BytesOut               int64                `json:"bytesOut"`
+	AverageExecutionTime   time.Duration        `json:"averageExecutionTime"`
+	AverageExecutionTimeMS float64              `json:"averageExecutionTimeMS"`
+	LastRunTime            time.Time            `json:"lastRunTime"`
+	RunCount               int64                `json:"runCount"`
+	Throughput             ProcessorThroughput  `json:"throughput"`
+	Timestamp              time.Time            `json:"timestamp"`
 }
 
 // ProcessorThroughput represents processor throughput metrics
@@ -156,20 +156,20 @@ type ProcessorThroughput struct {
 
 // ConnectionMetrics represents detailed connection metrics
 type ConnectionMetrics struct {
-	ID                   uuid.UUID `json:"id"`
-	Name                 string    `json:"name"`
-	SourceID             uuid.UUID `json:"sourceId"`
-	SourceName           string    `json:"sourceName"`
-	DestinationID        uuid.UUID `json:"destinationId"`
-	DestinationName      string    `json:"destinationName"`
-	Relationship         string    `json:"relationship"`
-	QueueDepth           int64     `json:"queueDepth"`
-	MaxQueueSize         int64     `json:"maxQueueSize"`
-	FlowFilesQueued      int64     `json:"flowFilesQueued"`
-	BackPressureTriggered int64    `json:"backPressureTriggered"`
-	PercentFull          float64   `json:"percentFull"`
-	Throughput           ConnectionThroughput `json:"throughput"`
-	Timestamp            time.Time `json:"timestamp"`
+	ID                    uuid.UUID            `json:"id"`
+	Name                  string               `json:"name"`
+	SourceID              uuid.UUID            `json:"sourceId"`
+	SourceName            string               `json:"sourceName"`
+	DestinationID         uuid.UUID            `json:"destinationId"`
+	DestinationName       string               `json:"destinationName"`
+	Relationship          string               `json:"relationship"`
+	QueueDepth            int64                `json:"queueDepth"`
+	MaxQueueSize          int64                `json:"maxQueueSize"`
+	FlowFilesQueued       int64                `json:"flowFilesQueued"`
+	BackPressureTriggered int64                `json:"backPressureTriggered"`
+	PercentFull           float64              `json:"percentFull"`
+	Throughput            ConnectionThroughput `json:"throughput"`
+	Timestamp             time.Time            `json:"timestamp"`
 }
 
 // ConnectionThroughput represents connection throughput metrics
@@ -181,12 +181,12 @@ type ConnectionThroughput struct {
 
 // QueueMetrics represents queue depth and statistics
 type QueueMetrics struct {
-	TotalQueued      int64                      `json:"totalQueued"`
-	TotalCapacity    int64                      `json:"totalCapacity"`
-	PercentFull      float64                    `json:"percentFull"`
-	BackPressureCount int64                     `json:"backPressureCount"`
-	Queues           []ConnectionMetrics        `json:"queues"`
-	Timestamp        time.Time                  `json:"timestamp"`
+	TotalQueued       int64               `json:"totalQueued"`
+	TotalCapacity     int64               `json:"totalCapacity"`
+	PercentFull       float64             `json:"percentFull"`
+	BackPressureCount int64               `json:"backPressureCount"`
+	Queues            []ConnectionMetrics `json:"queues"`
+	Timestamp         time.Time           `json:"timestamp"`
 }
 
 // MonitoringEvent represents a real-time monitoring event

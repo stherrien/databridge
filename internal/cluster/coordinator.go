@@ -20,12 +20,11 @@ type Coordinator struct {
 	isLeader      bool
 	leader        string
 	peers         map[string]*Peer
-	logger        *logrus.Logger
-	mu            sync.RWMutex
-	leaderChan    chan bool
-	stopChan      chan struct{}
-	electionTimer *time.Timer
-	running       bool
+	logger     *logrus.Logger
+	mu         sync.RWMutex
+	leaderChan chan bool
+	stopChan   chan struct{}
+	running    bool
 }
 
 // CoordinatorConfig holds coordinator configuration

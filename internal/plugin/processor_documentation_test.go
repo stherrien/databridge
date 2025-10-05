@@ -28,10 +28,10 @@ func NewMockDocProcessor() *MockDocProcessor {
 		Tags:        []string{"test", "mock", "utility"},
 		Properties: []types.PropertySpec{
 			{
-				Name:         "TestProperty",
-				Description:  "A test property",
-				Required:     true,
-				DefaultValue: "default",
+				Name:          "TestProperty",
+				Description:   "A test property",
+				Required:      true,
+				DefaultValue:  "default",
 				AllowedValues: []string{"value1", "value2"},
 			},
 			{
@@ -407,17 +407,17 @@ func TestRegisterFormatter(t *testing.T) {
 
 func TestPropertyDocumentation(t *testing.T) {
 	prop := PropertyDocumentation{
-		Name:            "TestProp",
-		DisplayName:     "Test Property",
-		Description:     "A test property",
-		Required:        true,
-		Sensitive:       false,
-		DefaultValue:    "default",
-		AllowedValues:   []string{"val1", "val2"},
-		Pattern:         "^[a-z]+$",
-		ExampleValue:    "example",
-		SupportsEL:      true,
-		Dependencies:    []string{"OtherProp"},
+		Name:          "TestProp",
+		DisplayName:   "Test Property",
+		Description:   "A test property",
+		Required:      true,
+		Sensitive:     false,
+		DefaultValue:  "default",
+		AllowedValues: []string{"val1", "val2"},
+		Pattern:       "^[a-z]+$",
+		ExampleValue:  "example",
+		SupportsEL:    true,
+		Dependencies:  []string{"OtherProp"},
 	}
 
 	assert.Equal(t, "TestProp", prop.Name)

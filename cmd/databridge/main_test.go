@@ -17,8 +17,8 @@ import (
 
 	"github.com/shawntherrien/databridge/internal/core"
 	"github.com/shawntherrien/databridge/internal/plugin"
-	_ "github.com/shawntherrien/databridge/plugins" // Import to register built-in processors
 	"github.com/shawntherrien/databridge/pkg/types"
+	_ "github.com/shawntherrien/databridge/plugins" // Import to register built-in processors
 )
 
 // Test Coverage Summary:
@@ -331,7 +331,7 @@ func TestRun(t *testing.T) {
 		// Set viper config
 		viper.Set("dataDir", tmpDir)
 
-		// Create context that will be cancelled
+		// Create context that will be canceled
 		ctx, cancel := context.WithCancel(context.Background())
 
 		// Run in goroutine
@@ -804,10 +804,10 @@ func (m *mockLogger) Warn(msg string, fields ...interface{})  {}
 func (m *mockLogger) Error(msg string, fields ...interface{}) {}
 
 type mockProcessSession struct {
-	flowFiles       []*types.FlowFile
-	content         []byte
-	transferCount   int
-	shouldFailRead  bool
+	flowFiles      []*types.FlowFile
+	content        []byte
+	transferCount  int
+	shouldFailRead bool
 }
 
 func newMockProcessSession() *mockProcessSession {
@@ -1088,7 +1088,7 @@ func TestRunDataBridgeIntegration(t *testing.T) {
 		t.Skip("Skipping integration test in short mode")
 	}
 
-	t.Run("runDataBridge with cancelled context", func(t *testing.T) {
+	t.Run("runDataBridge with canceled context", func(t *testing.T) {
 		tmpDir := createTestDataDir(t)
 
 		// Create a new command with test parameters

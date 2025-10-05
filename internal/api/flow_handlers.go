@@ -296,10 +296,10 @@ func (h *FlowHandlers) HandleGetProcessorMetadata(w http.ResponseWriter, r *http
 	if pluginManager == nil {
 		// Fallback to basic metadata if plugin manager not available
 		metadata := map[string]interface{}{
-			"type":        processorType,
-			"category":    "General",
-			"description": "Processor: " + processorType,
-			"properties":  []interface{}{},
+			"type":          processorType,
+			"category":      "General",
+			"description":   "Processor: " + processorType,
+			"properties":    []interface{}{},
 			"relationships": []interface{}{},
 		}
 		respondJSON(w, http.StatusOK, metadata)
@@ -318,10 +318,10 @@ func (h *FlowHandlers) HandleGetProcessorMetadata(w http.ResponseWriter, r *http
 
 	// Convert to frontend format
 	metadata := map[string]interface{}{
-		"type":        processorType,
-		"category":    "General", // Could be inferred from tags
-		"description": info.Description,
-		"properties":  info.Properties,
+		"type":          processorType,
+		"category":      "General", // Could be inferred from tags
+		"description":   info.Description,
+		"properties":    info.Properties,
 		"relationships": info.Relationships,
 	}
 
@@ -367,15 +367,15 @@ func (h *FlowHandlers) HandleCreateProcessor(w http.ResponseWriter, r *http.Requ
 
 	// Create processor configuration
 	processorConfig := types.ProcessorConfig{
-		ID:            uuid.New(),
-		Name:          req.Type, // Use type as default name
-		Type:          req.Type,
-		ScheduleType:  types.ScheduleTypeTimer,
-		ScheduleValue: "1s",
-		Concurrency:   1,
-		Properties:    make(map[string]string),
-		AutoTerminate: make(map[string]bool),
-		Position:      &types.Position{X: req.Position.X, Y: req.Position.Y},
+		ID:             uuid.New(),
+		Name:           req.Type, // Use type as default name
+		Type:           req.Type,
+		ScheduleType:   types.ScheduleTypeTimer,
+		ScheduleValue:  "1s",
+		Concurrency:    1,
+		Properties:     make(map[string]string),
+		AutoTerminate:  make(map[string]bool),
+		Position:       &types.Position{X: req.Position.X, Y: req.Position.Y},
 		ProcessGroupID: &flowId,
 	}
 
@@ -688,9 +688,9 @@ func (h *FlowHandlers) HandleValidateFlow(w http.ResponseWriter, r *http.Request
 	}
 
 	respondJSON(w, http.StatusOK, map[string]interface{}{
-		"flowId":  id,
-		"valid":   validationResults.Valid,
-		"errors":  validationResults.Errors,
+		"flowId":   id,
+		"valid":    validationResults.Valid,
+		"errors":   validationResults.Errors,
 		"warnings": validationResults.Warnings,
 	})
 }

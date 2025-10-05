@@ -8,8 +8,8 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/sirupsen/logrus"
 	"github.com/shawntherrien/databridge/pkg/types"
+	"github.com/sirupsen/logrus"
 )
 
 // Mock processor for testing
@@ -266,12 +266,12 @@ func TestFlowControllerAddProcessor(t *testing.T) {
 
 	processor := newMockTestProcessor(false)
 	config := types.ProcessorConfig{
-		ID:           uuid.New(),
-		Name:         "Test Processor",
-		Type:         "MockTestProcessor",
-		ScheduleType: types.ScheduleTypeTimer,
+		ID:            uuid.New(),
+		Name:          "Test Processor",
+		Type:          "MockTestProcessor",
+		ScheduleType:  types.ScheduleTypeTimer,
 		ScheduleValue: "5s",
-		Concurrency:  1,
+		Concurrency:   1,
 		Properties: map[string]string{
 			"test-prop": "test-value",
 		},
@@ -445,12 +445,12 @@ func TestFlowControllerProcessorLifecycle(t *testing.T) {
 
 	processor := newMockTestProcessor(false)
 	config := types.ProcessorConfig{
-		ID:           uuid.New(),
-		Name:         "Test Processor",
-		Type:         "MockTestProcessor",
-		ScheduleType: types.ScheduleTypeTimer,
+		ID:            uuid.New(),
+		Name:          "Test Processor",
+		Type:          "MockTestProcessor",
+		ScheduleType:  types.ScheduleTypeTimer,
 		ScheduleValue: "1s",
-		Concurrency:  1,
+		Concurrency:   1,
 		Properties: map[string]string{
 			"test-prop": "test-value",
 		},
@@ -513,13 +513,13 @@ func TestFlowControllerProcessorValidation(t *testing.T) {
 	// Create processor that fails validation
 	processor := newMockTestProcessor(true)
 	config := types.ProcessorConfig{
-		ID:           uuid.New(),
-		Name:         "Failing Processor",
-		Type:         "MockTestProcessor",
-		ScheduleType: types.ScheduleTypeTimer,
+		ID:            uuid.New(),
+		Name:          "Failing Processor",
+		Type:          "MockTestProcessor",
+		ScheduleType:  types.ScheduleTypeTimer,
 		ScheduleValue: "1s",
-		Concurrency:  1,
-		Properties:   make(map[string]string), // Empty properties might cause validation to fail
+		Concurrency:   1,
+		Properties:    make(map[string]string), // Empty properties might cause validation to fail
 	}
 
 	node, _ := fc.AddProcessor(processor, config)

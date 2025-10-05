@@ -6,8 +6,8 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/shawntherrien/databridge/internal/plugin"
-	_ "github.com/shawntherrien/databridge/plugins" // Import to register built-in processors
 	"github.com/shawntherrien/databridge/pkg/types"
+	_ "github.com/shawntherrien/databridge/plugins" // Import to register built-in processors
 	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"

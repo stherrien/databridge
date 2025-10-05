@@ -5,8 +5,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/sirupsen/logrus"
 	"github.com/shawntherrien/databridge/pkg/types"
+	"github.com/sirupsen/logrus"
 )
 
 // PluginType defines plugin types
@@ -30,17 +30,17 @@ const (
 
 // PluginInfo contains plugin metadata
 type PluginInfo struct {
-	ID          string       `json:"id"`
-	Name        string       `json:"name"`
-	Version     string       `json:"version"`
-	Author      string       `json:"author"`
-	Description string       `json:"description"`
-	Type        PluginType   `json:"type"`
-	Status      PluginStatus `json:"status"`
-	LoadedAt    time.Time    `json:"loadedAt"`
-	Path        string       `json:"path"`
-	Tags        []string     `json:"tags"`
-	Dependencies []string    `json:"dependencies"`
+	ID           string       `json:"id"`
+	Name         string       `json:"name"`
+	Version      string       `json:"version"`
+	Author       string       `json:"author"`
+	Description  string       `json:"description"`
+	Type         PluginType   `json:"type"`
+	Status       PluginStatus `json:"status"`
+	LoadedAt     time.Time    `json:"loadedAt"`
+	Path         string       `json:"path"`
+	Tags         []string     `json:"tags"`
+	Dependencies []string     `json:"dependencies"`
 }
 
 // ProcessorFactory creates processor instances
@@ -48,12 +48,12 @@ type ProcessorFactory func() types.Processor
 
 // PluginRegistry manages all plugins
 type PluginRegistry struct {
-	plugins           map[string]*PluginInfo
-	processors        map[string]ProcessorFactory
-	pluginDir         string
-	mu                sync.RWMutex
-	logger            *logrus.Logger
-	enabledPlugins    map[string]bool
+	plugins        map[string]*PluginInfo
+	processors     map[string]ProcessorFactory
+	pluginDir      string
+	mu             sync.RWMutex
+	logger         *logrus.Logger
+	enabledPlugins map[string]bool
 }
 
 // NewPluginRegistry creates a new plugin registry

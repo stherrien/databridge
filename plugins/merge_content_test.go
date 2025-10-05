@@ -741,10 +741,10 @@ func TestMergeContentOnTriggerAttributeBased(t *testing.T) {
 	// Create processor context
 	ctx := &mockProcessorContext{
 		properties: map[string]string{
-			"Merge Strategy":            "Attribute-Based",
-			"Merge Format":              "Binary Concatenation",
+			"Merge Strategy":             "Attribute-Based",
+			"Merge Format":               "Binary Concatenation",
 			"Correlation Attribute Name": "batch.id",
-			"Minimum Number of Entries": "1",
+			"Minimum Number of Entries":  "1",
 		},
 	}
 

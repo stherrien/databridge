@@ -311,8 +311,8 @@ func (lb *LoadBalancer) ShouldRebalance() bool {
 
 	if shouldRebalance {
 		lb.logger.WithFields(logrus.Fields{
-			"avgLoad": avgLoad,
-			"stdDev":  stdDev,
+			"avgLoad":   avgLoad,
+			"stdDev":    stdDev,
 			"threshold": threshold,
 		}).Info("Load imbalance detected")
 	}

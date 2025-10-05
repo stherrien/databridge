@@ -23,11 +23,11 @@ type FlowFileVersion struct {
 
 // FlowFileVersionHistory tracks all versions of a FlowFile
 type FlowFileVersionHistory struct {
-	FlowFileID      uuid.UUID          `json:"flowFileId"`
-	CurrentVersion  int                `json:"currentVersion"`
-	Versions        []FlowFileVersion  `json:"versions"`
-	MaxVersions     int                `json:"maxVersions"` // 0 = unlimited
-	RetentionPolicy RetentionPolicy    `json:"retentionPolicy"`
+	FlowFileID      uuid.UUID         `json:"flowFileId"`
+	CurrentVersion  int               `json:"currentVersion"`
+	Versions        []FlowFileVersion `json:"versions"`
+	MaxVersions     int               `json:"maxVersions"` // 0 = unlimited
+	RetentionPolicy RetentionPolicy   `json:"retentionPolicy"`
 }
 
 // RetentionPolicy defines version retention rules

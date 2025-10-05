@@ -71,8 +71,8 @@ func TestRecordInvocation(t *testing.T) {
 	analytics.RecordInvocation(
 		instanceID,
 		100*time.Millisecond,
-		5,  // flowFilesIn
-		5,  // flowFilesOut
+		5,    // flowFilesIn
+		5,    // flowFilesOut
 		1024, // bytes
 		true,
 		nil,

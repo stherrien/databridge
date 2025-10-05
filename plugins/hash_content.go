@@ -2,8 +2,8 @@ package plugins
 
 import (
 	"context"
-	"crypto/md5"
-	"crypto/sha1"
+	"crypto/md5" // #nosec G501 - MD5 is intentionally supported for compatibility with legacy systems
+	"crypto/sha1" // #nosec G505 - SHA-1 is intentionally supported for compatibility with legacy systems
 	"crypto/sha256"
 	"crypto/sha512"
 	"encoding/hex"
@@ -147,9 +147,9 @@ func (p *HashContentProcessor) OnTrigger(ctx context.Context, session types.Proc
 	var hasher hash.Hash
 	switch algorithm {
 	case "MD5":
-		hasher = md5.New()
+		hasher = md5.New() // #nosec G401 - MD5 support required for legacy system compatibility
 	case "SHA-1":
-		hasher = sha1.New()
+		hasher = sha1.New() // #nosec G401 - SHA-1 support required for legacy system compatibility
 	case "SHA-256":
 		hasher = sha256.New()
 	case "SHA-384":

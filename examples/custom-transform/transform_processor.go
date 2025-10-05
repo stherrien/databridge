@@ -34,10 +34,10 @@ type CustomTransformProcessor struct {
 
 // TransformRule defines a transformation rule
 type TransformRule struct {
-	Type      string `json:"type"`      // uppercase, lowercase, replace, prefix, suffix
-	Target    string `json:"target"`    // what to replace (for replace type)
-	Value     string `json:"value"`     // replacement value
-	ApplyToKey bool  `json:"applyToKey"` // apply to attribute keys vs values
+	Type       string `json:"type"`       // uppercase, lowercase, replace, prefix, suffix
+	Target     string `json:"target"`     // what to replace (for replace type)
+	Value      string `json:"value"`      // replacement value
+	ApplyToKey bool   `json:"applyToKey"` // apply to attribute keys vs values
 }
 
 // NewCustomTransformProcessor creates a new transform processor
@@ -76,17 +76,17 @@ func NewCustomTransformProcessor() *CustomTransformProcessor {
 				DefaultValue: "",
 			},
 			{
-				Name:         "Transform Content",
-				Description:  "Whether to transform FlowFile content",
-				Required:     false,
-				DefaultValue: "true",
+				Name:          "Transform Content",
+				Description:   "Whether to transform FlowFile content",
+				Required:      false,
+				DefaultValue:  "true",
 				AllowedValues: []string{"true", "false"},
 			},
 			{
-				Name:         "Transform Attributes",
-				Description:  "Whether to transform FlowFile attributes",
-				Required:     false,
-				DefaultValue: "false",
+				Name:          "Transform Attributes",
+				Description:   "Whether to transform FlowFile attributes",
+				Required:      false,
+				DefaultValue:  "false",
 				AllowedValues: []string{"true", "false"},
 			},
 			{

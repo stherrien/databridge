@@ -12,11 +12,11 @@ import (
 )
 
 var (
-	ErrInvalidCredentials = errors.New("invalid credentials")
-	ErrUserNotFound       = errors.New("user not found")
-	ErrUserExists         = errors.New("user already exists")
-	ErrTokenExpired       = errors.New("token expired")
-	ErrTokenInvalid       = errors.New("token invalid")
+	ErrInvalidCredentials  = errors.New("invalid credentials")
+	ErrUserNotFound        = errors.New("user not found")
+	ErrUserExists          = errors.New("user already exists")
+	ErrTokenExpired        = errors.New("token expired")
+	ErrTokenInvalid        = errors.New("token invalid")
 	ErrUnsupportedAuthType = errors.New("unsupported authentication type")
 )
 
@@ -32,16 +32,16 @@ const (
 
 // User represents an authenticated user
 type User struct {
-	ID          string
-	Username    string
-	Email       string
+	ID           string
+	Username     string
+	Email        string
 	PasswordHash string // bcrypt hash
-	Roles       []string
-	Permissions []Permission
-	Attributes  map[string]string
-	CreatedAt   time.Time
-	UpdatedAt   time.Time
-	Enabled     bool
+	Roles        []string
+	Permissions  []Permission
+	Attributes   map[string]string
+	CreatedAt    time.Time
+	UpdatedAt    time.Time
+	Enabled      bool
 }
 
 // Credentials holds authentication data

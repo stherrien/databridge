@@ -11,6 +11,8 @@ import (
 
 	"github.com/shawntherrien/databridge/internal/plugin"
 	"github.com/shawntherrien/databridge/pkg/types"
+	"golang.org/x/text/cases"
+	"golang.org/x/text/language"
 )
 
 func init() {
@@ -59,10 +61,10 @@ func NewInvokeHTTPProcessor() *InvokeHTTPProcessor {
 		Tags:        []string{"http", "rest", "api", "client"},
 		Properties: []types.PropertySpec{
 			{
-				Name:         "HTTP Method",
-				Description:  "HTTP method to use",
-				Required:     true,
-				DefaultValue: "GET",
+				Name:          "HTTP Method",
+				Description:   "HTTP method to use",
+				Required:      true,
+				DefaultValue:  "GET",
 				AllowedValues: []string{"GET", "POST", "PUT", "DELETE", "PATCH", "HEAD", "OPTIONS"},
 			},
 			{
@@ -84,10 +86,10 @@ func NewInvokeHTTPProcessor() *InvokeHTTPProcessor {
 				DefaultValue: "30s",
 			},
 			{
-				Name:         "Send Message Body",
-				Description:  "Whether to send FlowFile content as request body",
-				Required:     false,
-				DefaultValue: "true",
+				Name:          "Send Message Body",
+				Description:   "Whether to send FlowFile content as request body",
+				Required:      false,
+				DefaultValue:  "true",
 				AllowedValues: []string{"true", "false"},
 			},
 			{
@@ -97,10 +99,10 @@ func NewInvokeHTTPProcessor() *InvokeHTTPProcessor {
 				DefaultValue: "",
 			},
 			{
-				Name:         "Follow Redirects",
-				Description:  "Whether to automatically follow HTTP redirects",
-				Required:     false,
-				DefaultValue: "true",
+				Name:          "Follow Redirects",
+				Description:   "Whether to automatically follow HTTP redirects",
+				Required:      false,
+				DefaultValue:  "true",
 				AllowedValues: []string{"true", "false"},
 			},
 			{
@@ -180,7 +182,7 @@ func (p *InvokeHTTPProcessor) Initialize(ctx types.ProcessorContext) error {
 	p.client = &http.Client{
 		Timeout: readTimeout,
 		Transport: &http.Transport{
-			DialContext: (&http.Transport{}).DialContext,
+			DialContext:           (&http.Transport{}).DialContext,
 			MaxIdleConns:          100,
 			IdleConnTimeout:       90 * time.Second,
 			TLSHandshakeTimeout:   connTimeout,
@@ -232,8 +234,10 @@ func (p *InvokeHTTPProcessor) OnTrigger(ctx context.Context, session types.Proce
 
 	// Prepare request body
 	var body io.Reader
+	var err error
 	if sendBody && (method == "POST" || method == "PUT" || method == "PATCH") {
-		content, err := session.Read(flowFile)
+		var content []byte
+		content, err = session.Read(flowFile)
 		if err != nil {
 			logger.Error("Failed to read FlowFile content", "error", err)
 			session.Transfer(flowFile, types.RelationshipFailure)
@@ -243,7 +247,8 @@ func (p *InvokeHTTPProcessor) OnTrigger(ctx context.Context, session types.Proce
 	}
 
 	// Create request
-	req, err := http.NewRequestWithContext(ctx, method, url, body)
+	var req *http.Request
+	req, err = http.NewRequestWithContext(ctx, method, url, body)
 	if err != nil {
 		logger.Error("Failed to create HTTP request", "error", err)
 		session.Transfer(flowFile, types.RelationshipFailure)
@@ -267,7 +272,8 @@ func (p *InvokeHTTPProcessor) OnTrigger(ctx context.Context, session types.Proce
 			attrName = strings.TrimSpace(attrName)
 			if value, exists := flowFile.GetAttribute(attrName); exists {
 				// Convert attribute name to header name (e.g., "my-attr" -> "X-My-Attr")
-				headerName := "X-" + strings.ReplaceAll(strings.Title(strings.ReplaceAll(attrName, "-", " ")), " ", "-")
+				caser := cases.Title(language.English)
+				headerName := "X-" + strings.ReplaceAll(caser.String(strings.ReplaceAll(attrName, "-", " ")), " ", "-")
 				req.Header.Set(headerName, value)
 			}
 		}
@@ -275,7 +281,8 @@ func (p *InvokeHTTPProcessor) OnTrigger(ctx context.Context, session types.Proce
 
 	// Make request
 	startTime := time.Now()
-	resp, err := p.client.Do(req)
+	var resp *http.Response
+	resp, err = p.client.Do(req)
 	duration := time.Since(startTime)
 
 	if err != nil {
@@ -287,7 +294,8 @@ func (p *InvokeHTTPProcessor) OnTrigger(ctx context.Context, session types.Proce
 	defer resp.Body.Close()
 
 	// Read response body
-	respBody, err := io.ReadAll(resp.Body)
+	var respBody []byte
+	respBody, err = io.ReadAll(resp.Body)
 	if err != nil {
 		logger.Error("Failed to read response body", "error", err)
 		session.PutAttribute(flowFile, "http.error.message", err.Error())
@@ -296,7 +304,8 @@ func (p *InvokeHTTPProcessor) OnTrigger(ctx context.Context, session types.Proce
 	}
 
 	// Update FlowFile with response
-	if err := session.Write(flowFile, respBody); err != nil {
+	err = session.Write(flowFile, respBody)
+	if err != nil {
 		logger.Error("Failed to write response to FlowFile", "error", err)
 		session.Transfer(flowFile, types.RelationshipFailure)
 		return nil
@@ -378,7 +387,9 @@ func (p *InvokeHTTPProcessor) Validate(config types.ProcessorConfig) []types.Val
 
 	// Validate Connection Timeout
 	if timeoutStr, exists := config.Properties["Connection Timeout"]; exists && timeoutStr != "" {
-		if _, err := time.ParseDuration(timeoutStr); err != nil {
+		var err error
+		_, err = time.ParseDuration(timeoutStr)
+		if err != nil {
 			results = append(results, types.ValidationResult{
 				Property: "Connection Timeout",
 				Valid:    false,
@@ -389,7 +400,9 @@ func (p *InvokeHTTPProcessor) Validate(config types.ProcessorConfig) []types.Val
 
 	// Validate Read Timeout
 	if timeoutStr, exists := config.Properties["Read Timeout"]; exists && timeoutStr != "" {
-		if _, err := time.ParseDuration(timeoutStr); err != nil {
+		var err error
+		_, err = time.ParseDuration(timeoutStr)
+		if err != nil {
 			results = append(results, types.ValidationResult{
 				Property: "Read Timeout",
 				Valid:    false,

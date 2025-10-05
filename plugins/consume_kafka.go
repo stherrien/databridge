@@ -54,10 +54,10 @@ func NewConsumeKafkaProcessor() *ConsumeKafkaProcessor {
 				DefaultValue: "databridge-consumer-group",
 			},
 			{
-				Name:         "Offset Reset",
-				Description:  "Where to start consuming when there is no initial offset",
-				Required:     false,
-				DefaultValue: "latest",
+				Name:          "Offset Reset",
+				Description:   "Where to start consuming when there is no initial offset",
+				Required:      false,
+				DefaultValue:  "latest",
 				AllowedValues: []string{"earliest", "latest"},
 			},
 			{
@@ -79,17 +79,17 @@ func NewConsumeKafkaProcessor() *ConsumeKafkaProcessor {
 				DefaultValue: "500",
 			},
 			{
-				Name:         "Security Protocol",
-				Description:  "Security protocol for Kafka connection",
-				Required:     false,
-				DefaultValue: "PLAINTEXT",
+				Name:          "Security Protocol",
+				Description:   "Security protocol for Kafka connection",
+				Required:      false,
+				DefaultValue:  "PLAINTEXT",
 				AllowedValues: []string{"PLAINTEXT", "SSL", "SASL_PLAINTEXT", "SASL_SSL"},
 			},
 			{
-				Name:         "SASL Mechanism",
-				Description:  "SASL mechanism for authentication",
-				Required:     false,
-				DefaultValue: "PLAIN",
+				Name:          "SASL Mechanism",
+				Description:   "SASL mechanism for authentication",
+				Required:      false,
+				DefaultValue:  "PLAIN",
 				AllowedValues: []string{"PLAIN", "SCRAM-SHA-256", "SCRAM-SHA-512"},
 			},
 			{
@@ -112,10 +112,10 @@ func NewConsumeKafkaProcessor() *ConsumeKafkaProcessor {
 				DefaultValue: "UTF-8",
 			},
 			{
-				Name:         "Honor Transactions",
-				Description:  "Whether to only consume committed messages in transactional topics",
-				Required:     false,
-				DefaultValue: "true",
+				Name:          "Honor Transactions",
+				Description:   "Whether to only consume committed messages in transactional topics",
+				Required:      false,
+				DefaultValue:  "true",
 				AllowedValues: []string{"true", "false"},
 			},
 		},
@@ -308,14 +308,14 @@ func (p *ConsumeKafkaProcessor) OnTrigger(ctx context.Context, session types.Pro
 		for {
 			select {
 			case <-consumeCtx.Done():
-				logger.Info("Kafka consumer context cancelled")
+				logger.Info("Kafka consumer context canceled")
 				return
 			default:
 				if err := p.consumer.Consume(consumeCtx, topics, handler); err != nil {
 					logger.Error("Error consuming from Kafka: " + err.Error())
 					return
 				}
-				// Check if context was cancelled
+				// Check if context was canceled
 				if consumeCtx.Err() != nil {
 					return
 				}

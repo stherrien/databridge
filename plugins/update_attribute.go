@@ -62,13 +62,13 @@ func NewUpdateAttributeProcessor() *UpdateAttributeProcessor {
 				HelpText:     "List of attribute names to remove from the FlowFile",
 			},
 			{
-				Name:         "Store State",
-				DisplayName:  "Store State",
-				Description:  "Whether to store state for use in subsequent FlowFiles",
-				Required:     false,
-				DefaultValue: "false",
+				Name:          "Store State",
+				DisplayName:   "Store State",
+				Description:   "Whether to store state for use in subsequent FlowFiles",
+				Required:      false,
+				DefaultValue:  "false",
 				AllowedValues: []string{"true", "false"},
-				Type:         "boolean",
+				Type:          "boolean",
 			},
 		},
 		Relationships: []types.Relationship{
@@ -180,4 +180,3 @@ func parseAttributeRules(rulesJSON string) map[string]string {
 
 	return rules
 }
-
