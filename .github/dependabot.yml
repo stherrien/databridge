@@ -1,42 +1,17 @@
 version: 2
 updates:
-  # Go dependencies
+  # Go modules
   - package-ecosystem: "gomod"
     directory: "/"
     schedule:
       interval: "weekly"
       day: "monday"
+      time: "09:00"
     open-pull-requests-limit: 10
     reviewers:
-      - "shawntherrien"
-    labels:
-      - "dependencies"
-      - "go"
+      - "stherrien"
     commit-message:
       prefix: "chore(deps)"
-      include: "scope"
-
-  # NPM dependencies (frontend)
-  - package-ecosystem: "npm"
-    directory: "/frontend"
-    schedule:
-      interval: "weekly"
-      day: "monday"
-    open-pull-requests-limit: 10
-    reviewers:
-      - "shawntherrien"
-    labels:
-      - "dependencies"
-      - "frontend"
-    commit-message:
-      prefix: "chore(deps)"
-      include: "scope"
-    ignore:
-      # Ignore major version updates for stable dependencies
-      - dependency-name: "react"
-        update-types: ["version-update:semver-major"]
-      - dependency-name: "next"
-        update-types: ["version-update:semver-major"]
 
   # GitHub Actions
   - package-ecosystem: "github-actions"
@@ -44,26 +19,27 @@ updates:
     schedule:
       interval: "weekly"
       day: "monday"
+      time: "09:00"
+    open-pull-requests-limit: 5
     reviewers:
-      - "shawntherrien"
-    labels:
-      - "dependencies"
-      - "ci"
+      - "stherrien"
     commit-message:
       prefix: "chore(ci)"
-      include: "scope"
 
-  # Docker
-  - package-ecosystem: "docker"
-    directory: "/"
+  # npm packages
+  - package-ecosystem: "npm"
+    directory: "/frontend"
     schedule:
       interval: "weekly"
       day: "monday"
+      time: "09:00"
+    open-pull-requests-limit: 10
     reviewers:
-      - "shawntherrien"
-    labels:
-      - "dependencies"
-      - "docker"
+      - "stherrien"
     commit-message:
-      prefix: "chore(docker)"
-      include: "scope"
+      prefix: "chore(deps)"
+    groups:
+      production-dependencies:
+        dependency-type: "production"
+      development-dependencies:
+        dependency-type: "development"
