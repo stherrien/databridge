@@ -66,7 +66,7 @@ func TestThreeNodeCluster(t *testing.T) {
 	}
 
 	assert.Equal(t, 1, leaderCount, "Exactly one node should be leader")
-	assert.NotNil(t, leader)
+	require.NotNil(t, leader, "Leader should not be nil")
 
 	// Test processor assignment
 	processorID := uuid.New()

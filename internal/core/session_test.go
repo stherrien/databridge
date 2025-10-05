@@ -190,6 +190,20 @@ func (m *testProvenanceRepository) GetLineage(flowFileId uuid.UUID) (*LineageGra
 	return nil, nil
 }
 
+func (m *testProvenanceRepository) GetEvents(offset, limit int) ([]*ProvenanceEvent, error) {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+	events := make([]*ProvenanceEvent, 0, len(m.events))
+	for _, event := range m.events {
+		events = append(events, event)
+	}
+	return events, nil
+}
+
+func (m *testProvenanceRepository) AddEvent(event *ProvenanceEvent) error {
+	return m.Store(event)
+}
+
 func (m *testProvenanceRepository) Close() error {
 	return nil
 }

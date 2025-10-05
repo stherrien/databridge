@@ -21,10 +21,18 @@ func setupTestFlowController(t *testing.T) *core.FlowController {
 	logger := logrus.New()
 	logger.SetLevel(logrus.ErrorLevel)
 
-	flowFileRepo := core.NewMemoryFlowFileRepository()
-	contentRepo := core.NewMemoryContentRepository()
-	provenanceRepo := core.NewMemoryProvenanceRepository()
-	pluginManager := plugin.NewPluginManager(logger)
+	flowFileRepo := core.NewInMemoryFlowFileRepository()
+	contentRepo := core.NewInMemoryContentRepository()
+	provenanceRepo := core.NewInMemoryProvenanceRepository()
+
+	pluginConfig := plugin.PluginManagerConfig{
+		PluginDir: "",
+		Enabled:   false,
+	}
+	pluginManager, err := plugin.NewPluginManager(pluginConfig, logger)
+	if err != nil {
+		t.Fatalf("Failed to create plugin manager: %v", err)
+	}
 
 	return core.NewFlowControllerWithPlugins(
 		flowFileRepo,

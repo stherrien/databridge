@@ -5,8 +5,6 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
-
-	"github.com/shawntherrien/databridge/pkg/types"
 )
 
 func TestNewPublishKafkaProcessor(t *testing.T) {

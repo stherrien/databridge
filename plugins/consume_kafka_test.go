@@ -128,16 +128,18 @@ func (m *MockConsumeKafkaProcessSession) CreateChild(parent *types.FlowFile) *ty
 	return child
 }
 
-func (m *MockConsumeKafkaProcessSession) PutAttribute(flowFile *types.FlowFile, key, value string) *types.FlowFile {
+func (m *MockConsumeKafkaProcessSession) PutAttribute(flowFile *types.FlowFile, key, value string) {
 	flowFile.Attributes[key] = value
-	return flowFile
 }
 
-func (m *MockConsumeKafkaProcessSession) PutAllAttributes(flowFile *types.FlowFile, attrs map[string]string) *types.FlowFile {
+func (m *MockConsumeKafkaProcessSession) RemoveAttribute(flowFile *types.FlowFile, key string) {
+	delete(flowFile.Attributes, key)
+}
+
+func (m *MockConsumeKafkaProcessSession) PutAllAttributes(flowFile *types.FlowFile, attrs map[string]string) {
 	for k, v := range attrs {
 		flowFile.Attributes[k] = v
 	}
-	return flowFile
 }
 
 func (m *MockConsumeKafkaProcessSession) Commit() error {
@@ -147,6 +149,22 @@ func (m *MockConsumeKafkaProcessSession) Commit() error {
 
 func (m *MockConsumeKafkaProcessSession) Rollback() {
 	m.Called()
+}
+
+func (m *MockConsumeKafkaProcessSession) GetBatch(maxResults int) []*types.FlowFile {
+	args := m.Called(maxResults)
+	if ffs := args.Get(0); ffs != nil {
+		return ffs.([]*types.FlowFile)
+	}
+	return nil
+}
+
+func (m *MockConsumeKafkaProcessSession) GetLogger() types.Logger {
+	args := m.Called()
+	if logger := args.Get(0); logger != nil {
+		return logger.(types.Logger)
+	}
+	return &MockConsumeKafkaLogger{}
 }
 
 func TestNewConsumeKafkaProcessor(t *testing.T) {

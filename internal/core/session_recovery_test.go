@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/mock"
 
 	"github.com/shawntherrien/databridge/pkg/types"
 )
@@ -459,8 +460,8 @@ func TestRecoverableSessionRollback(t *testing.T) {
 	recoverableSession.Create()
 
 	// Rollback
-	err := recoverableSession.Rollback()
-	assert.NoError(t, err)
+	recoverableSession.Rollback()
+	// Rollback returns no error
 
 	// Verify checkpoint was deleted
 	assert.NotContains(t, recoveryMgr.checkpoints, baseSession.id)

@@ -926,6 +926,10 @@ func (r *mockFlowFileRepository) UpdateAttributes(id uuid.UUID, attributes map[s
 	return &testError{msg: "FlowFile not found"}
 }
 
+func (r *mockFlowFileRepository) Count() (int, error) {
+	return len(r.flowFiles), nil
+}
+
 func (r *mockFlowFileRepository) Close() error {
 	return nil
 }
@@ -983,6 +987,30 @@ func (r *mockContentRepository) DecrementRef(claim *types.ContentClaim) error {
 	return nil
 }
 
+func (r *mockContentRepository) ListClaims() ([]*types.ContentClaim, error) {
+	var claims []*types.ContentClaim
+	for id, content := range r.content {
+		claims = append(claims, &types.ContentClaim{
+			ID:       id,
+			Length:   int64(len(content)),
+			RefCount: 1,
+		})
+	}
+	return claims, nil
+}
+
+func (r *mockContentRepository) Read(claim *types.ContentClaim) (io.ReadCloser, error) {
+	if content, exists := r.content[claim.ID]; exists {
+		return io.NopCloser(strings.NewReader(string(content))), nil
+	}
+	return nil, &testError{msg: "Content not found"}
+}
+
+func (r *mockContentRepository) Write(claim *types.ContentClaim, data []byte) error {
+	r.content[claim.ID] = data
+	return nil
+}
+
 func (r *mockContentRepository) Close() error {
 	return nil
 }
@@ -1008,6 +1036,10 @@ func (r *failingFlowFileRepository) List(limit, offset int) ([]*types.FlowFile, 
 
 func (r *failingFlowFileRepository) UpdateAttributes(id uuid.UUID, attributes map[string]string) error {
 	return &testError{msg: "update failed"}
+}
+
+func (r *failingFlowFileRepository) Count() (int, error) {
+	return 0, &testError{msg: "count failed"}
 }
 
 func (r *failingFlowFileRepository) Close() error {
