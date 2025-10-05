@@ -197,7 +197,7 @@ func TestConsumeKafkaProcessor_InitializeSuccess(t *testing.T) {
 	}
 
 	mockLogger := &MockConsumeKafkaLogger{}
-	mockLogger.On("Info", mock.Anything)
+	mockLogger.On("Info", mock.Anything, mock.Anything)
 	mockLogger.On("WithFields", mock.Anything).Return(mockLogger)
 	mockCtx.On("GetLogger").Return(mockLogger)
 
@@ -223,7 +223,7 @@ func TestConsumeKafkaProcessor_InitializeMissingBrokers(t *testing.T) {
 	}
 
 	mockLogger := &MockConsumeKafkaLogger{}
-	mockLogger.On("Info", mock.Anything)
+	mockLogger.On("Info", mock.Anything, mock.Anything)
 	mockCtx.On("GetLogger").Return(mockLogger)
 
 	err := processor.Initialize(mockCtx)
@@ -243,7 +243,7 @@ func TestConsumeKafkaProcessor_InitializeMissingTopics(t *testing.T) {
 	}
 
 	mockLogger := &MockConsumeKafkaLogger{}
-	mockLogger.On("Info", mock.Anything)
+	mockLogger.On("Info", mock.Anything, mock.Anything)
 	mockCtx.On("GetLogger").Return(mockLogger)
 
 	err := processor.Initialize(mockCtx)
@@ -263,7 +263,7 @@ func TestConsumeKafkaProcessor_InitializeMissingGroupID(t *testing.T) {
 	}
 
 	mockLogger := &MockConsumeKafkaLogger{}
-	mockLogger.On("Info", mock.Anything)
+	mockLogger.On("Info", mock.Anything, mock.Anything)
 	mockCtx.On("GetLogger").Return(mockLogger)
 
 	err := processor.Initialize(mockCtx)
@@ -285,7 +285,7 @@ func TestConsumeKafkaProcessor_InitializeInvalidAutoCommitInterval(t *testing.T)
 	}
 
 	mockLogger := &MockConsumeKafkaLogger{}
-	mockLogger.On("Info", mock.Anything)
+	mockLogger.On("Info", mock.Anything, mock.Anything)
 	mockCtx.On("GetLogger").Return(mockLogger)
 
 	err := processor.Initialize(mockCtx)
@@ -297,7 +297,7 @@ func TestConsumeKafkaProcessor_InitializeInvalidAutoCommitInterval(t *testing.T)
 func TestConsumeKafkaProcessor_ProcessMessage(t *testing.T) {
 	mockSession := &MockConsumeKafkaProcessSession{}
 	mockLogger := &MockConsumeKafkaLogger{}
-	mockLogger.On("Debug", mock.Anything)
+	mockLogger.On("Debug", mock.Anything, mock.Anything)
 	mockLogger.On("WithFields", mock.Anything).Return(mockLogger)
 
 	handler := &consumerGroupHandler{
@@ -320,7 +320,6 @@ func TestConsumeKafkaProcessor_ProcessMessage(t *testing.T) {
 
 	// Setup mocks
 	mockSession.On("Write", mock.AnythingOfType("*types.FlowFile"), kafkaMsg.Value).Return(nil)
-	mockSession.On("PutAllAttributes", mock.AnythingOfType("*types.FlowFile"), mock.Anything).Return(&types.FlowFile{})
 	mockSession.On("Transfer", mock.AnythingOfType("*types.FlowFile"), types.RelationshipSuccess)
 
 	// Create mock consumer group session

@@ -60,7 +60,8 @@ func (c *BackPressureConfig) ShouldTrigger(currentSize, maxSize int64) bool {
 // EnqueueWithBackPressure attempts to enqueue a FlowFile with back pressure handling
 func (q *FlowFileQueue) EnqueueWithBackPressure(flowFile *types.FlowFile, config BackPressureConfig) error {
 	// Fast path - no back pressure
-	if !config.ShouldTrigger(q.currentSize, q.maxSize) {
+	// Check if adding this item would trigger back pressure
+	if !config.ShouldTrigger(q.currentSize+1, q.maxSize) {
 		q.mu.Lock()
 		defer q.mu.Unlock()
 

@@ -123,27 +123,32 @@ func TestFlowFileQueue_EnqueueWithBackPressure_Drop(t *testing.T) {
 		ThresholdPct: 80,
 	}
 
-	// Fill queue just below threshold (7 items = 70%)
+	// Fill queue below threshold (7 items = 70%)
 	for i := 0; i < 7; i++ {
 		ff := types.NewFlowFile()
 		err := queue.EnqueueWithBackPressure(ff, config)
 		require.NoError(t, err)
 	}
 
-	// Enqueue to hit threshold (8 items = 80%) - should succeed without dropping
+	assert.Equal(t, int64(7), queue.currentSize)
+
+	// Enqueue at threshold (8 items = 80%) - should trigger and drop oldest
 	ff := types.NewFlowFile()
 	err := queue.EnqueueWithBackPressure(ff, config)
 	require.NoError(t, err)
-	assert.Equal(t, int64(8), queue.currentSize)
 
-	// Enqueue one more (would be 9 = 90%) - should trigger and drop oldest
+	assert.Equal(t, int64(7), queue.currentSize) // Still 7 after drop+add
+	assert.Equal(t, int64(1), queue.metrics.DroppedCount)
+	assert.Equal(t, int64(1), queue.metrics.TriggeredCount)
+
+	// Enqueue one more - should trigger again and drop oldest
 	ff = types.NewFlowFile()
 	err = queue.EnqueueWithBackPressure(ff, config)
 	require.NoError(t, err)
 
-	assert.Equal(t, int64(8), queue.currentSize) // Still 8 after drop+add
-	assert.Equal(t, int64(1), queue.metrics.DroppedCount)
-	assert.Equal(t, int64(1), queue.metrics.TriggeredCount)
+	assert.Equal(t, int64(7), queue.currentSize) // Still 7 after drop+add
+	assert.Equal(t, int64(2), queue.metrics.DroppedCount)
+	assert.Equal(t, int64(2), queue.metrics.TriggeredCount)
 }
 
 func TestFlowFileQueue_EnqueueWithBackPressure_Fail(t *testing.T) {
@@ -160,20 +165,22 @@ func TestFlowFileQueue_EnqueueWithBackPressure_Fail(t *testing.T) {
 		ThresholdPct: 80,
 	}
 
-	// Fill queue to threshold
-	for i := 0; i < 8; i++ {
+	// Fill queue below threshold
+	for i := 0; i < 7; i++ {
 		ff := types.NewFlowFile()
 		err := queue.EnqueueWithBackPressure(ff, config)
 		require.NoError(t, err)
 	}
 
-	// Enqueue one more - should fail
+	assert.Equal(t, int64(7), queue.currentSize)
+
+	// Enqueue at threshold - should fail
 	ff := types.NewFlowFile()
 	err := queue.EnqueueWithBackPressure(ff, config)
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "back pressure triggered")
 
-	assert.Equal(t, int64(8), queue.currentSize)
+	assert.Equal(t, int64(7), queue.currentSize)
 	assert.Equal(t, int64(1), queue.metrics.TriggeredCount)
 }
 
@@ -197,19 +204,21 @@ func TestFlowFileQueue_EnqueueWithBackPressure_Penalty(t *testing.T) {
 		PenaltyDuration: 100 * time.Millisecond,
 	}
 
-	// Fill queue to threshold
-	for i := 0; i < 8; i++ {
+	// Fill queue below threshold
+	for i := 0; i < 7; i++ {
 		ff := types.NewFlowFile()
 		err := queue.EnqueueWithBackPressure(ff, config)
 		require.NoError(t, err)
 	}
 
-	// Enqueue one more - should succeed but apply penalty
+	assert.Equal(t, int64(7), queue.currentSize)
+
+	// Enqueue at threshold - should succeed but apply penalty
 	ff := types.NewFlowFile()
 	err := queue.EnqueueWithBackPressure(ff, config)
 	require.NoError(t, err)
 
-	assert.Equal(t, int64(9), queue.currentSize)
+	assert.Equal(t, int64(8), queue.currentSize)
 	assert.Equal(t, int64(1), queue.metrics.PenaltyCount)
 	assert.True(t, conn.IsPenalized())
 
@@ -239,8 +248,8 @@ func TestFlowFileQueue_GetBackPressureMetrics(t *testing.T) {
 	}
 
 	metrics := queue.GetBackPressureMetrics()
-	assert.Equal(t, int64(1), metrics.TriggeredCount)
-	assert.Equal(t, int64(1), metrics.DroppedCount)
+	assert.Equal(t, int64(2), metrics.TriggeredCount) // Items 8 and 9 trigger
+	assert.Equal(t, int64(2), metrics.DroppedCount) // Items 8 and 9 drop oldest
 	assert.False(t, metrics.LastTriggered.IsZero())
 }
 

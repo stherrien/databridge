@@ -173,8 +173,16 @@ func (cm *ClusterManager) Start() error {
 		return fmt.Errorf("failed to start discovery: %w", err)
 	}
 
+	// Create a copy of nodes map for health checker to avoid data race
+	cm.mu.Lock()
+	nodesCopy := make(map[string]*ClusterNode, len(cm.nodes))
+	for k, v := range cm.nodes {
+		nodesCopy[k] = v
+	}
+	cm.mu.Unlock()
+
 	// Start health checker
-	if err := cm.healthChecker.Start(cm.ctx, cm.nodes, cm.onHealthCheckFailed); err != nil {
+	if err := cm.healthChecker.Start(cm.ctx, nodesCopy, cm.onHealthCheckFailed); err != nil {
 		return fmt.Errorf("failed to start health checker: %w", err)
 	}
 
