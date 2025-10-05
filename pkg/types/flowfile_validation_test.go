@@ -1,6 +1,7 @@
 package types
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -201,7 +202,7 @@ func TestConstraintTypes(t *testing.T) {
 }
 
 func TestValidationRules(t *testing.T) {
-	validator := NewFlowFileValidator()
+	_ = NewFlowFileValidator()
 
 	t.Run("RequireAttributeRule", func(t *testing.T) {
 		rule := RequireAttributeRule("required-attr")

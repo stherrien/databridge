@@ -39,12 +39,16 @@ type ProcessorInfo struct {
 // PropertySpec defines a processor property specification
 type PropertySpec struct {
 	Name         string `json:"name"`
+	DisplayName  string `json:"displayName"`
 	Description  string `json:"description"`
 	Required     bool   `json:"required"`
 	Sensitive    bool   `json:"sensitive"`
 	DefaultValue string `json:"defaultValue"`
 	AllowedValues []string `json:"allowedValues,omitempty"`
 	Pattern      string `json:"pattern,omitempty"`
+	Type         string `json:"type"` // string, number, boolean, select, multiline, directory, file, duration, permission
+	Placeholder  string `json:"placeholder,omitempty"` // Hint text for input fields
+	HelpText     string `json:"helpText,omitempty"` // Additional help text beyond description
 }
 
 // Relationship defines how FlowFiles are routed after processing
@@ -202,6 +206,14 @@ type Logger interface {
 	Warn(msg string, fields ...interface{})
 	Error(msg string, fields ...interface{})
 }
+
+// MockLogger is a test logger that discards all logs
+type MockLogger struct{}
+
+func (l *MockLogger) Debug(msg string, fields ...interface{}) {}
+func (l *MockLogger) Info(msg string, fields ...interface{})  {}
+func (l *MockLogger) Warn(msg string, fields ...interface{})  {}
+func (l *MockLogger) Error(msg string, fields ...interface{}) {}
 
 // BaseProcessor provides common processor functionality
 type BaseProcessor struct {

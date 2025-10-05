@@ -362,21 +362,24 @@ func TestJSONFormatter(t *testing.T) {
 	assert.Contains(t, output, "\"version\": \"1.0.0\"")
 }
 
+// CustomFormatter is a test formatter
+type CustomFormatter struct{}
+
+func (f *CustomFormatter) Format(doc *ProcessorDocumentation) (string, error) {
+	return "custom format", nil
+}
+
+func (f *CustomFormatter) FileExtension() string {
+	return "custom"
+}
+
 func TestRegisterFormatter(t *testing.T) {
 	registry := NewPluginRegistry()
 	versionRegistry := NewProcessorVersionRegistry(&types.MockLogger{})
 	gen := NewDocumentationGenerator(registry, versionRegistry)
 
-	// Custom formatter
-	type CustomFormatter struct{}
-	func (f *CustomFormatter) Format(doc *ProcessorDocumentation) (string, error) {
-		return "custom format", nil
-	}
-	func (f *CustomFormatter) FileExtension() string {
-		return "custom"
-	}
-
-	gen.RegisterFormatter("custom", &CustomFormatter{})
+	customFormatter := &CustomFormatter{}
+	gen.RegisterFormatter("custom", customFormatter)
 	assert.Contains(t, gen.outputFormats, "custom")
 }
 

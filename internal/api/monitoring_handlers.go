@@ -1,7 +1,6 @@
 package api
 
 import (
-	"encoding/json"
 	"net/http"
 
 	"github.com/google/uuid"
@@ -110,24 +109,4 @@ func (h *MonitoringHandlers) HandleConnection(w http.ResponseWriter, r *http.Req
 func (h *MonitoringHandlers) HandleQueues(w http.ResponseWriter, r *http.Request) {
 	metrics := h.collector.GetQueueMetrics()
 	respondJSON(w, http.StatusOK, metrics)
-}
-
-// Helper functions
-
-func respondJSON(w http.ResponseWriter, statusCode int, data interface{}) {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(statusCode)
-
-	if data != nil {
-		if err := json.NewEncoder(w).Encode(data); err != nil {
-			// Log error but can't change status code at this point
-			http.Error(w, "Error encoding response", http.StatusInternalServerError)
-		}
-	}
-}
-
-func respondError(w http.ResponseWriter, statusCode int, message string) {
-	respondJSON(w, statusCode, map[string]string{
-		"error": message,
-	})
 }
