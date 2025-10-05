@@ -27,7 +27,7 @@ func setupTestFlowController(t *testing.T) *core.FlowController {
 
 	pluginConfig := plugin.PluginManagerConfig{
 		PluginDir: "",
-		Enabled:   false,
+		AutoLoad:  false,
 	}
 	pluginManager, err := plugin.NewPluginManager(pluginConfig, logger)
 	if err != nil {

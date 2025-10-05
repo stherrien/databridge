@@ -202,7 +202,15 @@ func (ns *PluginNamespace) GetMetrics() ResourceMetrics {
 	ns.metrics.mu.RLock()
 	defer ns.metrics.mu.RUnlock()
 
-	return *ns.metrics
+	return ResourceMetrics{
+		MemoryUsageMB:     ns.metrics.MemoryUsageMB,
+		GoroutineCount:    ns.metrics.GoroutineCount,
+		FileHandleCount:   ns.metrics.FileHandleCount,
+		ExecutionTimeMS:   ns.metrics.ExecutionTimeMS,
+		CPUUsagePercent:   ns.metrics.CPUUsagePercent,
+		ViolationCount:    ns.metrics.ViolationCount,
+		LastViolationTime: ns.metrics.LastViolationTime,
+	}
 }
 
 // CheckResourceLimits checks if resource limits are exceeded

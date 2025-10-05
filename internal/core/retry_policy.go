@@ -39,6 +39,16 @@ type RetryConfig struct {
 }
 
 // RetryMetrics tracks retry statistics
+// RetryMetricsSnapshot is a point-in-time snapshot of retry metrics
+type RetryMetricsSnapshot struct {
+	TotalRetries      int64
+	SuccessfulRetries int64
+	FailedRetries     int64
+	ExhaustedRetries  int64 // Retries that hit max attempts
+	TotalRetryTime    int64 // Total time spent retrying (nanoseconds)
+	LastRetry         time.Time
+}
+
 type RetryMetrics struct {
 	TotalRetries      int64
 	SuccessfulRetries int64
@@ -196,11 +206,11 @@ func (rp *RetryPolicy) RecordExhaustedRetry() {
 }
 
 // GetMetrics returns current retry metrics
-func (rp *RetryPolicy) GetMetrics() RetryMetrics {
+func (rp *RetryPolicy) GetMetrics() RetryMetricsSnapshot {
 	rp.metrics.mu.RLock()
 	defer rp.metrics.mu.RUnlock()
 
-	return RetryMetrics{
+	return RetryMetricsSnapshot{
 		TotalRetries:      atomic.LoadInt64(&rp.metrics.TotalRetries),
 		SuccessfulRetries: atomic.LoadInt64(&rp.metrics.SuccessfulRetries),
 		FailedRetries:     atomic.LoadInt64(&rp.metrics.FailedRetries),
@@ -435,7 +445,7 @@ type RetryQueueInfo struct {
 	MaxQueueSize    int
 	OldestItemAge   time.Duration
 	Policy          RetryConfig
-	Metrics         RetryMetrics
+	Metrics         RetryMetricsSnapshot
 }
 
 // GetInfo returns comprehensive retry queue information
