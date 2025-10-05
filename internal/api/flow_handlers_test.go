@@ -6,11 +6,13 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/gorilla/mux"
 	"github.com/shawntherrien/databridge/internal/core"
 	"github.com/shawntherrien/databridge/internal/plugin"
+	_ "github.com/shawntherrien/databridge/plugins" // Import to register built-in processors
 	"github.com/shawntherrien/databridge/pkg/types"
 	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
@@ -26,12 +28,18 @@ func setupTestFlowController(t *testing.T) *core.FlowController {
 	provenanceRepo := core.NewInMemoryProvenanceRepository()
 
 	pluginConfig := plugin.PluginManagerConfig{
-		PluginDir: "",
-		AutoLoad:  false,
+		PluginDir:       "",
+		AutoLoad:        false,
+		MonitorInterval: 1 * time.Minute, // Set non-zero interval for resource monitor
 	}
 	pluginManager, err := plugin.NewPluginManager(pluginConfig, logger)
 	if err != nil {
 		t.Fatalf("Failed to create plugin manager: %v", err)
+	}
+
+	// Initialize plugin manager to register built-in processors
+	if err := pluginManager.Initialize(); err != nil {
+		t.Fatalf("Failed to initialize plugin manager: %v", err)
 	}
 
 	return core.NewFlowControllerWithPlugins(

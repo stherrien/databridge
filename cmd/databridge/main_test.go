@@ -16,6 +16,8 @@ import (
 	"github.com/spf13/viper"
 
 	"github.com/shawntherrien/databridge/internal/core"
+	"github.com/shawntherrien/databridge/internal/plugin"
+	_ "github.com/shawntherrien/databridge/plugins" // Import to register built-in processors
 	"github.com/shawntherrien/databridge/pkg/types"
 )
 
@@ -147,9 +149,25 @@ func TestSetupExampleFlow(t *testing.T) {
 		contentRepo := newMockContentRepository()
 		provenanceRepo := core.NewInMemoryProvenanceRepository()
 
+		// Create plugin manager
+		pluginConfig := plugin.PluginManagerConfig{
+			PluginDir:       "",
+			AutoLoad:        false,
+			MonitorInterval: 1 * time.Minute, // Set non-zero interval for resource monitor
+		}
+		pluginManager, err := plugin.NewPluginManager(pluginConfig, log)
+		if err != nil {
+			t.Fatalf("Failed to create plugin manager: %v", err)
+		}
+
+		// Initialize plugin manager to register built-in processors
+		if err := pluginManager.Initialize(); err != nil {
+			t.Fatalf("Failed to initialize plugin manager: %v", err)
+		}
+
 		// Create and start FlowController
-		fc := core.NewFlowController(flowFileRepo, contentRepo, provenanceRepo, log)
-		err := fc.Start()
+		fc := core.NewFlowControllerWithPlugins(flowFileRepo, contentRepo, provenanceRepo, pluginManager, log)
+		err = fc.Start()
 		if err != nil {
 			t.Fatalf("Failed to start FlowController: %v", err)
 		}

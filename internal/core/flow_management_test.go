@@ -2,9 +2,11 @@ package core
 
 import (
 	"testing"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/shawntherrien/databridge/internal/plugin"
+	_ "github.com/shawntherrien/databridge/plugins" // Import to register built-in processors
 	"github.com/shawntherrien/databridge/pkg/types"
 	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
@@ -20,9 +22,19 @@ func setupTestFC() *FlowController {
 	provenanceRepo := NewInMemoryProvenanceRepository()
 
 	config := plugin.PluginManagerConfig{
-		PluginDir: "",
+		PluginDir:       "",
+		AutoLoad:        false,
+		MonitorInterval: 1 * time.Minute, // Set non-zero interval for resource monitor
 	}
-	pluginManager, _ := plugin.NewPluginManager(config, logger)
+	pluginManager, err := plugin.NewPluginManager(config, logger)
+	if err != nil {
+		panic(err)
+	}
+
+	// Initialize plugin manager to register built-in processors
+	if err := pluginManager.Initialize(); err != nil {
+		panic(err)
+	}
 
 	return NewFlowControllerWithPlugins(
 		flowFileRepo,
