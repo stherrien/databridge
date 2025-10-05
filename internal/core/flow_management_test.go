@@ -151,7 +151,11 @@ func TestDeleteProcessGroup(t *testing.T) {
 func TestDeleteProcessGroupWithProcessors(t *testing.T) {
 	fc := setupTestFC()
 
-	pg, err := fc.CreateProcessGroup("Test Group", nil)
+	// Create parent first (root cannot be deleted)
+	parent, err := fc.CreateProcessGroup("Parent", nil)
+	require.NoError(t, err)
+
+	pg, err := fc.CreateProcessGroup("Test Group", &parent.ID)
 	require.NoError(t, err)
 
 	// Add a processor to the group
@@ -182,7 +186,11 @@ func TestDeleteProcessGroupWithProcessors(t *testing.T) {
 func TestDeleteProcessGroupWithConnections(t *testing.T) {
 	fc := setupTestFC()
 
-	pg, err := fc.CreateProcessGroup("Test Group", nil)
+	// Create parent first (root cannot be deleted)
+	parent, err := fc.CreateProcessGroup("Parent", nil)
+	require.NoError(t, err)
+
+	pg, err := fc.CreateProcessGroup("Test Group", &parent.ID)
 	require.NoError(t, err)
 
 	// Create processors
@@ -336,9 +344,23 @@ func TestExportFlow(t *testing.T) {
 	assert.Len(t, connections, 1)
 
 	conn1 := connections[0]
-	assert.Equal(t, conn.ID.String(), conn1["id"])
-	assert.Equal(t, node1.ID.String(), conn1["sourceId"])
-	assert.Equal(t, node2.ID.String(), conn1["destinationId"])
+	// Convert UUID fields to strings for comparison
+	connID := conn1["id"]
+	if id, ok := connID.(uuid.UUID); ok {
+		connID = id.String()
+	}
+	sourceID := conn1["sourceId"]
+	if id, ok := sourceID.(uuid.UUID); ok {
+		sourceID = id.String()
+	}
+	destID := conn1["destinationId"]
+	if id, ok := destID.(uuid.UUID); ok {
+		destID = id.String()
+	}
+
+	assert.Equal(t, conn.ID.String(), connID)
+	assert.Equal(t, node1.ID.String(), sourceID)
+	assert.Equal(t, node2.ID.String(), destID)
 	assert.Equal(t, "success", conn1["relationship"])
 }
 

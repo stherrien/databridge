@@ -266,7 +266,12 @@ func TestHandleDeleteFlow(t *testing.T) {
 	fc := setupTestFlowController(t)
 	handlers := NewFlowHandlers(fc)
 
-	flow, err := fc.CreateProcessGroup("To Delete", nil)
+	// Create a parent flow first (root cannot be deleted)
+	parent, err := fc.CreateProcessGroup("Parent", nil)
+	require.NoError(t, err)
+
+	// Create child flow to delete
+	flow, err := fc.CreateProcessGroup("To Delete", &parent.ID)
 	require.NoError(t, err)
 
 	req := httptest.NewRequest(http.MethodDelete, "/api/flows/"+flow.ID.String(), nil)
