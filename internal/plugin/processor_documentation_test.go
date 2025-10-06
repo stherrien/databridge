@@ -2,11 +2,13 @@ package plugin
 
 import (
 	"context"
+	"io"
 	"os"
 	"path/filepath"
 	"testing"
 	"time"
 
+	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
 
 	"github.com/shawntherrien/databridge/pkg/types"
@@ -26,10 +28,10 @@ func NewMockDocProcessor() *MockDocProcessor {
 		Tags:        []string{"test", "mock", "utility"},
 		Properties: []types.PropertySpec{
 			{
-				Name:         "TestProperty",
-				Description:  "A test property",
-				Required:     true,
-				DefaultValue: "default",
+				Name:          "TestProperty",
+				Description:   "A test property",
+				Required:      true,
+				DefaultValue:  "default",
 				AllowedValues: []string{"value1", "value2"},
 			},
 			{
@@ -65,7 +67,9 @@ func (p *MockDocProcessor) OnTrigger(ctx context.Context, session types.ProcessS
 }
 
 func TestNewDocumentationGenerator(t *testing.T) {
-	registry := NewPluginRegistry()
+	logger := logrus.New()
+	logger.SetOutput(io.Discard)
+	registry := NewPluginRegistry("", logger)
 	versionRegistry := NewProcessorVersionRegistry(&types.MockLogger{})
 	gen := NewDocumentationGenerator(registry, versionRegistry)
 
@@ -77,12 +81,15 @@ func TestNewDocumentationGenerator(t *testing.T) {
 }
 
 func TestGenerateDocumentation(t *testing.T) {
-	registry := NewPluginRegistry()
+	logger := logrus.New()
+	logger.SetOutput(io.Discard)
+	registry := NewPluginRegistry("", logger)
 	versionRegistry := NewProcessorVersionRegistry(&types.MockLogger{})
 
 	// Register mock processor
-	registry.Register("MockProcessor", func() (types.Processor, error) {
-		return NewMockDocProcessor(), nil
+	mockInfo := NewProcessorInfo("MockProcessor", "MockProcessor", "1.0.0", "Test", "Mock processor for testing", []string{"test"})
+	registry.RegisterProcessor("MockProcessor", mockInfo, func() types.Processor {
+		return NewMockDocProcessor()
 	})
 
 	gen := NewDocumentationGenerator(registry, versionRegistry)
@@ -107,15 +114,19 @@ func TestGenerateDocumentation(t *testing.T) {
 }
 
 func TestGenerateAllDocumentation(t *testing.T) {
-	registry := NewPluginRegistry()
+	logger := logrus.New()
+	logger.SetOutput(io.Discard)
+	registry := NewPluginRegistry("", logger)
 	versionRegistry := NewProcessorVersionRegistry(&types.MockLogger{})
 
 	// Register multiple processors
-	registry.Register("MockProcessor1", func() (types.Processor, error) {
-		return NewMockDocProcessor(), nil
+	mockInfo1 := NewProcessorInfo("MockProcessor1", "MockProcessor1", "1.0.0", "Test", "Mock processor 1", []string{"test"})
+	registry.RegisterProcessor("MockProcessor1", mockInfo1, func() types.Processor {
+		return NewMockDocProcessor()
 	})
-	registry.Register("MockProcessor2", func() (types.Processor, error) {
-		return NewMockDocProcessor(), nil
+	mockInfo2 := NewProcessorInfo("MockProcessor2", "MockProcessor2", "1.0.0", "Test", "Mock processor 2", []string{"test"})
+	registry.RegisterProcessor("MockProcessor2", mockInfo2, func() types.Processor {
+		return NewMockDocProcessor()
 	})
 
 	gen := NewDocumentationGenerator(registry, versionRegistry)
@@ -128,12 +139,15 @@ func TestGenerateAllDocumentation(t *testing.T) {
 }
 
 func TestDocumentationWithVersionHistory(t *testing.T) {
-	registry := NewPluginRegistry()
+	logger := logrus.New()
+	logger.SetOutput(io.Discard)
+	registry := NewPluginRegistry("", logger)
 	versionRegistry := NewProcessorVersionRegistry(&types.MockLogger{})
 
 	// Register processor
-	registry.Register("MockProcessor", func() (types.Processor, error) {
-		return NewMockDocProcessor(), nil
+	mockInfo := NewProcessorInfo("MockProcessor", "MockProcessor", "1.0.0", "Test", "Mock processor", []string{"test"})
+	registry.RegisterProcessor("MockProcessor", mockInfo, func() types.Processor {
+		return NewMockDocProcessor()
 	})
 
 	// Register version history
@@ -171,11 +185,14 @@ func TestDocumentationWithVersionHistory(t *testing.T) {
 }
 
 func TestExportDocumentation(t *testing.T) {
-	registry := NewPluginRegistry()
+	logger := logrus.New()
+	logger.SetOutput(io.Discard)
+	registry := NewPluginRegistry("", logger)
 	versionRegistry := NewProcessorVersionRegistry(&types.MockLogger{})
 
-	registry.Register("MockProcessor", func() (types.Processor, error) {
-		return NewMockDocProcessor(), nil
+	mockInfo := NewProcessorInfo("MockProcessor", "MockProcessor", "1.0.0", "Test", "Mock processor", []string{"test"})
+	registry.RegisterProcessor("MockProcessor", mockInfo, func() types.Processor {
+		return NewMockDocProcessor()
 	})
 
 	gen := NewDocumentationGenerator(registry, versionRegistry)
@@ -211,11 +228,14 @@ func TestExportDocumentation(t *testing.T) {
 }
 
 func TestExportAllDocumentation(t *testing.T) {
-	registry := NewPluginRegistry()
+	logger := logrus.New()
+	logger.SetOutput(io.Discard)
+	registry := NewPluginRegistry("", logger)
 	versionRegistry := NewProcessorVersionRegistry(&types.MockLogger{})
 
-	registry.Register("MockProcessor", func() (types.Processor, error) {
-		return NewMockDocProcessor(), nil
+	mockInfo := NewProcessorInfo("MockProcessor", "MockProcessor", "1.0.0", "Test", "Mock processor", []string{"test"})
+	registry.RegisterProcessor("MockProcessor", mockInfo, func() types.Processor {
+		return NewMockDocProcessor()
 	})
 
 	gen := NewDocumentationGenerator(registry, versionRegistry)
@@ -362,37 +382,42 @@ func TestJSONFormatter(t *testing.T) {
 	assert.Contains(t, output, "\"version\": \"1.0.0\"")
 }
 
+// CustomFormatter is a test formatter
+type CustomFormatter struct{}
+
+func (f *CustomFormatter) Format(doc *ProcessorDocumentation) (string, error) {
+	return "custom format", nil
+}
+
+func (f *CustomFormatter) FileExtension() string {
+	return "custom"
+}
+
 func TestRegisterFormatter(t *testing.T) {
-	registry := NewPluginRegistry()
+	logger := logrus.New()
+	logger.SetOutput(io.Discard)
+	registry := NewPluginRegistry("", logger)
 	versionRegistry := NewProcessorVersionRegistry(&types.MockLogger{})
 	gen := NewDocumentationGenerator(registry, versionRegistry)
 
-	// Custom formatter
-	type CustomFormatter struct{}
-	func (f *CustomFormatter) Format(doc *ProcessorDocumentation) (string, error) {
-		return "custom format", nil
-	}
-	func (f *CustomFormatter) FileExtension() string {
-		return "custom"
-	}
-
-	gen.RegisterFormatter("custom", &CustomFormatter{})
+	customFormatter := &CustomFormatter{}
+	gen.RegisterFormatter("custom", customFormatter)
 	assert.Contains(t, gen.outputFormats, "custom")
 }
 
 func TestPropertyDocumentation(t *testing.T) {
 	prop := PropertyDocumentation{
-		Name:            "TestProp",
-		DisplayName:     "Test Property",
-		Description:     "A test property",
-		Required:        true,
-		Sensitive:       false,
-		DefaultValue:    "default",
-		AllowedValues:   []string{"val1", "val2"},
-		Pattern:         "^[a-z]+$",
-		ExampleValue:    "example",
-		SupportsEL:      true,
-		Dependencies:    []string{"OtherProp"},
+		Name:          "TestProp",
+		DisplayName:   "Test Property",
+		Description:   "A test property",
+		Required:      true,
+		Sensitive:     false,
+		DefaultValue:  "default",
+		AllowedValues: []string{"val1", "val2"},
+		Pattern:       "^[a-z]+$",
+		ExampleValue:  "example",
+		SupportsEL:    true,
+		Dependencies:  []string{"OtherProp"},
 	}
 
 	assert.Equal(t, "TestProp", prop.Name)
@@ -432,14 +457,18 @@ func TestVersionInfo(t *testing.T) {
 }
 
 func TestGenerateIndex(t *testing.T) {
-	registry := NewPluginRegistry()
+	logger := logrus.New()
+	logger.SetOutput(io.Discard)
+	registry := NewPluginRegistry("", logger)
 	versionRegistry := NewProcessorVersionRegistry(&types.MockLogger{})
 
-	registry.Register("Processor1", func() (types.Processor, error) {
-		return NewMockDocProcessor(), nil
+	mockInfo1 := NewProcessorInfo("Processor1", "Processor1", "1.0.0", "Test", "Processor 1", []string{"test"})
+	registry.RegisterProcessor("Processor1", mockInfo1, func() types.Processor {
+		return NewMockDocProcessor()
 	})
-	registry.Register("Processor2", func() (types.Processor, error) {
-		return NewMockDocProcessor(), nil
+	mockInfo2 := NewProcessorInfo("Processor2", "Processor2", "1.0.0", "Test", "Processor 2", []string{"test"})
+	registry.RegisterProcessor("Processor2", mockInfo2, func() types.Processor {
+		return NewMockDocProcessor()
 	})
 
 	gen := NewDocumentationGenerator(registry, versionRegistry)

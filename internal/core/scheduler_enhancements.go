@@ -11,33 +11,33 @@ import (
 
 // LoadBasedScheduler extends scheduling with system load awareness
 type LoadBasedScheduler struct {
-	mu                    sync.RWMutex
-	enabled               bool
-	cpuThreshold          float64 // 0.0-1.0, percentage
-	memoryThreshold       float64 // 0.0-1.0, percentage
-	goroutineThreshold    int
-	checkInterval         time.Duration
-	lastCheck             time.Time
-	currentLoad           SystemLoad
-	loadHistory           []SystemLoad
-	maxHistorySize        int
+	mu                 sync.RWMutex
+	enabled            bool
+	cpuThreshold       float64 // 0.0-1.0, percentage
+	memoryThreshold    float64 // 0.0-1.0, percentage
+	goroutineThreshold int
+	checkInterval      time.Duration
+	lastCheck          time.Time
+	currentLoad        SystemLoad
+	loadHistory        []SystemLoad
+	maxHistorySize     int
 }
 
 // SystemLoad represents current system resource utilization
 type SystemLoad struct {
-	CPUPercent        float64
-	MemoryPercent     float64
-	GoroutineCount    int
-	ActiveWorkers     int
-	QueueDepth        int
-	Timestamp         time.Time
+	CPUPercent     float64
+	MemoryPercent  float64
+	GoroutineCount int
+	ActiveWorkers  int
+	QueueDepth     int
+	Timestamp      time.Time
 }
 
 // PriorityScheduler adds priority-based task scheduling
 type PriorityScheduler struct {
-	mu              sync.RWMutex
-	priorityQueues  map[ProcessorPriority]*PriorityQueue
-	enabled         bool
+	mu             sync.RWMutex
+	priorityQueues map[ProcessorPriority]*PriorityQueue
+	enabled        bool
 }
 
 // ProcessorPriority defines execution priority levels
@@ -68,21 +68,21 @@ type PriorityTask struct {
 
 // ConditionalScheduler enables rule-based conditional execution
 type ConditionalScheduler struct {
-	mu         sync.RWMutex
-	rules      map[uuid.UUID]*ExecutionRule
-	evaluator  *RuleEvaluator
-	enabled    bool
+	mu        sync.RWMutex
+	rules     map[uuid.UUID]*ExecutionRule
+	evaluator *RuleEvaluator
+	enabled   bool
 }
 
 // ExecutionRule defines conditions for processor execution
 type ExecutionRule struct {
-	ID            uuid.UUID
-	ProcessorID   uuid.UUID
-	Name          string
-	Conditions    []Condition
-	Action        RuleAction
-	Enabled       bool
-	EvaluateMode  EvaluateMode // ALL, ANY, NONE
+	ID           uuid.UUID
+	ProcessorID  uuid.UUID
+	Name         string
+	Conditions   []Condition
+	Action       RuleAction
+	Enabled      bool
+	EvaluateMode EvaluateMode // ALL, ANY, NONE
 }
 
 // Condition represents a single rule condition
@@ -97,14 +97,14 @@ type Condition struct {
 type ConditionType string
 
 const (
-	ConditionQueueDepth        ConditionType = "QUEUE_DEPTH"
-	ConditionFlowFileCount     ConditionType = "FLOWFILE_COUNT"
-	ConditionAttribute         ConditionType = "ATTRIBUTE"
-	ConditionTimeOfDay         ConditionType = "TIME_OF_DAY"
-	ConditionDayOfWeek         ConditionType = "DAY_OF_WEEK"
-	ConditionSystemLoad        ConditionType = "SYSTEM_LOAD"
-	ConditionUpstreamState     ConditionType = "UPSTREAM_STATE"
-	ConditionDownstreamState   ConditionType = "DOWNSTREAM_STATE"
+	ConditionQueueDepth      ConditionType = "QUEUE_DEPTH"
+	ConditionFlowFileCount   ConditionType = "FLOWFILE_COUNT"
+	ConditionAttribute       ConditionType = "ATTRIBUTE"
+	ConditionTimeOfDay       ConditionType = "TIME_OF_DAY"
+	ConditionDayOfWeek       ConditionType = "DAY_OF_WEEK"
+	ConditionSystemLoad      ConditionType = "SYSTEM_LOAD"
+	ConditionUpstreamState   ConditionType = "UPSTREAM_STATE"
+	ConditionDownstreamState ConditionType = "DOWNSTREAM_STATE"
 )
 
 // Operator defines comparison operators
@@ -125,10 +125,10 @@ const (
 type RuleAction string
 
 const (
-	ActionExecute         RuleAction = "EXECUTE"
-	ActionSkip            RuleAction = "SKIP"
-	ActionDelay           RuleAction = "DELAY"
-	ActionChangePriority  RuleAction = "CHANGE_PRIORITY"
+	ActionExecute        RuleAction = "EXECUTE"
+	ActionSkip           RuleAction = "SKIP"
+	ActionDelay          RuleAction = "DELAY"
+	ActionChangePriority RuleAction = "CHANGE_PRIORITY"
 )
 
 // EvaluateMode defines how multiple conditions are evaluated

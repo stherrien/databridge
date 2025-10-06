@@ -24,22 +24,22 @@ type TokenClaims struct {
 
 // JWTManager handles JWT operations
 type JWTManager struct {
-	secretKey        []byte
-	issuer           string
-	tokenDuration    time.Duration
-	refreshDuration  time.Duration
-	revokedTokens    map[string]time.Time // token ID -> revocation time
-	mu               sync.RWMutex
+	secretKey       []byte
+	issuer          string
+	tokenDuration   time.Duration
+	refreshDuration time.Duration
+	revokedTokens   map[string]time.Time // token ID -> revocation time
+	mu              sync.RWMutex
 }
 
 // NewJWTManager creates a new JWT manager
 func NewJWTManager(secretKey string, issuer string, tokenDuration, refreshDuration time.Duration) *JWTManager {
 	return &JWTManager{
-		secretKey:        []byte(secretKey),
-		issuer:           issuer,
-		tokenDuration:    tokenDuration,
-		refreshDuration:  refreshDuration,
-		revokedTokens:    make(map[string]time.Time),
+		secretKey:       []byte(secretKey),
+		issuer:          issuer,
+		tokenDuration:   tokenDuration,
+		refreshDuration: refreshDuration,
+		revokedTokens:   make(map[string]time.Time),
 	}
 }
 

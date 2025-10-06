@@ -12,27 +12,28 @@ import (
 
 // ProcessSessionImpl implements the ProcessSession interface
 type ProcessSessionImpl struct {
-	id               uuid.UUID
-	flowFileRepo     FlowFileRepository
-	contentRepo      ContentRepository
-	provenanceRepo   ProvenanceRepository
-	logger           types.Logger
-	ctx              context.Context
+	id             uuid.UUID
+	flowFileRepo   FlowFileRepository
+	contentRepo    ContentRepository
+	provenanceRepo ProvenanceRepository
+	logger         types.Logger
+	ctx            context.Context
+	processorNode  *ProcessorNode // Reference to processor for auto-termination checks
 
 	// Queue integration
-	inputQueues      []*FlowFileQueue
+	inputQueues       []*FlowFileQueue
 	outputConnections []*Connection
 	currentQueueIndex int
 
 	// Transaction state
-	mu               sync.RWMutex
-	flowFiles        map[uuid.UUID]*types.FlowFile
-	transfers        map[uuid.UUID]types.Relationship
-	removals         []uuid.UUID
-	creations        []*types.FlowFile
-	modifications    map[uuid.UUID]*types.FlowFile
-	committed        bool
-	rolledBack       bool
+	mu            sync.RWMutex
+	flowFiles     map[uuid.UUID]*types.FlowFile
+	transfers     map[uuid.UUID]types.Relationship
+	removals      []uuid.UUID
+	creations     []*types.FlowFile
+	modifications map[uuid.UUID]*types.FlowFile
+	committed     bool
+	rolledBack    bool
 }
 
 // NewProcessSession creates a new process session
@@ -42,6 +43,7 @@ func NewProcessSession(
 	provenanceRepo ProvenanceRepository,
 	logger types.Logger,
 	ctx context.Context,
+	processorNode *ProcessorNode,
 	inputQueues []*FlowFileQueue,
 	outputConnections []*Connection,
 ) *ProcessSessionImpl {
@@ -52,6 +54,7 @@ func NewProcessSession(
 		provenanceRepo:    provenanceRepo,
 		logger:            logger,
 		ctx:               ctx,
+		processorNode:     processorNode,
 		inputQueues:       inputQueues,
 		outputConnections: outputConnections,
 		flowFiles:         make(map[uuid.UUID]*types.FlowFile),
@@ -153,7 +156,7 @@ func (s *ProcessSessionImpl) Clone(original *types.FlowFile) *types.FlowFile {
 
 	// Increment reference count on content claim
 	if clone.ContentClaim != nil {
-		s.contentRepo.IncrementRef(clone.ContentClaim)
+		_ = s.contentRepo.IncrementRef(clone.ContentClaim)
 	}
 
 	s.logger.Debug("Cloned FlowFile", "cloneId", clone.ID, "originalId", original.ID)
@@ -258,7 +261,7 @@ func (s *ProcessSessionImpl) Write(flowFile *types.FlowFile, content []byte) err
 
 	// Decrement reference count on old content claim
 	if flowFile.ContentClaim != nil {
-		s.contentRepo.DecrementRef(flowFile.ContentClaim)
+		_ = s.contentRepo.DecrementRef(flowFile.ContentClaim)
 	}
 
 	// Update FlowFile with new content claim
@@ -354,25 +357,70 @@ func (s *ProcessSessionImpl) Commit() error {
 			}
 		}
 
+		// Handle auto-termination when no connection exists
 		if !enqueued {
-			s.logger.Debug("No matching output connection for relationship",
-				"flowFileId", id,
-				"relationship", relationship.Name)
-		}
+			isAutoTerminated := false
 
-		// Create provenance event
-		event := &ProvenanceEvent{
-			ID:            uuid.New(),
-			EventType:     "ROUTE",
-			FlowFileID:    id,
-			ProcessorID:   uuid.New(), // TODO: Get actual processor ID
-			ProcessorName: "Unknown",  // TODO: Get actual processor name
-			EventTime:     time.Now(),
-			Details:       fmt.Sprintf("Routed to %s", relationship.Name),
-		}
+			// Check if the relationship is configured for auto-termination
+			if s.processorNode != nil {
+				s.processorNode.mu.RLock()
+				if autoTerminate, exists := s.processorNode.Config.AutoTerminate[relationship.Name]; exists && autoTerminate {
+					isAutoTerminated = true
+				}
+				s.processorNode.mu.RUnlock()
+			}
 
-		if err := s.provenanceRepo.Store(event); err != nil {
-			s.logger.Warn("Failed to store provenance event", "error", err)
+			if isAutoTerminated {
+				// Auto-terminate: remove the FlowFile
+				s.logger.Debug("Auto-terminating FlowFile for relationship",
+					"flowFileId", id,
+					"relationship", relationship.Name)
+
+				// Add to removals for cleanup
+				s.removals = append(s.removals, id)
+
+				// Create provenance event for auto-termination
+				event := &ProvenanceEvent{
+					ID:            uuid.New(),
+					EventType:     "DROP",
+					FlowFileID:    id,
+					ProcessorID:   s.getProcessorID(),
+					ProcessorName: s.getProcessorName(),
+					EventTime:     time.Now(),
+					Details:       fmt.Sprintf("Auto-terminated for relationship %s", relationship.Name),
+				}
+				if err := s.provenanceRepo.Store(event); err != nil {
+					s.logger.Warn("Failed to store provenance event", "error", err)
+				}
+			} else {
+				// No connection and not auto-terminated: this is an error
+				s.logger.Error("FlowFile transferred to relationship with no connection and no auto-termination",
+					"flowFileId", id,
+					"relationship", relationship.Name,
+					"processor", s.getProcessorName())
+
+				// Rollback the session to prevent data loss
+				s.mu.Unlock()
+				s.Rollback()
+				s.mu.Lock()
+
+				return fmt.Errorf("FlowFile transferred to unconnected relationship '%s' without auto-termination enabled", relationship.Name)
+			}
+		} else {
+			// Create provenance event for successful routing
+			event := &ProvenanceEvent{
+				ID:            uuid.New(),
+				EventType:     "ROUTE",
+				FlowFileID:    id,
+				ProcessorID:   s.getProcessorID(),
+				ProcessorName: s.getProcessorName(),
+				EventTime:     time.Now(),
+				Details:       fmt.Sprintf("Routed to %s", relationship.Name),
+			}
+
+			if err := s.provenanceRepo.Store(event); err != nil {
+				s.logger.Warn("Failed to store provenance event", "error", err)
+			}
 		}
 	}
 
@@ -393,7 +441,7 @@ func (s *ProcessSessionImpl) Rollback() {
 	// Decrement reference counts on any content claims that were incremented
 	for _, flowFile := range s.creations {
 		if flowFile.ContentClaim != nil {
-			s.contentRepo.DecrementRef(flowFile.ContentClaim)
+			_ = s.contentRepo.DecrementRef(flowFile.ContentClaim)
 		}
 	}
 
@@ -425,4 +473,20 @@ func (s *ProcessSessionImpl) IsRolledBack() bool {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 	return s.rolledBack
+}
+
+// getProcessorID returns the processor ID if available
+func (s *ProcessSessionImpl) getProcessorID() uuid.UUID {
+	if s.processorNode != nil {
+		return s.processorNode.ID
+	}
+	return uuid.Nil
+}
+
+// getProcessorName returns the processor name if available
+func (s *ProcessSessionImpl) getProcessorName() string {
+	if s.processorNode != nil {
+		return s.processorNode.Name
+	}
+	return "Unknown"
 }

@@ -16,29 +16,29 @@ import (
 
 // SessionCheckpoint represents a saved session state
 type SessionCheckpoint struct {
-	SessionID       uuid.UUID                 `json:"sessionId"`
-	TenantID        string                    `json:"tenantId,omitempty"`
-	ProcessorID     uuid.UUID                 `json:"processorId"`
-	CheckpointTime  time.Time                 `json:"checkpointTime"`
-	FlowFiles       map[uuid.UUID]*types.FlowFile `json:"flowFiles"`
-	Transfers       map[uuid.UUID]types.Relationship `json:"transfers"`
-	Removals        []uuid.UUID               `json:"removals"`
-	Creations       []*types.FlowFile         `json:"creations"`
-	Modifications   map[uuid.UUID]*types.FlowFile `json:"modifications"`
-	Committed       bool                      `json:"committed"`
-	RolledBack      bool                      `json:"rolledBack"`
+	SessionID      uuid.UUID                        `json:"sessionId"`
+	TenantID       string                           `json:"tenantId,omitempty"`
+	ProcessorID    uuid.UUID                        `json:"processorId"`
+	CheckpointTime time.Time                        `json:"checkpointTime"`
+	FlowFiles      map[uuid.UUID]*types.FlowFile    `json:"flowFiles"`
+	Transfers      map[uuid.UUID]types.Relationship `json:"transfers"`
+	Removals       []uuid.UUID                      `json:"removals"`
+	Creations      []*types.FlowFile                `json:"creations"`
+	Modifications  map[uuid.UUID]*types.FlowFile    `json:"modifications"`
+	Committed      bool                             `json:"committed"`
+	RolledBack     bool                             `json:"rolledBack"`
 }
 
 // SessionRecoveryManager handles crash recovery and session restoration
 type SessionRecoveryManager struct {
-	mu                sync.RWMutex
-	checkpointDir     string
-	checkpoints       map[uuid.UUID]*SessionCheckpoint
-	flowFileRepo      FlowFileRepository
-	contentRepo       ContentRepository
-	provenanceRepo    ProvenanceRepository
-	logger            types.Logger
-	recoveryEnabled   bool
+	mu                 sync.RWMutex
+	checkpointDir      string
+	checkpoints        map[uuid.UUID]*SessionCheckpoint
+	flowFileRepo       FlowFileRepository
+	contentRepo        ContentRepository
+	provenanceRepo     ProvenanceRepository
+	logger             types.Logger
+	recoveryEnabled    bool
 	checkpointInterval time.Duration
 }
 
@@ -59,7 +59,7 @@ func NewSessionRecoveryManager(
 	logger types.Logger,
 ) (*SessionRecoveryManager, error) {
 	// Create checkpoint directory
-	if err := os.MkdirAll(config.CheckpointDir, 0755); err != nil {
+	if err := os.MkdirAll(config.CheckpointDir, 0750); err != nil {
 		return nil, fmt.Errorf("failed to create checkpoint directory: %w", err)
 	}
 
@@ -329,11 +329,11 @@ func (m *SessionRecoveryManager) GetRecoveryStats() RecoveryStats {
 
 // RecoveryStats provides recovery statistics
 type RecoveryStats struct {
-	TotalCheckpoints    int
-	PendingSessions     int
-	CommittedSessions   int
-	RolledBackSessions  int
-	RecoveryEnabled     bool
+	TotalCheckpoints   int
+	PendingSessions    int
+	CommittedSessions  int
+	RolledBackSessions int
+	RecoveryEnabled    bool
 }
 
 // EnableRecovery enables session recovery
@@ -370,12 +370,12 @@ func (m *SessionRecoveryManager) saveCheckpoint(checkpoint *SessionCheckpoint) e
 
 	// Write atomically
 	tmpPath := checkpointPath + ".tmp"
-	if err := os.WriteFile(tmpPath, data, 0644); err != nil {
+	if err := os.WriteFile(tmpPath, data, 0600); err != nil {
 		return fmt.Errorf("failed to write checkpoint: %w", err)
 	}
 
 	if err := os.Rename(tmpPath, checkpointPath); err != nil {
-		os.Remove(tmpPath)
+		_ = os.Remove(tmpPath) // Best effort cleanup
 		return fmt.Errorf("failed to rename checkpoint: %w", err)
 	}
 
@@ -396,6 +396,7 @@ func (m *SessionRecoveryManager) loadCheckpoints() error {
 		}
 
 		checkpointPath := filepath.Join(m.checkpointDir, entry.Name())
+		// #nosec G304 - checkpointPath is constructed from checkpoint directory and directory entry
 		data, err := os.ReadFile(checkpointPath)
 		if err != nil {
 			m.logger.Warn("Failed to read checkpoint file",
@@ -448,7 +449,7 @@ func (s *RecoverableSession) Commit() error {
 	}
 
 	// Delete checkpoint on successful commit
-	s.recoveryMgr.DeleteCheckpoint(s.id)
+	_ = s.recoveryMgr.DeleteCheckpoint(s.id) // Best effort deletion
 
 	return nil
 }
@@ -459,7 +460,7 @@ func (s *RecoverableSession) Rollback() {
 	s.ProcessSessionImpl.Rollback()
 
 	// Delete checkpoint on successful rollback
-	s.recoveryMgr.DeleteCheckpoint(s.id)
+	_ = s.recoveryMgr.DeleteCheckpoint(s.id) // Best effort deletion
 }
 
 // AutoCheckpoint creates a goroutine that periodically checkpoints the session

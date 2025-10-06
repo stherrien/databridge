@@ -1,5 +1,13 @@
 # DataBridge
 
+[![CI](https://github.com/shawntherrien/databridge/actions/workflows/ci.yml/badge.svg)](https://github.com/shawntherrien/databridge/actions/workflows/ci.yml)
+[![CodeQL](https://github.com/shawntherrien/databridge/actions/workflows/codeql.yml/badge.svg)](https://github.com/shawntherrien/databridge/actions/workflows/codeql.yml)
+[![Go Report Card](https://goreportcard.com/badge/github.com/shawntherrien/databridge)](https://goreportcard.com/report/github.com/shawntherrien/databridge)
+[![codecov](https://codecov.io/gh/shawntherrien/databridge/branch/main/graph/badge.svg)](https://codecov.io/gh/shawntherrien/databridge)
+[![License](https://img.shields.io/github/license/shawntherrien/databridge)](LICENSE)
+[![Go Version](https://img.shields.io/github/go-mod/go-version/shawntherrien/databridge)](go.mod)
+[![Release](https://img.shields.io/github/v/release/shawntherrien/databridge)](https://github.com/shawntherrien/databridge/releases)
+
 A powerful flow-based data processing platform inspired by Apache NiFi, built with Go and Next.js.
 
 ## Overview

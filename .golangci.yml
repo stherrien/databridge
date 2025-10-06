@@ -1,0 +1,59 @@
+# golangci-lint configuration for DataBridge
+
+run:
+  timeout: 5m
+  tests: true
+
+linters:
+  enable:
+    - errcheck      # Check for unchecked errors
+    - gosimple      # Simplify code
+    - govet         # Vet examines Go source code
+    - ineffassign   # Detect ineffectual assignments
+    - staticcheck   # Advanced static analysis
+    - unused        # Check for unused code
+    - gofmt         # Check code formatting
+    - goimports     # Check import ordering
+    - misspell      # Check for misspelled words
+    - goconst       # Find repeated strings that could be constants
+    - gocyclo       # Check cyclomatic complexity
+    - gosec         # Security checks
+    - unconvert     # Remove unnecessary type conversions
+    - unparam       # Detect unused function parameters
+
+linters-settings:
+  gocyclo:
+    min-complexity: 15
+  
+  gosec:
+    excludes:
+      - G104  # Allow unhandled errors in some cases
+      - G204  # Allow subprocess calls with variable arguments
+  
+  govet:
+    enable:
+      - shadow
+  
+  misspell:
+    locale: US
+
+output:
+  formats:
+    - format: colored-line-number
+
+issues:
+  exclude-use-default: false
+  max-issues-per-linter: 0
+  max-same-issues: 0
+  exclude-dirs:
+    - frontend
+    - data
+    - data-dev
+    - build
+  exclude-rules:
+    # Exclude some linters from running on tests files
+    - path: _test\.go
+      linters:
+        - gocyclo
+        - errcheck
+        - gosec

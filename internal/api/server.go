@@ -14,12 +14,12 @@ import (
 
 // Server represents the REST API server
 type Server struct {
-	httpServer  *http.Server
-	router      *mux.Router
-	logger      *logrus.Logger
-	collector   *MetricsCollector
-	sseHandler  *SSEHandler
-	port        int
+	httpServer *http.Server
+	router     *mux.Router
+	logger     *logrus.Logger
+	collector  *MetricsCollector
+	sseHandler *SSEHandler
+	port       int
 }
 
 // Config represents server configuration
@@ -60,6 +60,9 @@ func NewServer(flowController *core.FlowController, scheduler *core.ProcessSched
 
 	// Create settings handlers
 	settingsHandlers := NewSettingsHandlers(logger)
+
+	// Create filesystem handlers
+	filesystemHandlers := NewFilesystemHandlers()
 
 	// Create router
 	router := mux.NewRouter()
@@ -107,6 +110,11 @@ func NewServer(flowController *core.FlowController, scheduler *core.ProcessSched
 	api.HandleFunc("/flows/{id}/connections", flowHandlers.HandleCreateConnection).Methods("POST", "OPTIONS")
 	api.HandleFunc("/flows/{flowId}/connections/{connectionId}", flowHandlers.HandleDeleteConnection).Methods("DELETE", "OPTIONS")
 
+	// Flow import/export and validation endpoints
+	api.HandleFunc("/flows/{id}/export", flowHandlers.HandleExportFlow).Methods("GET", "OPTIONS")
+	api.HandleFunc("/flows/import", flowHandlers.HandleImportFlow).Methods("POST", "OPTIONS")
+	api.HandleFunc("/flows/{id}/validate", flowHandlers.HandleValidateFlow).Methods("POST", "OPTIONS")
+
 	// Template endpoints
 	api.HandleFunc("/templates", templateHandlers.HandleListTemplates).Methods("GET", "OPTIONS")
 	api.HandleFunc("/templates", templateHandlers.HandleCreateTemplate).Methods("POST", "OPTIONS")
@@ -141,10 +149,21 @@ func NewServer(flowController *core.FlowController, scheduler *core.ProcessSched
 	api.HandleFunc("/settings/security", settingsHandlers.HandleGetSecuritySettings).Methods("GET", "OPTIONS")
 	api.HandleFunc("/settings/security", settingsHandlers.HandleUpdateSecuritySettings).Methods("PUT", "OPTIONS")
 
+	// Filesystem endpoints
+	api.HandleFunc("/filesystem/browse", filesystemHandlers.HandleBrowseFilesystem).Methods("GET", "OPTIONS")
+	api.HandleFunc("/filesystem/validate", filesystemHandlers.HandleValidatePath).Methods("POST", "OPTIONS")
+
+	// FlowFile inspection and queue management endpoints
+	flowFileHandlers := NewFlowFileHandlers(flowController)
+	api.HandleFunc("/flowfiles/{id}", flowFileHandlers.HandleGetFlowFile).Methods("GET", "OPTIONS")
+	api.HandleFunc("/flowfiles/{id}/content", flowFileHandlers.HandleGetFlowFileContent).Methods("GET", "OPTIONS")
+	api.HandleFunc("/connections/{id}/queue", flowFileHandlers.HandleGetConnectionQueue).Methods("GET", "OPTIONS")
+	api.HandleFunc("/connections/{id}/queue", flowFileHandlers.HandleClearConnectionQueue).Methods("DELETE", "OPTIONS")
+
 	// Health check endpoint (simple version without /api prefix)
 	router.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte("OK"))
+		_, _ = w.Write([]byte("OK"))
 	}).Methods("GET")
 
 	server := &Server{

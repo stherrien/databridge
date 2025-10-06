@@ -390,10 +390,10 @@ func TestInvokeHTTPProcessorBasicAuth(t *testing.T) {
 	// Initialize processor
 	initCtx := &mockProcessorContext{
 		properties: map[string]string{
-			"HTTP Method":          "GET",
-			"Remote URL":           server.URL,
-			"Basic Auth Username":  "testuser",
-			"Basic Auth Password":  "testpass",
+			"HTTP Method":         "GET",
+			"Remote URL":          server.URL,
+			"Basic Auth Username": "testuser",
+			"Basic Auth Password": "testpass",
 		},
 	}
 	if err := processor.Initialize(initCtx); err != nil {
@@ -407,10 +407,10 @@ func TestInvokeHTTPProcessorBasicAuth(t *testing.T) {
 
 	processorCtx := &mockProcessorContext{
 		properties: map[string]string{
-			"HTTP Method":          "GET",
-			"Remote URL":           server.URL,
-			"Basic Auth Username":  "testuser",
-			"Basic Auth Password":  "testpass",
+			"HTTP Method":         "GET",
+			"Remote URL":          server.URL,
+			"Basic Auth Username": "testuser",
+			"Basic Auth Password": "testpass",
 		},
 	}
 

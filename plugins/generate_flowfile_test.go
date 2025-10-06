@@ -19,7 +19,7 @@ func (ctx *mockProcessorContext) GetProperty(name string) (string, bool) {
 }
 
 func (ctx *mockProcessorContext) GetPropertyValue(name string) string {
-	value, _ := ctx.properties[name]
+	value := ctx.properties[name]
 	return value
 }
 
@@ -93,10 +93,10 @@ func (s *mockProcessSession) Read(flowFile *types.FlowFile) ([]byte, error) {
 	}
 	return nil, nil
 }
-func (s *mockProcessSession) Commit() error                                            { return nil }
-func (s *mockProcessSession) Rollback()                                                {}
-func (s *mockProcessSession) GetLogger() types.Logger                                  { return &mockLogger{} }
-func (s *mockProcessSession) RemoveAttribute(flowFile *types.FlowFile, key string)    {}
+func (s *mockProcessSession) Commit() error                                                      { return nil }
+func (s *mockProcessSession) Rollback()                                                          {}
+func (s *mockProcessSession) GetLogger() types.Logger                                            { return &mockLogger{} }
+func (s *mockProcessSession) RemoveAttribute(flowFile *types.FlowFile, key string)               {}
 func (s *mockProcessSession) PutAllAttributes(flowFile *types.FlowFile, attrs map[string]string) {}
 
 func (s *mockProcessSession) Create() *types.FlowFile {
@@ -386,11 +386,11 @@ func TestGenerateFlowFileProcessorContentGeneration(t *testing.T) {
 
 	// Test different content scenarios
 	testCases := []struct {
-		baseContent  string
-		customText   string
-		unique       bool
-		targetSize   int64
-		description  string
+		baseContent string
+		customText  string
+		unique      bool
+		targetSize  int64
+		description string
 	}{
 		{"Hello", "", false, 50, "Simple content repetition"},
 		{"Test", "Custom", false, 100, "With custom text"},

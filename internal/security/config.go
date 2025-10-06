@@ -11,57 +11,57 @@ var (
 
 // SecurityConfig holds security settings
 type SecurityConfig struct {
-	Enabled              bool
-	AuthProviders        []string
-	JWTSecret            string
-	JWTIssuer            string
-	TokenDuration        time.Duration
-	RefreshDuration      time.Duration
-	RequireHTTPS         bool
-	SessionTimeout       time.Duration
-	MaxLoginAttempts     int
-	LockoutDuration      time.Duration
-	PasswordPolicy       PasswordPolicy
-	EncryptionKey        string
-	AuditEnabled         bool
-	RateLimitEnabled     bool
-	RateLimitRPS         float64
-	RateLimitBurst       int
-	APIKeysEnabled       bool
+	Enabled               bool
+	AuthProviders         []string
+	JWTSecret             string
+	JWTIssuer             string
+	TokenDuration         time.Duration
+	RefreshDuration       time.Duration
+	RequireHTTPS          bool
+	SessionTimeout        time.Duration
+	MaxLoginAttempts      int
+	LockoutDuration       time.Duration
+	PasswordPolicy        PasswordPolicy
+	EncryptionKey         string
+	AuditEnabled          bool
+	RateLimitEnabled      bool
+	RateLimitRPS          float64
+	RateLimitBurst        int
+	APIKeysEnabled        bool
 	APIKeyCleanupInterval time.Duration
 }
 
 // PasswordPolicy defines password rules
 type PasswordPolicy struct {
-	MinLength       int
-	RequireUpper    bool
-	RequireLower    bool
-	RequireNumber   bool
-	RequireSpecial  bool
-	MaxAge          time.Duration  // Password expiration
-	PreventReuse    int            // Number of previous passwords to prevent reuse
+	MinLength      int
+	RequireUpper   bool
+	RequireLower   bool
+	RequireNumber  bool
+	RequireSpecial bool
+	MaxAge         time.Duration // Password expiration
+	PreventReuse   int           // Number of previous passwords to prevent reuse
 }
 
 // DefaultSecurityConfig returns default security configuration
 func DefaultSecurityConfig() SecurityConfig {
 	return SecurityConfig{
-		Enabled:              false, // Disabled by default for easier development
-		AuthProviders:        []string{"jwt", "apikey"},
-		JWTSecret:            "", // Must be set by user
-		JWTIssuer:            "databridge",
-		TokenDuration:        24 * time.Hour,
-		RefreshDuration:      7 * 24 * time.Hour,
-		RequireHTTPS:         false, // Should be true in production
-		SessionTimeout:       30 * time.Minute,
-		MaxLoginAttempts:     5,
-		LockoutDuration:      15 * time.Minute,
-		PasswordPolicy:       DefaultPasswordPolicy(),
-		EncryptionKey:        "", // Must be set by user
-		AuditEnabled:         true,
-		RateLimitEnabled:     true,
-		RateLimitRPS:         10,
-		RateLimitBurst:       20,
-		APIKeysEnabled:       true,
+		Enabled:               false, // Disabled by default for easier development
+		AuthProviders:         []string{"jwt", "apikey"},
+		JWTSecret:             "", // Must be set by user
+		JWTIssuer:             "databridge",
+		TokenDuration:         24 * time.Hour,
+		RefreshDuration:       7 * 24 * time.Hour,
+		RequireHTTPS:          false, // Should be true in production
+		SessionTimeout:        30 * time.Minute,
+		MaxLoginAttempts:      5,
+		LockoutDuration:       15 * time.Minute,
+		PasswordPolicy:        DefaultPasswordPolicy(),
+		EncryptionKey:         "", // Must be set by user
+		AuditEnabled:          true,
+		RateLimitEnabled:      true,
+		RateLimitRPS:          10,
+		RateLimitBurst:        20,
+		APIKeysEnabled:        true,
 		APIKeyCleanupInterval: 24 * time.Hour,
 	}
 }

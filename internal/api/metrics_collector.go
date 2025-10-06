@@ -10,24 +10,27 @@ import (
 	"github.com/shawntherrien/databridge/pkg/types"
 )
 
+const (
+	statusDegraded  = "degraded"
+	statusUnhealthy = "unhealthy"
+)
+
 // MetricsCollector collects and aggregates metrics from the system
 type MetricsCollector struct {
-	mu              sync.RWMutex
-	flowController  *core.FlowController
-	scheduler       *core.ProcessScheduler
-	startTime       time.Time
+	mu             sync.RWMutex
+	flowController *core.FlowController
+	scheduler      *core.ProcessScheduler
+	startTime      time.Time
 
 	// Cached metrics
-	lastUpdate      time.Time
-	cacheInterval   time.Duration
-	cachedMetrics   *SystemMetrics
+	lastUpdate    time.Time
+	cacheInterval time.Duration
+	cachedMetrics *SystemMetrics
 
 	// Counters for throughput calculations
-	totalFlowFiles  int64
-	totalBytes      int64
-	lastFlowFiles   int64
-	lastBytes       int64
-	lastCheckTime   time.Time
+	lastFlowFiles int64
+	lastBytes     int64
+	lastCheckTime time.Time
 }
 
 // NewMetricsCollector creates a new MetricsCollector
@@ -94,7 +97,7 @@ func (mc *MetricsCollector) GetHealthStatus() HealthStatus {
 		}
 	} else {
 		components["scheduler"] = ComponentHealth{
-			Status:  "unhealthy",
+			Status:  statusUnhealthy,
 			Message: "ProcessScheduler is not running",
 		}
 	}
@@ -112,7 +115,7 @@ func (mc *MetricsCollector) GetHealthStatus() HealthStatus {
 
 	if invalidCount > 0 {
 		components["processors"] = ComponentHealth{
-			Status:  "degraded",
+			Status:  statusDegraded,
 			Message: "Some processors have invalid configuration",
 		}
 	} else {
@@ -125,11 +128,11 @@ func (mc *MetricsCollector) GetHealthStatus() HealthStatus {
 	// Determine overall status
 	overallStatus := "healthy"
 	for _, comp := range components {
-		if comp.Status == "unhealthy" {
-			overallStatus = "unhealthy"
+		if comp.Status == statusUnhealthy {
+			overallStatus = statusUnhealthy
 			break
-		} else if comp.Status == "degraded" && overallStatus == "healthy" {
-			overallStatus = "degraded"
+		} else if comp.Status == statusDegraded && overallStatus == "healthy" {
+			overallStatus = statusDegraded
 		}
 	}
 
@@ -322,10 +325,10 @@ func (mc *MetricsCollector) getSchedulerStatus() SchedulerStatus {
 	// Access scheduler status through public methods
 	// Note: We'll need to add methods to ProcessScheduler to expose this
 	return SchedulerStatus{
-		Running:        true,  // Assume running if FlowController is running
-		ScheduledTasks: 0,     // Would need scheduler access
-		ActiveWorkers:  0,     // Would need worker pool access
-		MaxWorkers:     10,    // Default from scheduler
+		Running:        true, // Assume running if FlowController is running
+		ScheduledTasks: 0,    // Would need scheduler access
+		ActiveWorkers:  0,    // Would need worker pool access
+		MaxWorkers:     10,   // Default from scheduler
 	}
 }
 

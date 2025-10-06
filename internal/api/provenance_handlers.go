@@ -13,36 +13,36 @@ import (
 
 // ProvenanceEvent represents a provenance event
 type ProvenanceEvent struct {
-	ID              string                 `json:"id"`
-	EventType       string                 `json:"eventType"` // CREATE, RECEIVE, SEND, DROP, MODIFY, etc.
-	FlowFileID      string                 `json:"flowFileId"`
-	ProcessorID     string                 `json:"processorId"`
-	ProcessorName   string                 `json:"processorName"`
-	ProcessorType   string                 `json:"processorType"`
-	Timestamp       time.Time              `json:"timestamp"`
-	Duration        int64                  `json:"duration"` // milliseconds
-	FileSize        int64                  `json:"fileSize"`
-	Attributes      map[string]string      `json:"attributes,omitempty"`
-	ParentIDs       []string               `json:"parentIds,omitempty"`
-	ChildIDs        []string               `json:"childIds,omitempty"`
-	Details         string                 `json:"details,omitempty"`
-	ComponentID     string                 `json:"componentId,omitempty"`
-	ComponentType   string                 `json:"componentType,omitempty"`
-	TransitURI      string                 `json:"transitUri,omitempty"`
-	Relationship    string                 `json:"relationship,omitempty"`
-	AlternateID     string                 `json:"alternateId,omitempty"`
-	ContentClaim    string                 `json:"contentClaim,omitempty"`
-	PreviousFileSize int64                 `json:"previousFileSize,omitempty"`
-	UpdatedAttributes map[string]string    `json:"updatedAttributes,omitempty"`
-	Metadata        map[string]interface{} `json:"metadata,omitempty"`
+	ID                string                 `json:"id"`
+	EventType         string                 `json:"eventType"` // CREATE, RECEIVE, SEND, DROP, MODIFY, etc.
+	FlowFileID        string                 `json:"flowFileId"`
+	ProcessorID       string                 `json:"processorId"`
+	ProcessorName     string                 `json:"processorName"`
+	ProcessorType     string                 `json:"processorType"`
+	Timestamp         time.Time              `json:"timestamp"`
+	Duration          int64                  `json:"duration"` // milliseconds
+	FileSize          int64                  `json:"fileSize"`
+	Attributes        map[string]string      `json:"attributes,omitempty"`
+	ParentIDs         []string               `json:"parentIds,omitempty"`
+	ChildIDs          []string               `json:"childIds,omitempty"`
+	Details           string                 `json:"details,omitempty"`
+	ComponentID       string                 `json:"componentId,omitempty"`
+	ComponentType     string                 `json:"componentType,omitempty"`
+	TransitURI        string                 `json:"transitUri,omitempty"`
+	Relationship      string                 `json:"relationship,omitempty"`
+	AlternateID       string                 `json:"alternateId,omitempty"`
+	ContentClaim      string                 `json:"contentClaim,omitempty"`
+	PreviousFileSize  int64                  `json:"previousFileSize,omitempty"`
+	UpdatedAttributes map[string]string      `json:"updatedAttributes,omitempty"`
+	Metadata          map[string]interface{} `json:"metadata,omitempty"`
 }
 
 // ProvenanceLineage represents the lineage of a FlowFile
 type ProvenanceLineage struct {
-	FlowFileID string             `json:"flowFileId"`
-	Events     []ProvenanceEvent  `json:"events"`
-	Nodes      []LineageNode      `json:"nodes"`
-	Links      []LineageLink      `json:"links"`
+	FlowFileID string            `json:"flowFileId"`
+	Events     []ProvenanceEvent `json:"events"`
+	Nodes      []LineageNode     `json:"nodes"`
+	Links      []LineageLink     `json:"links"`
 }
 
 // LineageNode represents a node in the lineage graph
@@ -62,12 +62,12 @@ type LineageLink struct {
 
 // ProvenanceStatistics represents aggregated provenance statistics
 type ProvenanceStatistics struct {
-	TotalEvents       int64              `json:"totalEvents"`
-	EventsByType      map[string]int64   `json:"eventsByType"`
-	EventsByProcessor map[string]int64   `json:"eventsByProcessor"`
-	TotalBytes        int64              `json:"totalBytes"`
-	AvgDuration       float64            `json:"avgDuration"`
-	TimeRange         TimeRange          `json:"timeRange"`
+	TotalEvents       int64            `json:"totalEvents"`
+	EventsByType      map[string]int64 `json:"eventsByType"`
+	EventsByProcessor map[string]int64 `json:"eventsByProcessor"`
+	TotalBytes        int64            `json:"totalBytes"`
+	AvgDuration       float64          `json:"avgDuration"`
+	TimeRange         TimeRange        `json:"timeRange"`
 }
 
 // TimeRange represents a time range
@@ -117,30 +117,30 @@ func (h *ProvenanceHandlers) initializeExampleEvents() {
 			Details:       "FlowFile created with sample data",
 		},
 		{
-			ID:            uuid.New().String(),
-			EventType:     "ATTRIBUTES_MODIFIED",
-			FlowFileID:    flowFileID,
-			ProcessorID:   uuid.New().String(),
-			ProcessorName: "UpdateAttribute",
-			ProcessorType: "UpdateAttribute",
-			Timestamp:     now.Add(-4 * time.Minute),
-			Duration:      5,
-			FileSize:      1024,
+			ID:                uuid.New().String(),
+			EventType:         "ATTRIBUTES_MODIFIED",
+			FlowFileID:        flowFileID,
+			ProcessorID:       uuid.New().String(),
+			ProcessorName:     "UpdateAttribute",
+			ProcessorType:     "UpdateAttribute",
+			Timestamp:         now.Add(-4 * time.Minute),
+			Duration:          5,
+			FileSize:          1024,
 			UpdatedAttributes: map[string]string{"processed": "true"},
-			Details:       "Attributes updated",
+			Details:           "Attributes updated",
 		},
 		{
-			ID:            uuid.New().String(),
-			EventType:     "CONTENT_MODIFIED",
-			FlowFileID:    flowFileID,
-			ProcessorID:   uuid.New().String(),
-			ProcessorName: "TransformJSON",
-			ProcessorType: "TransformJSON",
-			Timestamp:     now.Add(-3 * time.Minute),
-			Duration:      250,
-			FileSize:      2048,
+			ID:               uuid.New().String(),
+			EventType:        "CONTENT_MODIFIED",
+			FlowFileID:       flowFileID,
+			ProcessorID:      uuid.New().String(),
+			ProcessorName:    "TransformJSON",
+			ProcessorType:    "TransformJSON",
+			Timestamp:        now.Add(-3 * time.Minute),
+			Duration:         250,
+			FileSize:         2048,
 			PreviousFileSize: 1024,
-			Details:       "Content transformed",
+			Details:          "Content transformed",
 		},
 		{
 			ID:            uuid.New().String(),
@@ -210,12 +210,12 @@ func (h *ProvenanceHandlers) HandleGetEvent(w http.ResponseWriter, r *http.Reque
 // HandleSearchEvents handles POST /api/provenance/events/search
 func (h *ProvenanceHandlers) HandleSearchEvents(w http.ResponseWriter, r *http.Request) {
 	var searchReq struct {
-		FlowFileID    string    `json:"flowFileId,omitempty"`
-		ProcessorID   string    `json:"processorId,omitempty"`
-		EventType     string    `json:"eventType,omitempty"`
-		StartTime     time.Time `json:"startTime,omitempty"`
-		EndTime       time.Time `json:"endTime,omitempty"`
-		Limit         int       `json:"limit,omitempty"`
+		FlowFileID  string    `json:"flowFileId,omitempty"`
+		ProcessorID string    `json:"processorId,omitempty"`
+		EventType   string    `json:"eventType,omitempty"`
+		StartTime   time.Time `json:"startTime,omitempty"`
+		EndTime     time.Time `json:"endTime,omitempty"`
+		Limit       int       `json:"limit,omitempty"`
 	}
 
 	if err := json.NewDecoder(r.Body).Decode(&searchReq); err != nil {
@@ -369,12 +369,12 @@ func (h *ProvenanceHandlers) HandleGetProcessorStatistics(w http.ResponseWriter,
 	for _, event := range h.events {
 		if _, exists := processorStats[event.ProcessorID]; !exists {
 			processorStats[event.ProcessorID] = map[string]interface{}{
-				"id":           event.ProcessorID,
-				"name":         event.ProcessorName,
-				"type":         event.ProcessorType,
-				"eventCount":   0,
-				"totalBytes":   int64(0),
-				"avgDuration":  0.0,
+				"id":            event.ProcessorID,
+				"name":          event.ProcessorName,
+				"type":          event.ProcessorType,
+				"eventCount":    0,
+				"totalBytes":    int64(0),
+				"avgDuration":   0.0,
 				"totalDuration": int64(0),
 			}
 		}
@@ -407,10 +407,10 @@ func (h *ProvenanceHandlers) HandleGetEventTypeStatistics(w http.ResponseWriter,
 	for _, event := range h.events {
 		if _, exists := eventTypeStats[event.EventType]; !exists {
 			eventTypeStats[event.EventType] = map[string]interface{}{
-				"eventType":   event.EventType,
-				"count":       0,
-				"totalBytes":  int64(0),
-				"avgDuration": 0.0,
+				"eventType":     event.EventType,
+				"count":         0,
+				"totalBytes":    int64(0),
+				"avgDuration":   0.0,
 				"totalDuration": int64(0),
 			}
 		}

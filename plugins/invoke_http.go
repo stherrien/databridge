@@ -9,8 +9,29 @@ import (
 	"strings"
 	"time"
 
+	"github.com/shawntherrien/databridge/internal/plugin"
 	"github.com/shawntherrien/databridge/pkg/types"
+	"golang.org/x/text/cases"
+	"golang.org/x/text/language"
 )
+
+func init() {
+	info := getInvokeHTTPInfo()
+	plugin.RegisterBuiltInProcessor("InvokeHTTP", func() types.Processor {
+		return NewInvokeHTTPProcessor()
+	}, info)
+}
+
+func getInvokeHTTPInfo() plugin.PluginInfo {
+	return plugin.NewProcessorInfo(
+		"InvokeHTTP",
+		"InvokeHTTP",
+		"1.0.0",
+		"DataBridge",
+		"Makes HTTP requests to interact with REST APIs",
+		[]string{"http", "rest", "api", "client"},
+	)
+}
 
 // InvokeHTTPProcessor makes HTTP requests
 type InvokeHTTPProcessor struct {
@@ -40,10 +61,10 @@ func NewInvokeHTTPProcessor() *InvokeHTTPProcessor {
 		Tags:        []string{"http", "rest", "api", "client"},
 		Properties: []types.PropertySpec{
 			{
-				Name:         "HTTP Method",
-				Description:  "HTTP method to use",
-				Required:     true,
-				DefaultValue: "GET",
+				Name:          "HTTP Method",
+				Description:   "HTTP method to use",
+				Required:      true,
+				DefaultValue:  "GET",
 				AllowedValues: []string{"GET", "POST", "PUT", "DELETE", "PATCH", "HEAD", "OPTIONS"},
 			},
 			{
@@ -65,10 +86,10 @@ func NewInvokeHTTPProcessor() *InvokeHTTPProcessor {
 				DefaultValue: "30s",
 			},
 			{
-				Name:         "Send Message Body",
-				Description:  "Whether to send FlowFile content as request body",
-				Required:     false,
-				DefaultValue: "true",
+				Name:          "Send Message Body",
+				Description:   "Whether to send FlowFile content as request body",
+				Required:      false,
+				DefaultValue:  "true",
 				AllowedValues: []string{"true", "false"},
 			},
 			{
@@ -78,10 +99,10 @@ func NewInvokeHTTPProcessor() *InvokeHTTPProcessor {
 				DefaultValue: "",
 			},
 			{
-				Name:         "Follow Redirects",
-				Description:  "Whether to automatically follow HTTP redirects",
-				Required:     false,
-				DefaultValue: "true",
+				Name:          "Follow Redirects",
+				Description:   "Whether to automatically follow HTTP redirects",
+				Required:      false,
+				DefaultValue:  "true",
 				AllowedValues: []string{"true", "false"},
 			},
 			{
@@ -161,7 +182,7 @@ func (p *InvokeHTTPProcessor) Initialize(ctx types.ProcessorContext) error {
 	p.client = &http.Client{
 		Timeout: readTimeout,
 		Transport: &http.Transport{
-			DialContext: (&http.Transport{}).DialContext,
+			DialContext:           (&http.Transport{}).DialContext,
 			MaxIdleConns:          100,
 			IdleConnTimeout:       90 * time.Second,
 			TLSHandshakeTimeout:   connTimeout,
@@ -195,100 +216,186 @@ func (p *InvokeHTTPProcessor) OnTrigger(ctx context.Context, session types.Proce
 		return nil
 	}
 
-	// Read configuration properties
-	method := processorCtx.GetPropertyValue("HTTP Method")
-	if method == "" {
-		method = "GET"
-	}
-
-	url := processorCtx.GetPropertyValue("Remote URL")
-	sendBody := processorCtx.GetPropertyValue("Send Message Body") != "false"
-	attrsToSend := processorCtx.GetPropertyValue("Attributes to Send")
-	username := processorCtx.GetPropertyValue("Basic Auth Username")
-	password := processorCtx.GetPropertyValue("Basic Auth Password")
-	contentType := processorCtx.GetPropertyValue("Content-Type")
-	if contentType == "" {
-		contentType = "application/octet-stream"
-	}
-
-	// Prepare request body
-	var body io.Reader
-	if sendBody && (method == "POST" || method == "PUT" || method == "PATCH") {
-		content, err := session.Read(flowFile)
-		if err != nil {
-			logger.Error("Failed to read FlowFile content", "error", err)
-			session.Transfer(flowFile, types.RelationshipFailure)
-			return nil
-		}
-		body = strings.NewReader(string(content))
-	}
-
-	// Create request
-	req, err := http.NewRequestWithContext(ctx, method, url, body)
+	// Build and execute HTTP request
+	config := p.buildRequestConfig(processorCtx)
+	req, err := p.buildHTTPRequest(ctx, session, flowFile, config)
 	if err != nil {
-		logger.Error("Failed to create HTTP request", "error", err)
+		logger.Error("Failed to build HTTP request", "error", err)
 		session.Transfer(flowFile, types.RelationshipFailure)
 		return nil
 	}
 
+	// Execute request and handle response
+	p.executeRequestAndHandleResponse(ctx, session, flowFile, req, config, logger)
+
+	return nil
+}
+
+// httpRequestConfig holds configuration for HTTP requests
+type httpRequestConfig struct {
+	method      string
+	url         string
+	sendBody    bool
+	attrsToSend string
+	username    string
+	password    string
+	contentType string
+}
+
+// buildRequestConfig extracts HTTP request configuration from processor context
+func (p *InvokeHTTPProcessor) buildRequestConfig(ctx types.ProcessorContext) *httpRequestConfig {
+	method := ctx.GetPropertyValue("HTTP Method")
+	if method == "" {
+		method = "GET"
+	}
+
+	contentType := ctx.GetPropertyValue("Content-Type")
+	if contentType == "" {
+		contentType = "application/octet-stream"
+	}
+
+	return &httpRequestConfig{
+		method:      method,
+		url:         ctx.GetPropertyValue("Remote URL"),
+		sendBody:    ctx.GetPropertyValue("Send Message Body") != "false",
+		attrsToSend: ctx.GetPropertyValue("Attributes to Send"),
+		username:    ctx.GetPropertyValue("Basic Auth Username"),
+		password:    ctx.GetPropertyValue("Basic Auth Password"),
+		contentType: contentType,
+	}
+}
+
+// buildHTTPRequest builds an HTTP request from FlowFile and config
+func (p *InvokeHTTPProcessor) buildHTTPRequest(ctx context.Context, session types.ProcessSession, flowFile *types.FlowFile, config *httpRequestConfig) (*http.Request, error) {
+	// Prepare request body
+	body, err := p.prepareRequestBody(session, flowFile, config)
+	if err != nil {
+		return nil, err
+	}
+
+	// Create request
+	req, err := http.NewRequestWithContext(ctx, config.method, config.url, body)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create HTTP request: %w", err)
+	}
+
+	// Configure request headers
+	p.configureRequestHeaders(req, flowFile, config)
+
+	return req, nil
+}
+
+// prepareRequestBody prepares the request body if needed
+func (p *InvokeHTTPProcessor) prepareRequestBody(session types.ProcessSession, flowFile *types.FlowFile, config *httpRequestConfig) (io.Reader, error) {
+	if !config.sendBody || (config.method != "POST" && config.method != "PUT" && config.method != "PATCH") {
+		return nil, nil
+	}
+
+	content, err := session.Read(flowFile)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read FlowFile content: %w", err)
+	}
+
+	return strings.NewReader(string(content)), nil
+}
+
+// configureRequestHeaders configures HTTP request headers
+func (p *InvokeHTTPProcessor) configureRequestHeaders(req *http.Request, flowFile *types.FlowFile, config *httpRequestConfig) {
 	// Set Content-Type header if sending body
-	if sendBody && body != nil {
-		req.Header.Set("Content-Type", contentType)
+	if config.sendBody && req.Body != nil {
+		req.Header.Set("Content-Type", config.contentType)
 	}
 
 	// Add basic auth if configured
-	if username != "" {
-		req.SetBasicAuth(username, password)
+	if config.username != "" {
+		req.SetBasicAuth(config.username, config.password)
 	}
 
 	// Add attributes as headers
-	if attrsToSend != "" {
-		attrNames := strings.Split(attrsToSend, ",")
-		for _, attrName := range attrNames {
-			attrName = strings.TrimSpace(attrName)
-			if value, exists := flowFile.GetAttribute(attrName); exists {
-				// Convert attribute name to header name (e.g., "my-attr" -> "X-My-Attr")
-				headerName := "X-" + strings.ReplaceAll(strings.Title(strings.ReplaceAll(attrName, "-", " ")), " ", "-")
-				req.Header.Set(headerName, value)
-			}
+	if config.attrsToSend != "" {
+		p.addAttributesAsHeaders(req, flowFile, config.attrsToSend)
+	}
+}
+
+// addAttributesAsHeaders adds FlowFile attributes as HTTP headers
+func (p *InvokeHTTPProcessor) addAttributesAsHeaders(req *http.Request, flowFile *types.FlowFile, attrsToSend string) {
+	attrNames := strings.Split(attrsToSend, ",")
+	caser := cases.Title(language.English)
+
+	for _, attrName := range attrNames {
+		attrName = strings.TrimSpace(attrName)
+		if value, exists := flowFile.GetAttribute(attrName); exists {
+			// Convert attribute name to header name (e.g., "my-attr" -> "X-My-Attr")
+			headerName := "X-" + strings.ReplaceAll(caser.String(strings.ReplaceAll(attrName, "-", " ")), " ", "-")
+			req.Header.Set(headerName, value)
 		}
 	}
+}
 
+// executeRequestAndHandleResponse executes the HTTP request and handles the response
+func (p *InvokeHTTPProcessor) executeRequestAndHandleResponse(ctx context.Context, session types.ProcessSession, flowFile *types.FlowFile, req *http.Request, config *httpRequestConfig, logger types.Logger) {
 	// Make request
 	startTime := time.Now()
 	resp, err := p.client.Do(req)
 	duration := time.Since(startTime)
 
 	if err != nil {
-		logger.Error("HTTP request failed", "error", err, "url", url)
+		logger.Error("HTTP request failed", "error", err, "url", config.url)
 		session.PutAttribute(flowFile, "http.error.message", err.Error())
 		session.Transfer(flowFile, types.RelationshipFailure)
-		return nil
+		return
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
+	// Read and process response
+	if !p.processResponse(session, flowFile, resp, duration, config, logger) {
+		return
+	}
+
+	logger.Info("HTTP request completed",
+		"url", config.url,
+		"method", config.method,
+		"statusCode", resp.StatusCode,
+		"duration", duration,
+		"flowFileId", flowFile.ID)
+}
+
+// processResponse processes the HTTP response
+func (p *InvokeHTTPProcessor) processResponse(session types.ProcessSession, flowFile *types.FlowFile, resp *http.Response, duration time.Duration, config *httpRequestConfig, logger types.Logger) bool {
 	// Read response body
 	respBody, err := io.ReadAll(resp.Body)
 	if err != nil {
 		logger.Error("Failed to read response body", "error", err)
 		session.PutAttribute(flowFile, "http.error.message", err.Error())
 		session.Transfer(flowFile, types.RelationshipFailure)
-		return nil
+		return false
 	}
 
 	// Update FlowFile with response
-	if err := session.Write(flowFile, respBody); err != nil {
+	err = session.Write(flowFile, respBody)
+	if err != nil {
 		logger.Error("Failed to write response to FlowFile", "error", err)
 		session.Transfer(flowFile, types.RelationshipFailure)
-		return nil
+		return false
 	}
 
-	// Add response attributes
+	// Add response metadata
+	p.addResponseAttributes(session, flowFile, resp, duration, config)
+
+	// Route based on status code
+	relationship := p.determineRelationship(resp.StatusCode)
+	session.Transfer(flowFile, relationship)
+
+	return true
+}
+
+// addResponseAttributes adds response metadata as FlowFile attributes
+func (p *InvokeHTTPProcessor) addResponseAttributes(session types.ProcessSession, flowFile *types.FlowFile, resp *http.Response, duration time.Duration, config *httpRequestConfig) {
 	session.PutAttribute(flowFile, "http.status.code", strconv.Itoa(resp.StatusCode))
 	session.PutAttribute(flowFile, "http.status.message", resp.Status)
 	session.PutAttribute(flowFile, "http.response.time", duration.String())
-	session.PutAttribute(flowFile, "http.remote.url", url)
-	session.PutAttribute(flowFile, "http.method", method)
+	session.PutAttribute(flowFile, "http.remote.url", config.url)
+	session.PutAttribute(flowFile, "http.method", config.method)
 
 	// Add response headers as attributes
 	for key, values := range resp.Header {
@@ -296,31 +403,18 @@ func (p *InvokeHTTPProcessor) OnTrigger(ctx context.Context, session types.Proce
 			session.PutAttribute(flowFile, "http.header."+strings.ToLower(key), values[0])
 		}
 	}
+}
 
-	// Route based on status code
-	statusCode := resp.StatusCode
-	var relationship types.Relationship
-
+// determineRelationship determines the routing relationship based on status code
+func (p *InvokeHTTPProcessor) determineRelationship(statusCode int) types.Relationship {
 	if statusCode >= 200 && statusCode < 300 {
-		relationship = types.RelationshipSuccess
+		return types.RelationshipSuccess
 	} else if statusCode >= 400 && statusCode < 500 {
-		relationship = RelationshipNoRetry // Client errors - don't retry
+		return RelationshipNoRetry // Client errors - don't retry
 	} else if statusCode >= 500 {
-		relationship = RelationshipRetry // Server errors - can retry
-	} else {
-		relationship = types.RelationshipFailure
+		return RelationshipRetry // Server errors - can retry
 	}
-
-	session.Transfer(flowFile, relationship)
-
-	logger.Info("HTTP request completed",
-		"url", url,
-		"method", method,
-		"statusCode", statusCode,
-		"duration", duration,
-		"flowFileId", flowFile.ID)
-
-	return nil
+	return types.RelationshipFailure
 }
 
 // Validate validates the processor configuration
@@ -359,7 +453,9 @@ func (p *InvokeHTTPProcessor) Validate(config types.ProcessorConfig) []types.Val
 
 	// Validate Connection Timeout
 	if timeoutStr, exists := config.Properties["Connection Timeout"]; exists && timeoutStr != "" {
-		if _, err := time.ParseDuration(timeoutStr); err != nil {
+		var err error
+		_, err = time.ParseDuration(timeoutStr)
+		if err != nil {
 			results = append(results, types.ValidationResult{
 				Property: "Connection Timeout",
 				Valid:    false,
@@ -370,7 +466,9 @@ func (p *InvokeHTTPProcessor) Validate(config types.ProcessorConfig) []types.Val
 
 	// Validate Read Timeout
 	if timeoutStr, exists := config.Properties["Read Timeout"]; exists && timeoutStr != "" {
-		if _, err := time.ParseDuration(timeoutStr); err != nil {
+		var err error
+		_, err = time.ParseDuration(timeoutStr)
+		if err != nil {
 			results = append(results, types.ValidationResult{
 				Property: "Read Timeout",
 				Valid:    false,

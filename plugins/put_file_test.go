@@ -93,7 +93,7 @@ func TestPutFileProcessorInitialize(t *testing.T) {
 	// Test initialization with non-existent directory but create missing = true
 	ctxCreateMissing := &mockProcessorContext{
 		properties: map[string]string{
-			"Directory":                   filepath.Join(tmpDir, "newdir"),
+			"Directory":                  filepath.Join(tmpDir, "newdir"),
 			"Create Missing Directories": "true",
 		},
 	}
@@ -105,8 +105,8 @@ func TestPutFileProcessorInitialize(t *testing.T) {
 
 	// Test initialization with a file (not directory)
 	tmpFile := filepath.Join(tmpDir, "not_a_dir.txt")
-	if err := os.WriteFile(tmpFile, []byte("test"), 0644); err != nil {
-		t.Fatal(err)
+	if writeErr := os.WriteFile(tmpFile, []byte("test"), 0644); writeErr != nil {
+		t.Fatal(writeErr)
 	}
 
 	ctxFileNotDir := &mockProcessorContext{
@@ -130,9 +130,9 @@ func TestPutFileProcessorValidate(t *testing.T) {
 	// Test valid configuration
 	validConfig := types.ProcessorConfig{
 		Properties: map[string]string{
-			"Directory":                   tmpDir,
+			"Directory":                    tmpDir,
 			"Conflict Resolution Strategy": "replace",
-			"Create Missing Directories":  "true",
+			"Create Missing Directories":   "true",
 			"Permissions":                  "0644",
 			"Maximum File Count":           "100",
 		},
@@ -148,7 +148,7 @@ func TestPutFileProcessorValidate(t *testing.T) {
 	// Test invalid conflict resolution strategy
 	invalidStrategyConfig := types.ProcessorConfig{
 		Properties: map[string]string{
-			"Directory":                   tmpDir,
+			"Directory":                    tmpDir,
 			"Conflict Resolution Strategy": "invalid",
 		},
 	}
@@ -280,7 +280,7 @@ func TestPutFileProcessorConflictFail(t *testing.T) {
 
 	processorCtx := &mockProcessorContext{
 		properties: map[string]string{
-			"Directory":                   tmpDir,
+			"Directory":                    tmpDir,
 			"Conflict Resolution Strategy": "fail",
 		},
 	}
@@ -326,7 +326,7 @@ func TestPutFileProcessorConflictReplace(t *testing.T) {
 
 	processorCtx := &mockProcessorContext{
 		properties: map[string]string{
-			"Directory":                   tmpDir,
+			"Directory":                    tmpDir,
 			"Conflict Resolution Strategy": "replace",
 		},
 	}
@@ -371,7 +371,7 @@ func TestPutFileProcessorConflictIgnore(t *testing.T) {
 
 	processorCtx := &mockProcessorContext{
 		properties: map[string]string{
-			"Directory":                   tmpDir,
+			"Directory":                    tmpDir,
 			"Conflict Resolution Strategy": "ignore",
 		},
 	}
@@ -417,7 +417,7 @@ func TestPutFileProcessorConflictRename(t *testing.T) {
 
 	processorCtx := &mockProcessorContext{
 		properties: map[string]string{
-			"Directory":                   tmpDir,
+			"Directory":                    tmpDir,
 			"Conflict Resolution Strategy": "rename",
 		},
 	}

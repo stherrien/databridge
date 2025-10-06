@@ -18,27 +18,36 @@ type RetryPolicy struct {
 	InitialDelay        time.Duration
 	MaxDelay            time.Duration
 	BackoffMultiplier   float64
-	RetryableErrors     []string       // Error patterns that should retry
+	RetryableErrors     []string // Error patterns that should retry
 	RetryableErrorRegex []*regexp.Regexp
-	PenaltyDuration     time.Duration  // Penalization for repeated failures
-	UseJitter           bool           // Add random jitter to delays
-	mu                  sync.RWMutex
+	PenaltyDuration     time.Duration // Penalization for repeated failures
+	UseJitter           bool          // Add random jitter to delays
 	metrics             *RetryMetrics
 }
 
 // RetryConfig configures retry behavior
 type RetryConfig struct {
-	Enabled             bool
-	MaxAttempts         int
-	InitialDelay        time.Duration
-	MaxDelay            time.Duration
-	BackoffMultiplier   float64
-	RetryableErrors     []string
-	PenaltyDuration     time.Duration
-	UseJitter           bool
+	Enabled           bool
+	MaxAttempts       int
+	InitialDelay      time.Duration
+	MaxDelay          time.Duration
+	BackoffMultiplier float64
+	RetryableErrors   []string
+	PenaltyDuration   time.Duration
+	UseJitter         bool
 }
 
 // RetryMetrics tracks retry statistics
+// RetryMetricsSnapshot is a point-in-time snapshot of retry metrics
+type RetryMetricsSnapshot struct {
+	TotalRetries      int64
+	SuccessfulRetries int64
+	FailedRetries     int64
+	ExhaustedRetries  int64 // Retries that hit max attempts
+	TotalRetryTime    int64 // Total time spent retrying (nanoseconds)
+	LastRetry         time.Time
+}
+
 type RetryMetrics struct {
 	TotalRetries      int64
 	SuccessfulRetries int64
@@ -196,11 +205,11 @@ func (rp *RetryPolicy) RecordExhaustedRetry() {
 }
 
 // GetMetrics returns current retry metrics
-func (rp *RetryPolicy) GetMetrics() RetryMetrics {
+func (rp *RetryPolicy) GetMetrics() RetryMetricsSnapshot {
 	rp.metrics.mu.RLock()
 	defer rp.metrics.mu.RUnlock()
 
-	return RetryMetrics{
+	return RetryMetricsSnapshot{
 		TotalRetries:      atomic.LoadInt64(&rp.metrics.TotalRetries),
 		SuccessfulRetries: atomic.LoadInt64(&rp.metrics.SuccessfulRetries),
 		FailedRetries:     atomic.LoadInt64(&rp.metrics.FailedRetries),
@@ -245,8 +254,8 @@ type RetryQueue struct {
 
 // RetryQueueItem represents a FlowFile in the retry queue
 type RetryQueueItem struct {
-	FlowFile  *types.FlowFile
-	State     *FlowFileRetryState
+	FlowFile   *types.FlowFile
+	State      *FlowFileRetryState
 	EnqueuedAt time.Time
 }
 
@@ -429,13 +438,13 @@ func (rq *RetryQueue) GetPenalizedCount() int {
 
 // RetryQueueInfo contains information about the retry queue
 type RetryQueueInfo struct {
-	TotalItems      int
-	ReadyItems      int
-	PenalizedItems  int
-	MaxQueueSize    int
-	OldestItemAge   time.Duration
-	Policy          RetryConfig
-	Metrics         RetryMetrics
+	TotalItems     int
+	ReadyItems     int
+	PenalizedItems int
+	MaxQueueSize   int
+	OldestItemAge  time.Duration
+	Policy         RetryConfig
+	Metrics        RetryMetricsSnapshot
 }
 
 // GetInfo returns comprehensive retry queue information

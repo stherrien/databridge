@@ -23,10 +23,10 @@ func NewUserHandler(authManager *security.AuthManager) *UserHandler {
 
 // CreateUserRequest represents a user creation request
 type CreateUserRequest struct {
-	Username string            `json:"username" binding:"required"`
-	Email    string            `json:"email"`
-	Password string            `json:"password" binding:"required"`
-	Roles    []string          `json:"roles"`
+	Username   string            `json:"username" binding:"required"`
+	Email      string            `json:"email"`
+	Password   string            `json:"password" binding:"required"`
+	Roles      []string          `json:"roles"`
 	Attributes map[string]string `json:"attributes"`
 }
 
@@ -110,7 +110,7 @@ func (h *UserHandler) CreateUser(c *gin.Context) {
 	for _, roleName := range req.Roles {
 		role, err := rbacManager.GetRoleByName(c.Request.Context(), roleName)
 		if err == nil {
-			rbacManager.AssignRole(c.Request.Context(), user.ID, role.ID)
+			_ = rbacManager.AssignRole(c.Request.Context(), user.ID, role.ID)
 		}
 	}
 

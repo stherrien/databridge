@@ -15,41 +15,41 @@ import (
 
 // FlowTemplate represents a reusable flow configuration template
 type FlowTemplate struct {
-	ID            uuid.UUID                `json:"id"`
-	Name          string                   `json:"name"`
-	Description   string                   `json:"description"`
-	Version       string                   `json:"version"`
-	Author        string                   `json:"author"`
-	Tags          []string                 `json:"tags"`
-	CreatedAt     time.Time                `json:"createdAt"`
-	UpdatedAt     time.Time                `json:"updatedAt"`
+	ID          uuid.UUID `json:"id"`
+	Name        string    `json:"name"`
+	Description string    `json:"description"`
+	Version     string    `json:"version"`
+	Author      string    `json:"author"`
+	Tags        []string  `json:"tags"`
+	CreatedAt   time.Time `json:"createdAt"`
+	UpdatedAt   time.Time `json:"updatedAt"`
 
 	// Template content
-	Processors    []ProcessorTemplate      `json:"processors"`
-	Connections   []ConnectionTemplate     `json:"connections"`
-	ProcessGroups []ProcessGroupTemplate   `json:"processGroups"`
-	Variables     map[string]string        `json:"variables"` // Parameterized values
+	Processors    []ProcessorTemplate    `json:"processors"`
+	Connections   []ConnectionTemplate   `json:"connections"`
+	ProcessGroups []ProcessGroupTemplate `json:"processGroups"`
+	Variables     map[string]string      `json:"variables"` // Parameterized values
 }
 
 // ProcessorTemplate represents a processor in a template
 type ProcessorTemplate struct {
-	ID            string                `json:"id"`
-	Name          string                `json:"name"`
-	Type          string                `json:"type"`
-	Properties    map[string]string     `json:"properties"`
-	Schedule      ProcessorSchedule     `json:"schedule"`
-	Position      Position              `json:"position"`
-	AutoTerminate map[string]bool       `json:"autoTerminate"`
+	ID            string            `json:"id"`
+	Name          string            `json:"name"`
+	Type          string            `json:"type"`
+	Properties    map[string]string `json:"properties"`
+	Schedule      ProcessorSchedule `json:"schedule"`
+	Position      Position          `json:"position"`
+	AutoTerminate map[string]bool   `json:"autoTerminate"`
 }
 
 // ConnectionTemplate represents a connection in a template
 type ConnectionTemplate struct {
-	ID                string   `json:"id"`
-	Name              string   `json:"name"`
-	SourceID          string   `json:"sourceId"`
-	DestinationID     string   `json:"destinationId"`
-	SourceRelationship string  `json:"sourceRelationship"`
-	QueueSize         int      `json:"queueSize"`
+	ID                 string `json:"id"`
+	Name               string `json:"name"`
+	SourceID           string `json:"sourceId"`
+	DestinationID      string `json:"destinationId"`
+	SourceRelationship string `json:"sourceRelationship"`
+	QueueSize          int    `json:"queueSize"`
 }
 
 // ProcessGroupTemplate represents a process group in a template
@@ -68,9 +68,9 @@ type Position struct {
 
 // FlowTemplateManager manages flow templates
 type FlowTemplateManager struct {
-	mu            sync.RWMutex
-	templates     map[uuid.UUID]*FlowTemplate
-	templateDir   string
+	mu             sync.RWMutex
+	templates      map[uuid.UUID]*FlowTemplate
+	templateDir    string
 	flowController *FlowController
 }
 
@@ -84,10 +84,10 @@ const (
 
 // FlowExport represents an exportable flow configuration
 type FlowExport struct {
-	Metadata      FlowMetadata          `json:"metadata"`
-	Processors    []ProcessorExport     `json:"processors"`
-	Connections   []ConnectionExport    `json:"connections"`
-	ProcessGroups []ProcessGroupExport  `json:"processGroups"`
+	Metadata      FlowMetadata         `json:"metadata"`
+	Processors    []ProcessorExport    `json:"processors"`
+	Connections   []ConnectionExport   `json:"connections"`
+	ProcessGroups []ProcessGroupExport `json:"processGroups"`
 	ExportedAt    time.Time            `json:"exportedAt"`
 	Version       string               `json:"version"`
 }
@@ -103,23 +103,23 @@ type FlowMetadata struct {
 
 // ProcessorExport represents an exported processor
 type ProcessorExport struct {
-	ID            string                   `json:"id"`
-	Name          string                   `json:"name"`
-	Type          string                   `json:"type"`
-	Properties    map[string]string        `json:"properties"`
-	Schedule      types.ProcessorConfig    `json:"schedule"`
-	Position      Position                 `json:"position"`
-	AutoTerminate map[string]bool          `json:"autoTerminate"`
+	ID            string                `json:"id"`
+	Name          string                `json:"name"`
+	Type          string                `json:"type"`
+	Properties    map[string]string     `json:"properties"`
+	Schedule      types.ProcessorConfig `json:"schedule"`
+	Position      Position              `json:"position"`
+	AutoTerminate map[string]bool       `json:"autoTerminate"`
 }
 
 // ConnectionExport represents an exported connection
 type ConnectionExport struct {
-	ID                string `json:"id"`
-	Name              string `json:"name"`
-	SourceID          string `json:"sourceId"`
-	DestinationID     string `json:"destinationId"`
+	ID                 string `json:"id"`
+	Name               string `json:"name"`
+	SourceID           string `json:"sourceId"`
+	DestinationID      string `json:"destinationId"`
 	SourceRelationship string `json:"sourceRelationship"`
-	QueueSize         int    `json:"queueSize"`
+	QueueSize          int    `json:"queueSize"`
 }
 
 // ProcessGroupExport represents an exported process group
@@ -204,12 +204,12 @@ func (ftm *FlowTemplateManager) CreateTemplate(name, description, author string,
 		if sourceInTemplate && destInTemplate {
 			conn.RLock()
 			connTemplate := ConnectionTemplate{
-				ID:                conn.ID.String(),
-				Name:              conn.Name,
-				SourceID:          sourceID.String(),
-				DestinationID:     destID.String(),
+				ID:                 conn.ID.String(),
+				Name:               conn.Name,
+				SourceID:           sourceID.String(),
+				DestinationID:      destID.String(),
 				SourceRelationship: conn.Relationship.Name,
-				QueueSize:         int(conn.Queue.maxSize),
+				QueueSize:          int(conn.Queue.maxSize),
 			}
 			conn.RUnlock()
 
@@ -263,7 +263,7 @@ func (ftm *FlowTemplateManager) InstantiateTemplate(templateID uuid.UUID, variab
 		if err != nil {
 			// Cleanup created processors on error
 			for _, procID := range createdProcessors {
-				ftm.flowController.RemoveProcessor(procID)
+				_ = ftm.flowController.RemoveProcessor(procID)
 			}
 			return nil, fmt.Errorf("failed to create processor %s: %w", procTemplate.Name, err)
 		}
@@ -306,7 +306,7 @@ func (ftm *FlowTemplateManager) SaveTemplate(templateID uuid.UUID) error {
 	}
 
 	// Ensure template directory exists
-	if err := os.MkdirAll(ftm.templateDir, 0755); err != nil {
+	if err := os.MkdirAll(ftm.templateDir, 0750); err != nil {
 		return fmt.Errorf("failed to create template directory: %w", err)
 	}
 
@@ -318,7 +318,7 @@ func (ftm *FlowTemplateManager) SaveTemplate(templateID uuid.UUID) error {
 
 	// Write to file
 	filename := filepath.Join(ftm.templateDir, fmt.Sprintf("%s.json", template.ID))
-	if err := os.WriteFile(filename, data, 0644); err != nil {
+	if err := os.WriteFile(filename, data, 0600); err != nil {
 		return fmt.Errorf("failed to write template file: %w", err)
 	}
 
@@ -327,6 +327,7 @@ func (ftm *FlowTemplateManager) SaveTemplate(templateID uuid.UUID) error {
 
 // LoadTemplate loads a template from disk
 func (ftm *FlowTemplateManager) LoadTemplate(filename string) (*FlowTemplate, error) {
+	// #nosec G304 - filename is controlled by template manager and points to template directory
 	data, err := os.ReadFile(filename)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read template file: %w", err)
@@ -464,12 +465,12 @@ func (ftm *FlowTemplateManager) ExportFlow(name, description, author string, for
 	for _, conn := range connections {
 		conn.RLock()
 		connExport := ConnectionExport{
-			ID:                conn.ID.String(),
-			Name:              conn.Name,
-			SourceID:          conn.Source.ID.String(),
-			DestinationID:     conn.Destination.ID.String(),
+			ID:                 conn.ID.String(),
+			Name:               conn.Name,
+			SourceID:           conn.Source.ID.String(),
+			DestinationID:      conn.Destination.ID.String(),
 			SourceRelationship: conn.Relationship.Name,
-			QueueSize:         int(conn.Queue.maxSize),
+			QueueSize:          int(conn.Queue.maxSize),
 		}
 		conn.RUnlock()
 
@@ -501,7 +502,7 @@ func (ftm *FlowTemplateManager) ImportFlow(export *FlowExport) ([]uuid.UUID, err
 		if err != nil {
 			// Cleanup on error
 			for _, procID := range createdProcessors {
-				ftm.flowController.RemoveProcessor(procID)
+				_ = ftm.flowController.RemoveProcessor(procID)
 			}
 			return nil, fmt.Errorf("failed to import processor %s: %w", procExport.Name, err)
 		}

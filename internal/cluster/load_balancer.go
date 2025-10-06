@@ -1,9 +1,10 @@
 package cluster
 
 import (
+	"crypto/rand"
+	"encoding/binary"
 	"hash/fnv"
 	"math"
-	"math/rand"
 	"sort"
 	"sync"
 	"time"
@@ -206,8 +207,17 @@ func (lb *LoadBalancer) selectWeightedRandom(nodes []*ClusterNode) *ClusterNode 
 		totalWeight += weight
 	}
 
-	// Select randomly based on weights
-	r := rand.Float64() * totalWeight
+	// Select randomly based on weights using crypto/rand
+	var buf [8]byte
+	if _, err := rand.Read(buf[:]); err != nil {
+		// Fallback to round-robin on error
+		lb.logger.WithError(err).Warn("Failed to generate random number, falling back to round-robin")
+		return lb.selectRoundRobin(nodes)
+	}
+
+	// Convert bytes to float64 in range [0, 1)
+	randUint64 := binary.BigEndian.Uint64(buf[:])
+	r := float64(randUint64) / float64(^uint64(0)) * totalWeight
 	cumulative := 0.0
 
 	for i, weight := range weights {
@@ -311,8 +321,8 @@ func (lb *LoadBalancer) ShouldRebalance() bool {
 
 	if shouldRebalance {
 		lb.logger.WithFields(logrus.Fields{
-			"avgLoad": avgLoad,
-			"stdDev":  stdDev,
+			"avgLoad":   avgLoad,
+			"stdDev":    stdDev,
 			"threshold": threshold,
 		}).Info("Load imbalance detected")
 	}

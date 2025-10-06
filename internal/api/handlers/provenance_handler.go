@@ -35,11 +35,11 @@ type QueryEventsRequest struct {
 
 // EventsResponse represents the response for event queries
 type EventsResponse struct {
-	Events     []*core.ProvenanceEvent `json:"events"`
-	Total      int                     `json:"total"`
-	Limit      int                     `json:"limit"`
-	Offset     int                     `json:"offset"`
-	HasMore    bool                    `json:"hasMore"`
+	Events  []*core.ProvenanceEvent `json:"events"`
+	Total   int                     `json:"total"`
+	Limit   int                     `json:"limit"`
+	Offset  int                     `json:"offset"`
+	HasMore bool                    `json:"hasMore"`
 }
 
 // TimelineResponse represents timeline data
@@ -166,10 +166,10 @@ func (h *ProvenanceHandler) GetEvents(c *gin.Context) {
 
 	// Build response
 	response := EventsResponse{
-		Events: events,
-		Total:  len(events),
-		Limit:  query.Limit,
-		Offset: query.Offset,
+		Events:  events,
+		Total:   len(events),
+		Limit:   query.Limit,
+		Offset:  query.Offset,
 		HasMore: len(events) == query.Limit,
 	}
 
@@ -267,10 +267,10 @@ func (h *ProvenanceHandler) SearchEvents(c *gin.Context) {
 
 	// Build response
 	response := EventsResponse{
-		Events: events,
-		Total:  len(events),
-		Limit:  query.Limit,
-		Offset: query.Offset,
+		Events:  events,
+		Total:   len(events),
+		Limit:   query.Limit,
+		Offset:  query.Offset,
 		HasMore: len(events) == query.Limit,
 	}
 

@@ -47,10 +47,10 @@ func NewPublishKafkaProcessor() *PublishKafkaProcessor {
 				DefaultValue: "",
 			},
 			{
-				Name:         "Delivery Guarantee",
-				Description:  "Level of acknowledgement required from Kafka brokers",
-				Required:     false,
-				DefaultValue: "all",
+				Name:          "Delivery Guarantee",
+				Description:   "Level of acknowledgement required from Kafka brokers",
+				Required:      false,
+				DefaultValue:  "all",
 				AllowedValues: []string{"none", "leader", "all"},
 			},
 			{
@@ -60,10 +60,10 @@ func NewPublishKafkaProcessor() *PublishKafkaProcessor {
 				DefaultValue: "",
 			},
 			{
-				Name:         "Partition Strategy",
-				Description:  "Strategy for determining message partition",
-				Required:     false,
-				DefaultValue: "default",
+				Name:          "Partition Strategy",
+				Description:   "Strategy for determining message partition",
+				Required:      false,
+				DefaultValue:  "default",
 				AllowedValues: []string{"default", "round-robin", "manual"},
 			},
 			{
@@ -73,10 +73,10 @@ func NewPublishKafkaProcessor() *PublishKafkaProcessor {
 				DefaultValue: "0",
 			},
 			{
-				Name:         "Compression Type",
-				Description:  "Compression codec for message data",
-				Required:     false,
-				DefaultValue: "none",
+				Name:          "Compression Type",
+				Description:   "Compression codec for message data",
+				Required:      false,
+				DefaultValue:  "none",
 				AllowedValues: []string{"none", "gzip", "snappy", "lz4", "zstd"},
 			},
 			{
@@ -98,10 +98,10 @@ func NewPublishKafkaProcessor() *PublishKafkaProcessor {
 				DefaultValue: "3",
 			},
 			{
-				Name:         "Async Mode",
-				Description:  "Use asynchronous producer for higher throughput",
-				Required:     false,
-				DefaultValue: "false",
+				Name:          "Async Mode",
+				Description:   "Use asynchronous producer for higher throughput",
+				Required:      false,
+				DefaultValue:  "false",
 				AllowedValues: []string{"true", "false"},
 			},
 			{
@@ -117,17 +117,17 @@ func NewPublishKafkaProcessor() *PublishKafkaProcessor {
 				DefaultValue: "10ms",
 			},
 			{
-				Name:         "Security Protocol",
-				Description:  "Security protocol for Kafka connection",
-				Required:     false,
-				DefaultValue: "PLAINTEXT",
+				Name:          "Security Protocol",
+				Description:   "Security protocol for Kafka connection",
+				Required:      false,
+				DefaultValue:  "PLAINTEXT",
 				AllowedValues: []string{"PLAINTEXT", "SSL", "SASL_PLAINTEXT", "SASL_SSL"},
 			},
 			{
-				Name:         "SASL Mechanism",
-				Description:  "SASL mechanism for authentication",
-				Required:     false,
-				DefaultValue: "PLAIN",
+				Name:          "SASL Mechanism",
+				Description:   "SASL mechanism for authentication",
+				Required:      false,
+				DefaultValue:  "PLAIN",
 				AllowedValues: []string{"PLAIN", "SCRAM-SHA-256", "SCRAM-SHA-512"},
 			},
 			{
@@ -144,10 +144,10 @@ func NewPublishKafkaProcessor() *PublishKafkaProcessor {
 				Sensitive:    true,
 			},
 			{
-				Name:         "Use Transactions",
-				Description:  "Enable transactional message delivery",
-				Required:     false,
-				DefaultValue: "false",
+				Name:          "Use Transactions",
+				Description:   "Enable transactional message delivery",
+				Required:      false,
+				DefaultValue:  "false",
 				AllowedValues: []string{"true", "false"},
 			},
 			{
@@ -163,10 +163,10 @@ func NewPublishKafkaProcessor() *PublishKafkaProcessor {
 				DefaultValue: "",
 			},
 			{
-				Name:         "Failure Strategy",
-				Description:  "How to handle publish failures",
-				Required:     false,
-				DefaultValue: "retry",
+				Name:          "Failure Strategy",
+				Description:   "How to handle publish failures",
+				Required:      false,
+				DefaultValue:  "retry",
 				AllowedValues: []string{"retry", "fail", "ignore"},
 			},
 		},
@@ -195,13 +195,58 @@ func (p *PublishKafkaProcessor) Initialize(ctx types.ProcessorContext) error {
 
 	p.processorCtx = ctx
 
-	// Validate required properties
+	// Validate and parse brokers and topic
+	brokers, topicName, err := p.validateAndParseBrokers(ctx)
+	if err != nil {
+		return err
+	}
+
+	// Create Kafka configuration
+	config := sarama.NewConfig()
+	config.Version = sarama.V2_6_0_0
+	config.Producer.Return.Successes = true
+	config.Producer.Return.Errors = true
+
+	// Configure producer settings
+	if err := p.configureProducerSettings(ctx, config); err != nil {
+		return err
+	}
+
+	// Configure async mode if enabled
+	if err := p.configureAsyncMode(ctx, config); err != nil {
+		return err
+	}
+
+	// Configure transactions if enabled
+	if err := p.configureTransactions(ctx, config); err != nil {
+		return err
+	}
+
+	// Configure security
+	if err := p.configureSecurity(ctx, config); err != nil {
+		return err
+	}
+
+	// Create producer
+	if err := p.createProducer(brokers, config); err != nil {
+		return err
+	}
+
+	p.isInitialized = true
+
+	logger.Info(fmt.Sprintf("Kafka producer initialized successfully - brokers: %v, topic: %s, async: %v", brokers, topicName, p.isAsync))
+
+	return nil
+}
+
+// validateAndParseBrokers validates and parses required properties
+func (p *PublishKafkaProcessor) validateAndParseBrokers(ctx types.ProcessorContext) ([]string, string, error) {
 	if !ctx.HasProperty("Kafka Brokers") {
-		return fmt.Errorf("Kafka Brokers property is required")
+		return nil, "", fmt.Errorf("Kafka Brokers property is required")
 	}
 
 	if !ctx.HasProperty("Topic Name") {
-		return fmt.Errorf("Topic Name property is required")
+		return nil, "", fmt.Errorf("Topic Name property is required")
 	}
 
 	brokersStr := ctx.GetPropertyValue("Kafka Brokers")
@@ -212,15 +257,14 @@ func (p *PublishKafkaProcessor) Initialize(ctx types.ProcessorContext) error {
 
 	topicName := ctx.GetPropertyValue("Topic Name")
 	if topicName == "" {
-		return fmt.Errorf("Topic Name cannot be empty")
+		return nil, "", fmt.Errorf("Topic Name cannot be empty")
 	}
 
-	// Create Kafka configuration
-	config := sarama.NewConfig()
-	config.Version = sarama.V2_6_0_0
-	config.Producer.Return.Successes = true
-	config.Producer.Return.Errors = true
+	return brokers, topicName, nil
+}
 
+// configureProducerSettings configures basic producer settings
+func (p *PublishKafkaProcessor) configureProducerSettings(ctx types.ProcessorContext, config *sarama.Config) error {
 	// Delivery guarantee
 	deliveryGuarantee := ctx.GetPropertyValue("Delivery Guarantee")
 	switch deliveryGuarantee {
@@ -250,8 +294,7 @@ func (p *PublishKafkaProcessor) Initialize(ctx types.ProcessorContext) error {
 	}
 
 	// Max message size
-	maxMsgSizeStr := ctx.GetPropertyValue("Max Message Size")
-	if maxMsgSizeStr != "" {
+	if maxMsgSizeStr := ctx.GetPropertyValue("Max Message Size"); maxMsgSizeStr != "" {
 		maxMsgSize, err := strconv.Atoi(maxMsgSizeStr)
 		if err != nil {
 			return fmt.Errorf("invalid Max Message Size: %w", err)
@@ -260,8 +303,7 @@ func (p *PublishKafkaProcessor) Initialize(ctx types.ProcessorContext) error {
 	}
 
 	// Request timeout
-	timeoutStr := ctx.GetPropertyValue("Request Timeout")
-	if timeoutStr != "" {
+	if timeoutStr := ctx.GetPropertyValue("Request Timeout"); timeoutStr != "" {
 		timeout, err := time.ParseDuration(timeoutStr)
 		if err != nil {
 			return fmt.Errorf("invalid Request Timeout: %w", err)
@@ -270,8 +312,7 @@ func (p *PublishKafkaProcessor) Initialize(ctx types.ProcessorContext) error {
 	}
 
 	// Max retries
-	maxRetriesStr := ctx.GetPropertyValue("Max Retries")
-	if maxRetriesStr != "" {
+	if maxRetriesStr := ctx.GetPropertyValue("Max Retries"); maxRetriesStr != "" {
 		maxRetries, err := strconv.Atoi(maxRetriesStr)
 		if err != nil {
 			return fmt.Errorf("invalid Max Retries: %w", err)
@@ -290,94 +331,105 @@ func (p *PublishKafkaProcessor) Initialize(ctx types.ProcessorContext) error {
 		config.Producer.Partitioner = sarama.NewHashPartitioner
 	}
 
-	// Async mode settings
+	return nil
+}
+
+// configureAsyncMode configures async mode settings if enabled
+func (p *PublishKafkaProcessor) configureAsyncMode(ctx types.ProcessorContext, config *sarama.Config) error {
 	asyncModeStr := ctx.GetPropertyValue("Async Mode")
 	p.isAsync = asyncModeStr == "true"
 
-	if p.isAsync {
-		// Batch size
-		batchSizeStr := ctx.GetPropertyValue("Batch Size")
-		if batchSizeStr != "" {
-			batchSize, err := strconv.Atoi(batchSizeStr)
-			if err != nil {
-				return fmt.Errorf("invalid Batch Size: %w", err)
-			}
-			config.Producer.Flush.MaxMessages = batchSize
-		}
-
-		// Linger time
-		lingerStr := ctx.GetPropertyValue("Linger Time")
-		if lingerStr != "" {
-			linger, err := time.ParseDuration(lingerStr)
-			if err != nil {
-				return fmt.Errorf("invalid Linger Time: %w", err)
-			}
-			config.Producer.Flush.Frequency = linger
-		}
+	if !p.isAsync {
+		return nil
 	}
 
-	// Transactions
+	// Batch size
+	if batchSizeStr := ctx.GetPropertyValue("Batch Size"); batchSizeStr != "" {
+		batchSize, err := strconv.Atoi(batchSizeStr)
+		if err != nil {
+			return fmt.Errorf("invalid Batch Size: %w", err)
+		}
+		config.Producer.Flush.MaxMessages = batchSize
+	}
+
+	// Linger time
+	if lingerStr := ctx.GetPropertyValue("Linger Time"); lingerStr != "" {
+		linger, err := time.ParseDuration(lingerStr)
+		if err != nil {
+			return fmt.Errorf("invalid Linger Time: %w", err)
+		}
+		config.Producer.Flush.Frequency = linger
+	}
+
+	return nil
+}
+
+// configureTransactions configures transaction settings if enabled
+func (p *PublishKafkaProcessor) configureTransactions(ctx types.ProcessorContext, config *sarama.Config) error {
 	useTxStr := ctx.GetPropertyValue("Use Transactions")
-	if useTxStr == "true" {
-		txID := ctx.GetPropertyValue("Transactional ID")
-		if txID == "" {
-			return fmt.Errorf("Transactional ID is required when Use Transactions is enabled")
-		}
-		config.Producer.Idempotent = true
-		config.Producer.Transaction.ID = txID
-		config.Net.MaxOpenRequests = 1
+	if useTxStr != "true" {
+		return nil
 	}
 
-	// Security configuration
+	txID := ctx.GetPropertyValue("Transactional ID")
+	if txID == "" {
+		return fmt.Errorf("Transactional ID is required when Use Transactions is enabled")
+	}
+
+	config.Producer.Idempotent = true
+	config.Producer.Transaction.ID = txID
+	config.Net.MaxOpenRequests = 1
+
+	return nil
+}
+
+// configureSecurity configures security settings
+func (p *PublishKafkaProcessor) configureSecurity(ctx types.ProcessorContext, config *sarama.Config) error {
 	securityProtocol := ctx.GetPropertyValue("Security Protocol")
+
 	switch securityProtocol {
 	case "SSL":
 		config.Net.TLS.Enable = true
 	case "SASL_PLAINTEXT":
 		config.Net.SASL.Enable = true
-		config.Net.SASL.Mechanism = sarama.SASLTypePlaintext
-
-		saslMechanism := ctx.GetPropertyValue("SASL Mechanism")
-		switch saslMechanism {
-		case "PLAIN":
-			config.Net.SASL.Mechanism = sarama.SASLTypePlaintext
-		case "SCRAM-SHA-256":
-			config.Net.SASL.Mechanism = sarama.SASLTypeSCRAMSHA256
-		case "SCRAM-SHA-512":
-			config.Net.SASL.Mechanism = sarama.SASLTypeSCRAMSHA512
-		}
-
-		username := ctx.GetPropertyValue("SASL Username")
-		password := ctx.GetPropertyValue("SASL Password")
-		if username != "" && password != "" {
-			config.Net.SASL.User = username
-			config.Net.SASL.Password = password
-		}
+		return p.configureSASL(ctx, config, false)
 	case "SASL_SSL":
 		config.Net.TLS.Enable = true
 		config.Net.SASL.Enable = true
-		config.Net.SASL.Mechanism = sarama.SASLTypePlaintext
-
-		saslMechanism := ctx.GetPropertyValue("SASL Mechanism")
-		switch saslMechanism {
-		case "PLAIN":
-			config.Net.SASL.Mechanism = sarama.SASLTypePlaintext
-		case "SCRAM-SHA-256":
-			config.Net.SASL.Mechanism = sarama.SASLTypeSCRAMSHA256
-		case "SCRAM-SHA-512":
-			config.Net.SASL.Mechanism = sarama.SASLTypeSCRAMSHA512
-		}
-
-		username := ctx.GetPropertyValue("SASL Username")
-		password := ctx.GetPropertyValue("SASL Password")
-		if username != "" && password != "" {
-			config.Net.SASL.User = username
-			config.Net.SASL.Password = password
-		}
+		return p.configureSASL(ctx, config, true)
 	}
 
-	// Create producer
+	return nil
+}
+
+// configureSASL configures SASL authentication
+func (p *PublishKafkaProcessor) configureSASL(ctx types.ProcessorContext, config *sarama.Config, enableTLS bool) error {
+	config.Net.SASL.Mechanism = sarama.SASLTypePlaintext
+
+	saslMechanism := ctx.GetPropertyValue("SASL Mechanism")
+	switch saslMechanism {
+	case "PLAIN":
+		config.Net.SASL.Mechanism = sarama.SASLTypePlaintext
+	case "SCRAM-SHA-256":
+		config.Net.SASL.Mechanism = sarama.SASLTypeSCRAMSHA256
+	case "SCRAM-SHA-512":
+		config.Net.SASL.Mechanism = sarama.SASLTypeSCRAMSHA512
+	}
+
+	username := ctx.GetPropertyValue("SASL Username")
+	password := ctx.GetPropertyValue("SASL Password")
+	if username != "" && password != "" {
+		config.Net.SASL.User = username
+		config.Net.SASL.Password = password
+	}
+
+	return nil
+}
+
+// createProducer creates the appropriate producer based on async mode
+func (p *PublishKafkaProcessor) createProducer(brokers []string, config *sarama.Config) error {
 	var err error
+
 	if p.isAsync {
 		p.asyncProducer, err = sarama.NewAsyncProducer(brokers, config)
 		if err != nil {
@@ -393,10 +445,6 @@ func (p *PublishKafkaProcessor) Initialize(ctx types.ProcessorContext) error {
 			return fmt.Errorf("failed to create sync Kafka producer: %w", err)
 		}
 	}
-
-	p.isInitialized = true
-
-	logger.Info(fmt.Sprintf("Kafka producer initialized successfully - brokers: %v, topic: %s, async: %v", brokers, topicName, p.isAsync))
 
 	return nil
 }
@@ -451,8 +499,8 @@ func (p *PublishKafkaProcessor) OnTrigger(ctx context.Context, session types.Pro
 	partitionStrategy := p.processorCtx.GetPropertyValue("Partition Strategy")
 	if partitionStrategy == "manual" {
 		partitionStr := p.processorCtx.GetPropertyValue("Partition")
-		partition, err := strconv.ParseInt(partitionStr, 10, 32)
-		if err == nil {
+		partition, parseErr := strconv.ParseInt(partitionStr, 10, 32)
+		if parseErr == nil {
 			msg.Partition = int32(partition)
 		}
 	}

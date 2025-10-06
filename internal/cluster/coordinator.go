@@ -15,17 +15,16 @@ import (
 // This is a simplified implementation that simulates Raft-like behavior
 // In production, would use hashicorp/raft or etcd
 type Coordinator struct {
-	config        CoordinatorConfig
-	state         *ClusterState
-	isLeader      bool
-	leader        string
-	peers         map[string]*Peer
-	logger        *logrus.Logger
-	mu            sync.RWMutex
-	leaderChan    chan bool
-	stopChan      chan struct{}
-	electionTimer *time.Timer
-	running       bool
+	config     CoordinatorConfig
+	state      *ClusterState
+	isLeader   bool
+	leader     string
+	peers      map[string]*Peer
+	logger     *logrus.Logger
+	mu         sync.RWMutex
+	leaderChan chan bool
+	stopChan   chan struct{}
+	running    bool
 }
 
 // CoordinatorConfig holds coordinator configuration

@@ -337,7 +337,7 @@ func TestInMemoryProvenanceRepository(t *testing.T) {
 	event3 := &ProvenanceEvent{
 		ID:            uuid.New(),
 		EventType:     "DROP",
-		FlowFileID:    uuid.New(), // Different FlowFile
+		FlowFileID:    uuid.New(),         // Different FlowFile
 		ProcessorID:   event2.ProcessorID, // Same processor as event2
 		ProcessorName: "TestProcessor2",
 		EventTime:     time.Now().Add(2 * time.Second),
@@ -492,9 +492,9 @@ func TestContentRepositoryMultipleWrites(t *testing.T) {
 
 	totalLength := 0
 	for _, chunk := range chunks {
-		n, err := writer.Write(chunk)
-		if err != nil {
-			t.Errorf("Write chunk failed: %v", err)
+		n, writeErr := writer.Write(chunk)
+		if writeErr != nil {
+			t.Errorf("Write chunk failed: %v", writeErr)
 		}
 		if n != len(chunk) {
 			t.Errorf("Write should return chunk length %d, got %d", len(chunk), n)
@@ -623,7 +623,7 @@ func TestRepositoryDirectoryCreation(t *testing.T) {
 	}
 
 	// Verify directory was created
-	if _, err := os.Stat(dbPath); os.IsNotExist(err) {
+	if _, statErr := os.Stat(dbPath); os.IsNotExist(statErr) {
 		t.Error("BadgerDB should create directory structure")
 	}
 

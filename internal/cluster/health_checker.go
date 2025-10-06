@@ -11,13 +11,13 @@ import (
 
 // HealthChecker monitors node health across the cluster
 type HealthChecker struct {
-	config        HealthCheckerConfig
-	checks        map[string]*HealthCheck
-	nodes         map[string]*ClusterNode
-	logger        *logrus.Logger
-	mu            sync.RWMutex
-	failCallback  func(nodeID string)
-	running       bool
+	config       HealthCheckerConfig
+	checks       map[string]*HealthCheck
+	nodes        map[string]*ClusterNode
+	logger       *logrus.Logger
+	mu           sync.RWMutex
+	failCallback func(nodeID string)
+	running      bool
 }
 
 // HealthCheckerConfig holds health checker configuration
@@ -315,10 +315,10 @@ func (hc *HealthChecker) GetStatistics() *HealthStatistics {
 	defer hc.mu.RUnlock()
 
 	stats := &HealthStatistics{
-		TotalNodes:   len(hc.checks),
-		HealthyNodes: 0,
+		TotalNodes:     len(hc.checks),
+		HealthyNodes:   0,
 		UnhealthyNodes: 0,
-		Checks:       make(map[string]*HealthCheckStatus),
+		Checks:         make(map[string]*HealthCheckStatus),
 	}
 
 	var totalLatency time.Duration
@@ -349,11 +349,11 @@ func (hc *HealthChecker) GetStatistics() *HealthStatistics {
 
 // HealthStatistics holds health checker statistics
 type HealthStatistics struct {
-	TotalNodes      int                           `json:"totalNodes"`
-	HealthyNodes    int                           `json:"healthyNodes"`
-	UnhealthyNodes  int                           `json:"unhealthyNodes"`
-	AverageLatency  time.Duration                 `json:"averageLatency"`
-	Checks          map[string]*HealthCheckStatus `json:"checks"`
+	TotalNodes     int                           `json:"totalNodes"`
+	HealthyNodes   int                           `json:"healthyNodes"`
+	UnhealthyNodes int                           `json:"unhealthyNodes"`
+	AverageLatency time.Duration                 `json:"averageLatency"`
+	Checks         map[string]*HealthCheckStatus `json:"checks"`
 }
 
 // HealthCheckStatus represents the status of a health check

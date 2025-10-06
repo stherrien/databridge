@@ -275,7 +275,7 @@ func createDirectories(dataDir string) error {
 	}
 
 	for _, dir := range dirs {
-		if err := os.MkdirAll(dir, 0755); err != nil {
+		if err := os.MkdirAll(dir, 0750); err != nil {
 			return fmt.Errorf("failed to create directory %s: %w", dir, err)
 		}
 	}
@@ -317,12 +317,12 @@ func setupExampleFlow(flowController *core.FlowController, log *logrus.Logger) e
 
 	// Create a GenerateFlowFile processor using plugin manager
 	generateConfig := types.ProcessorConfig{
-		ID:           uuid.New(),
-		Name:         "Generate Sample Data",
-		Type:         "GenerateFlowFile",
-		ScheduleType: types.ScheduleTypeTimer,
+		ID:            uuid.New(),
+		Name:          "Generate Sample Data",
+		Type:          "GenerateFlowFile",
+		ScheduleType:  types.ScheduleTypeTimer,
 		ScheduleValue: "5s", // Generate every 5 seconds
-		Concurrency:  1,
+		Concurrency:   1,
 		Properties: map[string]string{
 			"File Size":        "512",
 			"Content":          "Sample data from DataBridge",
@@ -342,12 +342,12 @@ func setupExampleFlow(flowController *core.FlowController, log *logrus.Logger) e
 	// Create a LogAttribute processor (we'll implement this as a simple example)
 	logProcessor := &SimpleLogProcessor{}
 	logConfig := types.ProcessorConfig{
-		ID:           uuid.New(),
-		Name:         "Log Attributes",
-		Type:         "LogAttribute",
-		ScheduleType: types.ScheduleTypeEvent, // Event-driven
+		ID:            uuid.New(),
+		Name:          "Log Attributes",
+		Type:          "LogAttribute",
+		ScheduleType:  types.ScheduleTypeEvent, // Event-driven
 		ScheduleValue: "0s",
-		Concurrency:  1,
+		Concurrency:   1,
 		Properties: map[string]string{
 			"Log Level": "INFO",
 		},
@@ -399,10 +399,10 @@ func init() {
 		Tags:        []string{"logging", "debug", "attributes"},
 		Properties: []types.PropertySpec{
 			{
-				Name:         "Log Level",
-				Description:  "Log level for output",
-				Required:     false,
-				DefaultValue: "INFO",
+				Name:          "Log Level",
+				Description:   "Log level for output",
+				Required:      false,
+				DefaultValue:  "INFO",
 				AllowedValues: []string{"DEBUG", "INFO", "WARN", "ERROR"},
 			},
 		},
@@ -430,10 +430,10 @@ func (p *SimpleLogProcessor) GetInfo() types.ProcessorInfo {
 		Tags:        []string{"logging", "debug", "attributes"},
 		Properties: []types.PropertySpec{
 			{
-				Name:         "Log Level",
-				Description:  "Log level for output",
-				Required:     false,
-				DefaultValue: "INFO",
+				Name:          "Log Level",
+				Description:   "Log level for output",
+				Required:      false,
+				DefaultValue:  "INFO",
 				AllowedValues: []string{"DEBUG", "INFO", "WARN", "ERROR"},
 			},
 		},
@@ -521,7 +521,6 @@ func (p *SimpleLogProcessor) OnStopped(ctx context.Context) {
 	// No cleanup needed
 }
 
-
 // Helper function for min
 func min(a, b int) int {
 	if a < b {
@@ -529,4 +528,3 @@ func min(a, b int) int {
 	}
 	return b
 }
-

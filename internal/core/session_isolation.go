@@ -13,41 +13,41 @@ import (
 
 // TenantContext represents a tenant's isolation context
 type TenantContext struct {
-	TenantID    string
-	Name        string
-	Namespace   string
-	Metadata    map[string]string
-	CreatedAt   time.Time
+	TenantID      string
+	Name          string
+	Namespace     string
+	Metadata      map[string]string
+	CreatedAt     time.Time
 	ResourceQuota ResourceQuota
-	Enabled     bool
+	Enabled       bool
 }
 
 // ResourceQuota defines resource limits for a tenant
 type ResourceQuota struct {
-	MaxSessions      int
-	MaxFlowFiles     int
-	MaxContentSize   int64
-	MaxProcessors    int
-	MaxConnections   int
-	RateLimitPerSec  int
+	MaxSessions     int
+	MaxFlowFiles    int
+	MaxContentSize  int64
+	MaxProcessors   int
+	MaxConnections  int
+	RateLimitPerSec int
 }
 
 // IsolatedSession wraps ProcessSession with tenant isolation
 type IsolatedSession struct {
 	*ProcessSessionImpl
-	tenantID    string
-	namespace   string
+	tenantID     string
+	namespace    string
 	isolationMgr *SessionIsolationManager
 }
 
 // SessionIsolationManager manages multi-tenant session isolation
 type SessionIsolationManager struct {
-	mu                sync.RWMutex
-	tenants           map[string]*TenantContext
-	tenantSessions    map[string]map[uuid.UUID]*IsolatedSession
-	tenantRepos       map[string]*TenantRepositories
-	defaultQuota      ResourceQuota
-	isolationEnabled  bool
+	mu               sync.RWMutex
+	tenants          map[string]*TenantContext
+	tenantSessions   map[string]map[uuid.UUID]*IsolatedSession
+	tenantRepos      map[string]*TenantRepositories
+	defaultQuota     ResourceQuota
+	isolationEnabled bool
 }
 
 // TenantRepositories holds isolated repositories for a tenant
@@ -197,12 +197,14 @@ func (m *SessionIsolationManager) CreateIsolatedSession(
 	}
 
 	// Create base session with tenant's isolated repositories
+	// Note: processorNode is nil for isolated sessions as they may not be tied to a specific processor
 	baseSession := NewProcessSession(
 		repos.flowFileRepo,
 		repos.contentRepo,
 		repos.provenanceRepo,
 		logger,
 		ctx,
+		nil, // processorNode - not available in isolation context
 		inputQueues,
 		outputConnections,
 	)
@@ -210,9 +212,9 @@ func (m *SessionIsolationManager) CreateIsolatedSession(
 	// Wrap with isolation
 	isolatedSession := &IsolatedSession{
 		ProcessSessionImpl: baseSession,
-		tenantID:          tenantID,
-		namespace:         tenant.Namespace,
-		isolationMgr:      m,
+		tenantID:           tenantID,
+		namespace:          tenant.Namespace,
+		isolationMgr:       m,
 	}
 
 	// Track session
@@ -398,7 +400,7 @@ func (s *IsolatedSession) Commit() error {
 	}
 
 	// Close session from isolation manager
-	s.isolationMgr.CloseSession(s.tenantID, s.id)
+	_ = s.isolationMgr.CloseSession(s.tenantID, s.id)
 
 	return nil
 }
@@ -408,7 +410,7 @@ func (s *IsolatedSession) Rollback() {
 	s.ProcessSessionImpl.Rollback()
 
 	// Close session from isolation manager
-	s.isolationMgr.CloseSession(s.tenantID, s.id)
+	_ = s.isolationMgr.CloseSession(s.tenantID, s.id)
 }
 
 // ValidateTenantAccess validates that a FlowFile belongs to this tenant

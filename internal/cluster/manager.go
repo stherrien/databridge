@@ -87,10 +87,10 @@ func NewClusterManager(config ClusterConfig, logger *logrus.Logger) (*ClusterMan
 
 	// Initialize coordinator (Raft-based)
 	coordinatorConfig := CoordinatorConfig{
-		NodeID:          config.NodeID,
-		BindAddress:     config.BindAddress,
-		BindPort:        config.BindPort,
-		ElectionTimeout: config.ElectionTimeout,
+		NodeID:           config.NodeID,
+		BindAddress:      config.BindAddress,
+		BindPort:         config.BindPort,
+		ElectionTimeout:  config.ElectionTimeout,
 		HeartbeatTimeout: config.HeartbeatTimeout,
 	}
 	coordinator, err := NewCoordinator(coordinatorConfig, logger)
@@ -116,11 +116,11 @@ func NewClusterManager(config ClusterConfig, logger *logrus.Logger) (*ClusterMan
 
 	// Register local node
 	localNode := &ClusterNode{
-		ID:      config.NodeID,
-		Address: config.BindAddress,
-		Port:    config.BindPort,
-		Role:    RoleWorker, // Start as worker, election will determine primary
-		State:   StateHealthy,
+		ID:            config.NodeID,
+		Address:       config.BindAddress,
+		Port:          config.BindPort,
+		Role:          RoleWorker, // Start as worker, election will determine primary
+		State:         StateHealthy,
 		LastHeartbeat: time.Now(),
 		Metadata: map[string]string{
 			"version": "1.0.0",
@@ -173,8 +173,16 @@ func (cm *ClusterManager) Start() error {
 		return fmt.Errorf("failed to start discovery: %w", err)
 	}
 
+	// Create a copy of nodes map for health checker to avoid data race
+	cm.mu.Lock()
+	nodesCopy := make(map[string]*ClusterNode, len(cm.nodes))
+	for k, v := range cm.nodes {
+		nodesCopy[k] = v
+	}
+	cm.mu.Unlock()
+
 	// Start health checker
-	if err := cm.healthChecker.Start(cm.ctx, cm.nodes, cm.onHealthCheckFailed); err != nil {
+	if err := cm.healthChecker.Start(cm.ctx, nodesCopy, cm.onHealthCheckFailed); err != nil {
 		return fmt.Errorf("failed to start health checker: %w", err)
 	}
 
@@ -392,10 +400,10 @@ func (cm *ClusterManager) GetStatistics() *ClusterStatistics {
 	defer cm.mu.RUnlock()
 
 	stats := &ClusterStatistics{
-		TotalNodes:   len(cm.nodes),
-		Leader:       cm.GetLeader(),
-		NodeStats:    make(map[string]*NodeStats),
-		LastUpdated:  time.Now(),
+		TotalNodes:  len(cm.nodes),
+		Leader:      cm.GetLeader(),
+		NodeStats:   make(map[string]*NodeStats),
+		LastUpdated: time.Now(),
 	}
 
 	// Count healthy nodes and calculate average load
@@ -560,11 +568,11 @@ func (cm *ClusterManager) calculateLoad() *NodeLoad {
 	// This is a simplified load calculation
 	// In production, would integrate with actual system metrics
 	return &NodeLoad{
-		CPUUsage:         0.0,  // Would get from runtime
-		MemoryUsage:      0.0,  // Would get from runtime
-		ActiveProcessors: 0,    // Would get from flow controller
-		QueueDepth:       0,    // Would get from queues
-		Score:            0.0,  // Composite score
+		CPUUsage:         0.0, // Would get from runtime
+		MemoryUsage:      0.0, // Would get from runtime
+		ActiveProcessors: 0,   // Would get from flow controller
+		QueueDepth:       0,   // Would get from queues
+		Score:            0.0, // Composite score
 		LastUpdated:      time.Now(),
 	}
 }

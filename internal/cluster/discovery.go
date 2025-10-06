@@ -12,12 +12,12 @@ import (
 
 // Discovery handles node discovery in the cluster
 type Discovery struct {
-	config         DiscoveryConfig
+	config          DiscoveryConfig
 	discoveredNodes map[string]*ClusterNode
-	logger         *logrus.Logger
-	mu             sync.RWMutex
-	running        bool
-	callback       func(*ClusterNode)
+	logger          *logrus.Logger
+	mu              sync.RWMutex
+	running         bool
+	callback        func(*ClusterNode)
 }
 
 // DiscoveryConfig holds discovery configuration
@@ -346,7 +346,9 @@ func (d *Discovery) SetSeeds(seeds []string) error {
 
 	// Re-discover with new seeds
 	if d.running {
-		go d.discover()
+		go func() {
+			_ = d.discover() // Error logged inside discover()
+		}()
 	}
 
 	return nil
@@ -388,11 +390,11 @@ func (d *Discovery) GetStatistics() *DiscoveryStatistics {
 	defer d.mu.RUnlock()
 
 	stats := &DiscoveryStatistics{
-		Method:         d.config.Method,
+		Method:          d.config.Method,
 		DiscoveredNodes: len(d.discoveredNodes),
-		SeedNodes:      len(d.config.Seeds),
-		LastDiscovery:  time.Now(),
-		Nodes:          make([]string, 0, len(d.discoveredNodes)),
+		SeedNodes:       len(d.config.Seeds),
+		LastDiscovery:   time.Now(),
+		Nodes:           make([]string, 0, len(d.discoveredNodes)),
 	}
 
 	for nodeID := range d.discoveredNodes {

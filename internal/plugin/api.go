@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -271,10 +270,14 @@ func (h *PluginAPIHandler) HandleUploadPlugin(w http.ResponseWriter, r *http.Req
 		respondError(w, http.StatusBadRequest, "No plugin file provided")
 		return
 	}
-	defer file.Close()
+	defer func() {
+		if closeErr := file.Close(); closeErr != nil {
+			h.logger.WithError(closeErr).Warn("Failed to close uploaded file")
+		}
+	}()
 
 	// Create temporary directory for plugin
-	tempDir, err := ioutil.TempDir(h.pluginManager.Registry.pluginDir, "upload-*")
+	tempDir, err := os.MkdirTemp(h.pluginManager.Registry.pluginDir, "upload-*")
 	if err != nil {
 		respondError(w, http.StatusInternalServerError, "Failed to create temporary directory")
 		return
@@ -282,16 +285,21 @@ func (h *PluginAPIHandler) HandleUploadPlugin(w http.ResponseWriter, r *http.Req
 
 	// Save uploaded file
 	destPath := filepath.Join(tempDir, header.Filename)
+	// #nosec G304 - destPath is constructed from temp directory and sanitized filename
 	destFile, err := os.Create(destPath)
 	if err != nil {
-		os.RemoveAll(tempDir)
+		_ = os.RemoveAll(tempDir) // Best effort cleanup
 		respondError(w, http.StatusInternalServerError, "Failed to save file")
 		return
 	}
-	defer destFile.Close()
+	defer func() {
+		if err := destFile.Close(); err != nil {
+			h.logger.WithError(err).Warn("Failed to close destination file")
+		}
+	}()
 
 	if _, err := io.Copy(destFile, file); err != nil {
-		os.RemoveAll(tempDir)
+		_ = os.RemoveAll(tempDir) // Best effort cleanup
 		respondError(w, http.StatusInternalServerError, "Failed to save file")
 		return
 	}
@@ -301,7 +309,7 @@ func (h *PluginAPIHandler) HandleUploadPlugin(w http.ResponseWriter, r *http.Req
 	if validate {
 		result := h.pluginManager.Validator.Validate(tempDir)
 		if !result.Valid {
-			os.RemoveAll(tempDir)
+			_ = os.RemoveAll(tempDir) // Best effort cleanup
 			respondJSON(w, http.StatusBadRequest, map[string]interface{}{
 				"message": "Plugin validation failed",
 				"result":  result,
@@ -312,7 +320,7 @@ func (h *PluginAPIHandler) HandleUploadPlugin(w http.ResponseWriter, r *http.Req
 
 	// Load plugin
 	if err := h.pluginManager.Loader.LoadFromDirectory(tempDir); err != nil {
-		os.RemoveAll(tempDir)
+		_ = os.RemoveAll(tempDir) // Best effort cleanup
 		respondError(w, http.StatusInternalServerError, fmt.Sprintf("Failed to load plugin: %v", err))
 		return
 	}
@@ -379,7 +387,7 @@ func (h *PluginAPIHandler) HandleListBuiltInProcessors(w http.ResponseWriter, r 
 func respondJSON(w http.ResponseWriter, status int, data interface{}) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(status)
-	json.NewEncoder(w).Encode(data)
+	_ = json.NewEncoder(w).Encode(data) // Best effort encoding
 }
 
 func respondError(w http.ResponseWriter, status int, message string) {

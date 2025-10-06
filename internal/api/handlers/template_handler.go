@@ -206,8 +206,8 @@ func (h *TemplateHandler) InstantiateTemplate(c *gin.Context) {
 	}
 
 	var req InstantiateTemplateRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+	if bindErr := c.ShouldBindJSON(&req); bindErr != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": bindErr.Error()})
 		return
 	}
 

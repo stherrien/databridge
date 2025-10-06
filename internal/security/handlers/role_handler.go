@@ -21,10 +21,10 @@ func NewRoleHandler(authManager *security.AuthManager) *RoleHandler {
 
 // RoleDTO represents a role data transfer object
 type RoleDTO struct {
-	ID          string                  `json:"id"`
-	Name        string                  `json:"name"`
-	Description string                  `json:"description"`
-	Permissions []security.Permission   `json:"permissions"`
+	ID          string                `json:"id"`
+	Name        string                `json:"name"`
+	Description string                `json:"description"`
+	Permissions []security.Permission `json:"permissions"`
 }
 
 // CreateRoleRequest represents a role creation request

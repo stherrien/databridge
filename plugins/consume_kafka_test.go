@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/IBM/sarama"
+	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 
@@ -40,18 +41,32 @@ func (m *MockConsumeKafkaProcessorContext) GetLogger() types.Logger {
 	return args.Get(0).(types.Logger)
 }
 
+func (m *MockConsumeKafkaProcessorContext) GetProperty(name string) (string, bool) {
+	if m.properties != nil {
+		val, exists := m.properties[name]
+		return val, exists
+	}
+	args := m.Called(name)
+	return args.String(0), args.Bool(1)
+}
+
+func (m *MockConsumeKafkaProcessorContext) GetProcessorConfig() types.ProcessorConfig {
+	args := m.Called()
+	if config := args.Get(0); config != nil {
+		return config.(types.ProcessorConfig)
+	}
+	return types.ProcessorConfig{}
+}
+
 // MockLogger for testing
 type MockConsumeKafkaLogger struct {
 	mock.Mock
 }
 
-func (m *MockConsumeKafkaLogger) Debug(args ...interface{})                            { m.Called(args...) }
-func (m *MockConsumeKafkaLogger) Info(args ...interface{})                             { m.Called(args...) }
-func (m *MockConsumeKafkaLogger) Warn(args ...interface{})                             { m.Called(args...) }
-func (m *MockConsumeKafkaLogger) Error(args ...interface{})                            { m.Called(args...) }
-func (m *MockConsumeKafkaLogger) WithError(err error) types.Logger                     { return m }
-func (m *MockConsumeKafkaLogger) WithField(key string, value interface{}) types.Logger { return m }
-func (m *MockConsumeKafkaLogger) WithFields(fields map[string]interface{}) types.Logger { return m }
+func (m *MockConsumeKafkaLogger) Debug(msg string, args ...interface{}) { m.Called(msg, args) }
+func (m *MockConsumeKafkaLogger) Info(msg string, args ...interface{})  { m.Called(msg, args) }
+func (m *MockConsumeKafkaLogger) Warn(msg string, args ...interface{})  { m.Called(msg, args) }
+func (m *MockConsumeKafkaLogger) Error(msg string, args ...interface{}) { m.Called(msg, args) }
 
 // MockProcessSession for testing
 type MockConsumeKafkaProcessSession struct {
@@ -69,9 +84,11 @@ func (m *MockConsumeKafkaProcessSession) Get() *types.FlowFile {
 
 func (m *MockConsumeKafkaProcessSession) Create() *types.FlowFile {
 	ff := &types.FlowFile{
-		ID:         "test-flowfile-" + time.Now().Format("20060102150405"),
+		ID:         uuid.New(),
 		Attributes: make(map[string]string),
 		Size:       0,
+		CreatedAt:  time.Now(),
+		UpdatedAt:  time.Now(),
 	}
 	m.flowFiles = append(m.flowFiles, ff)
 	return ff
@@ -99,16 +116,30 @@ func (m *MockConsumeKafkaProcessSession) Remove(flowFile *types.FlowFile) {
 	m.Called(flowFile)
 }
 
-func (m *MockConsumeKafkaProcessSession) PutAttribute(flowFile *types.FlowFile, key, value string) *types.FlowFile {
-	flowFile.Attributes[key] = value
-	return flowFile
+func (m *MockConsumeKafkaProcessSession) Clone(original *types.FlowFile) *types.FlowFile {
+	clone := original.Clone()
+	m.flowFiles = append(m.flowFiles, clone)
+	return clone
 }
 
-func (m *MockConsumeKafkaProcessSession) PutAllAttributes(flowFile *types.FlowFile, attrs map[string]string) *types.FlowFile {
+func (m *MockConsumeKafkaProcessSession) CreateChild(parent *types.FlowFile) *types.FlowFile {
+	child := types.NewFlowFileBuilder().WithParent(parent).Build()
+	m.flowFiles = append(m.flowFiles, child)
+	return child
+}
+
+func (m *MockConsumeKafkaProcessSession) PutAttribute(flowFile *types.FlowFile, key, value string) {
+	flowFile.Attributes[key] = value
+}
+
+func (m *MockConsumeKafkaProcessSession) RemoveAttribute(flowFile *types.FlowFile, key string) {
+	delete(flowFile.Attributes, key)
+}
+
+func (m *MockConsumeKafkaProcessSession) PutAllAttributes(flowFile *types.FlowFile, attrs map[string]string) {
 	for k, v := range attrs {
 		flowFile.Attributes[k] = v
 	}
-	return flowFile
 }
 
 func (m *MockConsumeKafkaProcessSession) Commit() error {
@@ -118,6 +149,22 @@ func (m *MockConsumeKafkaProcessSession) Commit() error {
 
 func (m *MockConsumeKafkaProcessSession) Rollback() {
 	m.Called()
+}
+
+func (m *MockConsumeKafkaProcessSession) GetBatch(maxResults int) []*types.FlowFile {
+	args := m.Called(maxResults)
+	if ffs := args.Get(0); ffs != nil {
+		return ffs.([]*types.FlowFile)
+	}
+	return nil
+}
+
+func (m *MockConsumeKafkaProcessSession) GetLogger() types.Logger {
+	args := m.Called()
+	if logger := args.Get(0); logger != nil {
+		return logger.(types.Logger)
+	}
+	return &MockConsumeKafkaLogger{}
 }
 
 func TestNewConsumeKafkaProcessor(t *testing.T) {
@@ -150,7 +197,7 @@ func TestConsumeKafkaProcessor_InitializeSuccess(t *testing.T) {
 	}
 
 	mockLogger := &MockConsumeKafkaLogger{}
-	mockLogger.On("Info", mock.Anything)
+	mockLogger.On("Info", mock.Anything, mock.Anything)
 	mockLogger.On("WithFields", mock.Anything).Return(mockLogger)
 	mockCtx.On("GetLogger").Return(mockLogger)
 
@@ -176,7 +223,7 @@ func TestConsumeKafkaProcessor_InitializeMissingBrokers(t *testing.T) {
 	}
 
 	mockLogger := &MockConsumeKafkaLogger{}
-	mockLogger.On("Info", mock.Anything)
+	mockLogger.On("Info", mock.Anything, mock.Anything)
 	mockCtx.On("GetLogger").Return(mockLogger)
 
 	err := processor.Initialize(mockCtx)
@@ -196,7 +243,7 @@ func TestConsumeKafkaProcessor_InitializeMissingTopics(t *testing.T) {
 	}
 
 	mockLogger := &MockConsumeKafkaLogger{}
-	mockLogger.On("Info", mock.Anything)
+	mockLogger.On("Info", mock.Anything, mock.Anything)
 	mockCtx.On("GetLogger").Return(mockLogger)
 
 	err := processor.Initialize(mockCtx)
@@ -216,7 +263,7 @@ func TestConsumeKafkaProcessor_InitializeMissingGroupID(t *testing.T) {
 	}
 
 	mockLogger := &MockConsumeKafkaLogger{}
-	mockLogger.On("Info", mock.Anything)
+	mockLogger.On("Info", mock.Anything, mock.Anything)
 	mockCtx.On("GetLogger").Return(mockLogger)
 
 	err := processor.Initialize(mockCtx)
@@ -238,7 +285,7 @@ func TestConsumeKafkaProcessor_InitializeInvalidAutoCommitInterval(t *testing.T)
 	}
 
 	mockLogger := &MockConsumeKafkaLogger{}
-	mockLogger.On("Info", mock.Anything)
+	mockLogger.On("Info", mock.Anything, mock.Anything)
 	mockCtx.On("GetLogger").Return(mockLogger)
 
 	err := processor.Initialize(mockCtx)
@@ -250,7 +297,7 @@ func TestConsumeKafkaProcessor_InitializeInvalidAutoCommitInterval(t *testing.T)
 func TestConsumeKafkaProcessor_ProcessMessage(t *testing.T) {
 	mockSession := &MockConsumeKafkaProcessSession{}
 	mockLogger := &MockConsumeKafkaLogger{}
-	mockLogger.On("Debug", mock.Anything)
+	mockLogger.On("Debug", mock.Anything, mock.Anything)
 	mockLogger.On("WithFields", mock.Anything).Return(mockLogger)
 
 	handler := &consumerGroupHandler{
@@ -273,7 +320,6 @@ func TestConsumeKafkaProcessor_ProcessMessage(t *testing.T) {
 
 	// Setup mocks
 	mockSession.On("Write", mock.AnythingOfType("*types.FlowFile"), kafkaMsg.Value).Return(nil)
-	mockSession.On("PutAllAttributes", mock.AnythingOfType("*types.FlowFile"), mock.Anything).Return(&types.FlowFile{})
 	mockSession.On("Transfer", mock.AnythingOfType("*types.FlowFile"), types.RelationshipSuccess)
 
 	// Create mock consumer group session

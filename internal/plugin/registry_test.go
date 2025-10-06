@@ -4,8 +4,8 @@ import (
 	"context"
 	"testing"
 
-	"github.com/sirupsen/logrus"
 	"github.com/shawntherrien/databridge/pkg/types"
+	"github.com/sirupsen/logrus"
 )
 
 func TestNewPluginRegistry(t *testing.T) {
@@ -130,8 +130,8 @@ func TestListPlugins(t *testing.T) {
 	// Register multiple processors
 	for i := 1; i <= 3; i++ {
 		info := PluginInfo{
-			ID:   string(rune('a' + i - 1)) + "-processor",
-			Name: "Processor " + string(rune('0' + i)),
+			ID:   string(rune('a'+i-1)) + "-processor",
+			Name: "Processor " + string(rune('0'+i)),
 		}
 
 		factory := func() types.Processor {

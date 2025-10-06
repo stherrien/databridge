@@ -249,7 +249,7 @@ func TestHealthStatusWithDegradedState(t *testing.T) {
 	require.NoError(t, err)
 
 	// Try to start it (should fail validation)
-	err = fc.StartProcessor(proc.ID)
+	_ = fc.StartProcessor(proc.ID)
 	// Validation should fail but we don't check the error here
 
 	req := httptest.NewRequest(http.MethodGet, "/api/system/health", nil)

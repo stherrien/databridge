@@ -1,14 +1,19 @@
 package core
 
 import (
+	"bytes"
 	"context"
 	"io"
 	"testing"
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/sirupsen/logrus"
 	"github.com/shawntherrien/databridge/pkg/types"
+	"github.com/sirupsen/logrus"
+)
+
+const (
+	testValue = "value"
 )
 
 // Mock processor for testing
@@ -133,6 +138,10 @@ func (r *mockFlowFileRepository) Close() error {
 	return nil
 }
 
+func (r *mockFlowFileRepository) Count() (int, error) {
+	return len(r.flowFiles), nil
+}
+
 type mockContentRepository struct {
 	content map[uuid.UUID][]byte
 }
@@ -190,6 +199,33 @@ func (r *mockContentRepository) Close() error {
 	return nil
 }
 
+func (r *mockContentRepository) ListClaims() ([]*types.ContentClaim, error) {
+	claims := make([]*types.ContentClaim, 0, len(r.content))
+	for id, content := range r.content {
+		claims = append(claims, &types.ContentClaim{
+			ID:        id,
+			Container: "mock",
+			Section:   "test",
+			Offset:    0,
+			Length:    int64(len(content)),
+			RefCount:  1,
+		})
+	}
+	return claims, nil
+}
+
+func (r *mockContentRepository) Read(claim *types.ContentClaim) (io.ReadCloser, error) {
+	if content, exists := r.content[claim.ID]; exists {
+		return io.NopCloser(bytes.NewReader(content)), nil
+	}
+	return nil, TestError{message: "Content not found"}
+}
+
+func (r *mockContentRepository) Write(claim *types.ContentClaim, data []byte) error {
+	r.content[claim.ID] = data
+	return nil
+}
+
 func TestNewFlowController(t *testing.T) {
 	logger := logrus.New()
 	logger.SetLevel(logrus.ErrorLevel) // Reduce noise in tests
@@ -234,12 +270,12 @@ func TestFlowControllerAddProcessor(t *testing.T) {
 
 	processor := newMockTestProcessor(false)
 	config := types.ProcessorConfig{
-		ID:           uuid.New(),
-		Name:         "Test Processor",
-		Type:         "MockTestProcessor",
-		ScheduleType: types.ScheduleTypeTimer,
+		ID:            uuid.New(),
+		Name:          "Test Processor",
+		Type:          "MockTestProcessor",
+		ScheduleType:  types.ScheduleTypeTimer,
 		ScheduleValue: "5s",
-		Concurrency:  1,
+		Concurrency:   1,
 		Properties: map[string]string{
 			"test-prop": "test-value",
 		},
@@ -413,12 +449,12 @@ func TestFlowControllerProcessorLifecycle(t *testing.T) {
 
 	processor := newMockTestProcessor(false)
 	config := types.ProcessorConfig{
-		ID:           uuid.New(),
-		Name:         "Test Processor",
-		Type:         "MockTestProcessor",
-		ScheduleType: types.ScheduleTypeTimer,
+		ID:            uuid.New(),
+		Name:          "Test Processor",
+		Type:          "MockTestProcessor",
+		ScheduleType:  types.ScheduleTypeTimer,
 		ScheduleValue: "1s",
-		Concurrency:  1,
+		Concurrency:   1,
 		Properties: map[string]string{
 			"test-prop": "test-value",
 		},
@@ -481,13 +517,13 @@ func TestFlowControllerProcessorValidation(t *testing.T) {
 	// Create processor that fails validation
 	processor := newMockTestProcessor(true)
 	config := types.ProcessorConfig{
-		ID:           uuid.New(),
-		Name:         "Failing Processor",
-		Type:         "MockTestProcessor",
-		ScheduleType: types.ScheduleTypeTimer,
+		ID:            uuid.New(),
+		Name:          "Failing Processor",
+		Type:          "MockTestProcessor",
+		ScheduleType:  types.ScheduleTypeTimer,
 		ScheduleValue: "1s",
-		Concurrency:  1,
-		Properties:   make(map[string]string), // Empty properties might cause validation to fail
+		Concurrency:   1,
+		Properties:    make(map[string]string), // Empty properties might cause validation to fail
 	}
 
 	node, _ := fc.AddProcessor(processor, config)
@@ -586,8 +622,8 @@ func TestFlowControllerCreateProcessSession(t *testing.T) {
 		t.Error("Session should be able to create FlowFiles")
 	}
 
-	session.PutAttribute(flowFile, "test", "value")
-	if flowFile.Attributes["test"] != "value" {
+	session.PutAttribute(flowFile, "test", testValue)
+	if flowFile.Attributes["test"] != testValue {
 		t.Error("Session should be able to set attributes")
 	}
 }

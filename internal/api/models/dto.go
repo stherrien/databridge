@@ -23,14 +23,14 @@ type SuccessResponse struct {
 
 // ProcessGroupDTO represents a process group (flow)
 type ProcessGroupDTO struct {
-	ID          uuid.UUID                  `json:"id"`
-	Name        string                     `json:"name"`
-	ParentID    *uuid.UUID                 `json:"parentId,omitempty"`
-	Children    []ProcessGroupDTO          `json:"children,omitempty"`
-	Processors  []ProcessorDTO             `json:"processors,omitempty"`
-	Connections []ConnectionDTO            `json:"connections,omitempty"`
-	CreatedAt   time.Time                  `json:"createdAt,omitempty"`
-	UpdatedAt   time.Time                  `json:"updatedAt,omitempty"`
+	ID          uuid.UUID         `json:"id"`
+	Name        string            `json:"name"`
+	ParentID    *uuid.UUID        `json:"parentId,omitempty"`
+	Children    []ProcessGroupDTO `json:"children,omitempty"`
+	Processors  []ProcessorDTO    `json:"processors,omitempty"`
+	Connections []ConnectionDTO   `json:"connections,omitempty"`
+	CreatedAt   time.Time         `json:"createdAt,omitempty"`
+	UpdatedAt   time.Time         `json:"updatedAt,omitempty"`
 }
 
 // ProcessGroupStatusDTO represents the status of a process group
@@ -63,17 +63,17 @@ type UpdateProcessGroupRequest struct {
 
 // ProcessorDTO represents a processor with its configuration
 type ProcessorDTO struct {
-	ID            uuid.UUID         `json:"id"`
-	Name          string            `json:"name"`
-	Type          string            `json:"type"`
-	State         string            `json:"state"`
-	Properties    map[string]string `json:"properties"`
-	ScheduleType  string            `json:"scheduleType"`
-	ScheduleValue string            `json:"scheduleValue"`
-	Concurrency   int               `json:"concurrency"`
-	AutoTerminate map[string]bool   `json:"autoTerminate"`
-	Position      *PositionDTO      `json:"position,omitempty"`
-	ProcessGroupID *uuid.UUID       `json:"processGroupId,omitempty"`
+	ID             uuid.UUID         `json:"id"`
+	Name           string            `json:"name"`
+	Type           string            `json:"type"`
+	State          string            `json:"state"`
+	Properties     map[string]string `json:"properties"`
+	ScheduleType   string            `json:"scheduleType"`
+	ScheduleValue  string            `json:"scheduleValue"`
+	Concurrency    int               `json:"concurrency"`
+	AutoTerminate  map[string]bool   `json:"autoTerminate"`
+	Position       *PositionDTO      `json:"position,omitempty"`
+	ProcessGroupID *uuid.UUID        `json:"processGroupId,omitempty"`
 }
 
 // PositionDTO represents the position of a component on the canvas
@@ -84,19 +84,19 @@ type PositionDTO struct {
 
 // ProcessorStatusDTO represents the status of a processor
 type ProcessorStatusDTO struct {
-	ID                  uuid.UUID `json:"id"`
-	Name                string    `json:"name"`
-	Type                string    `json:"type"`
-	State               string    `json:"state"`
-	FlowFilesIn         int64     `json:"flowFilesIn"`
-	FlowFilesOut        int64     `json:"flowFilesOut"`
-	BytesIn             int64     `json:"bytesIn"`
-	BytesOut            int64     `json:"bytesOut"`
-	TasksCompleted      int64     `json:"tasksCompleted"`
-	TasksRunning        int       `json:"tasksRunning"`
-	AverageTaskTime     string    `json:"averageTaskTime"`
-	LastRun             time.Time `json:"lastRun"`
-	ValidationErrors    []string  `json:"validationErrors,omitempty"`
+	ID               uuid.UUID `json:"id"`
+	Name             string    `json:"name"`
+	Type             string    `json:"type"`
+	State            string    `json:"state"`
+	FlowFilesIn      int64     `json:"flowFilesIn"`
+	FlowFilesOut     int64     `json:"flowFilesOut"`
+	BytesIn          int64     `json:"bytesIn"`
+	BytesOut         int64     `json:"bytesOut"`
+	TasksCompleted   int64     `json:"tasksCompleted"`
+	TasksRunning     int       `json:"tasksRunning"`
+	AverageTaskTime  string    `json:"averageTaskTime"`
+	LastRun          time.Time `json:"lastRun"`
+	ValidationErrors []string  `json:"validationErrors,omitempty"`
 }
 
 // CreateProcessorRequest represents a request to create a processor
@@ -114,25 +114,25 @@ type CreateProcessorRequest struct {
 
 // UpdateProcessorRequest represents a request to update a processor
 type UpdateProcessorRequest struct {
-	Name          *string            `json:"name,omitempty"`
-	Properties    map[string]string  `json:"properties,omitempty"`
-	ScheduleType  *string            `json:"scheduleType,omitempty"`
-	ScheduleValue *string            `json:"scheduleValue,omitempty"`
-	Concurrency   *int               `json:"concurrency,omitempty"`
-	AutoTerminate map[string]bool    `json:"autoTerminate,omitempty"`
-	Position      *PositionDTO       `json:"position,omitempty"`
+	Name          *string           `json:"name,omitempty"`
+	Properties    map[string]string `json:"properties,omitempty"`
+	ScheduleType  *string           `json:"scheduleType,omitempty"`
+	ScheduleValue *string           `json:"scheduleValue,omitempty"`
+	Concurrency   *int              `json:"concurrency,omitempty"`
+	AutoTerminate map[string]bool   `json:"autoTerminate,omitempty"`
+	Position      *PositionDTO      `json:"position,omitempty"`
 }
 
 // ProcessorInfoDTO represents detailed information about a processor type
 type ProcessorInfoDTO struct {
-	Name          string                  `json:"name"`
-	Type          string                  `json:"type"`
-	Description   string                  `json:"description"`
-	Version       string                  `json:"version"`
-	Author        string                  `json:"author"`
-	Tags          []string                `json:"tags"`
-	Properties    []PropertySpecDTO       `json:"properties"`
-	Relationships []RelationshipDTO       `json:"relationships"`
+	Name          string            `json:"name"`
+	Type          string            `json:"type"`
+	Description   string            `json:"description"`
+	Version       string            `json:"version"`
+	Author        string            `json:"author"`
+	Tags          []string          `json:"tags"`
+	Properties    []PropertySpecDTO `json:"properties"`
+	Relationships []RelationshipDTO `json:"relationships"`
 }
 
 // PropertySpecDTO represents a processor property specification
@@ -155,13 +155,13 @@ type RelationshipDTO struct {
 
 // ConnectionDTO represents a connection between processors
 type ConnectionDTO struct {
-	ID               uuid.UUID `json:"id"`
-	Name             string    `json:"name"`
-	SourceID         uuid.UUID `json:"sourceId"`
-	DestinationID    uuid.UUID `json:"destinationId"`
-	Relationship     string    `json:"relationship"`
-	BackPressureSize int64     `json:"backPressureSize"`
-	QueuedCount      int64     `json:"queuedCount"`
+	ID               uuid.UUID  `json:"id"`
+	Name             string     `json:"name"`
+	SourceID         uuid.UUID  `json:"sourceId"`
+	DestinationID    uuid.UUID  `json:"destinationId"`
+	Relationship     string     `json:"relationship"`
+	BackPressureSize int64      `json:"backPressureSize"`
+	QueuedCount      int64      `json:"queuedCount"`
 	ProcessGroupID   *uuid.UUID `json:"processGroupId,omitempty"`
 }
 

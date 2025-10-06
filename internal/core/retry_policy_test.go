@@ -57,8 +57,8 @@ func TestDefaultRetryConfig(t *testing.T) {
 
 func TestRetryPolicy_ShouldRetry(t *testing.T) {
 	config := RetryConfig{
-		MaxAttempts:       3,
-		RetryableErrors:   []string{".*timeout.*", ".*connection.*refused.*"},
+		MaxAttempts:     3,
+		RetryableErrors: []string{".*timeout.*", ".*connection.*refused.*"},
 	}
 
 	policy, err := NewRetryPolicy(config)
@@ -402,7 +402,7 @@ func TestRetryQueue_Dequeue_MaxItems(t *testing.T) {
 	// Enqueue multiple items
 	for i := 0; i < 5; i++ {
 		ff := types.NewFlowFile()
-		rq.Enqueue(ff, errors.New(fmt.Sprintf("error %d", i)))
+		rq.Enqueue(ff, fmt.Errorf("error %d", i))
 	}
 
 	// Wait for all to be ready
@@ -443,7 +443,7 @@ func TestRetryQueue_Clear(t *testing.T) {
 	// Add multiple items
 	for i := 0; i < 5; i++ {
 		ff := types.NewFlowFile()
-		rq.Enqueue(ff, errors.New(fmt.Sprintf("error %d", i)))
+		rq.Enqueue(ff, fmt.Errorf("error %d", i))
 	}
 
 	assert.Equal(t, 5, rq.Size())
@@ -483,7 +483,7 @@ func TestRetryQueue_GetReadyCount(t *testing.T) {
 	// Add items
 	for i := 0; i < 3; i++ {
 		ff := types.NewFlowFile()
-		rq.Enqueue(ff, errors.New(fmt.Sprintf("error %d", i)))
+		rq.Enqueue(ff, fmt.Errorf("error %d", i))
 	}
 
 	// None should be ready immediately
@@ -539,7 +539,7 @@ func TestRetryQueue_GetInfo(t *testing.T) {
 	// Add items
 	for i := 0; i < 3; i++ {
 		ff := types.NewFlowFile()
-		rq.Enqueue(ff, errors.New(fmt.Sprintf("error %d", i)))
+		rq.Enqueue(ff, fmt.Errorf("error %d", i))
 	}
 
 	info := rq.GetInfo()

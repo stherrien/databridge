@@ -8,8 +8,8 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/sirupsen/logrus"
 	"github.com/shawntherrien/databridge/pkg/types"
+	"github.com/sirupsen/logrus"
 )
 
 // ResourceLimits restricts plugin resource usage
@@ -24,11 +24,11 @@ type ResourceLimits struct {
 // DefaultResourceLimits returns default resource limits
 func DefaultResourceLimits() ResourceLimits {
 	return ResourceLimits{
-		MaxMemoryMB:    512,    // 512MB default
-		MaxCPUPercent:  50.0,   // 50% CPU
-		MaxGoroutines:  100,    // 100 goroutines
-		MaxFileHandles: 100,    // 100 file handles
-		MaxExecutionMS: 30000,  // 30 seconds
+		MaxMemoryMB:    512,   // 512MB default
+		MaxCPUPercent:  50.0,  // 50% CPU
+		MaxGoroutines:  100,   // 100 goroutines
+		MaxFileHandles: 100,   // 100 file handles
+		MaxExecutionMS: 30000, // 30 seconds
 	}
 }
 
@@ -202,7 +202,15 @@ func (ns *PluginNamespace) GetMetrics() ResourceMetrics {
 	ns.metrics.mu.RLock()
 	defer ns.metrics.mu.RUnlock()
 
-	return *ns.metrics
+	return ResourceMetrics{
+		MemoryUsageMB:     ns.metrics.MemoryUsageMB,
+		GoroutineCount:    ns.metrics.GoroutineCount,
+		FileHandleCount:   ns.metrics.FileHandleCount,
+		ExecutionTimeMS:   ns.metrics.ExecutionTimeMS,
+		CPUUsagePercent:   ns.metrics.CPUUsagePercent,
+		ViolationCount:    ns.metrics.ViolationCount,
+		LastViolationTime: ns.metrics.LastViolationTime,
+	}
 }
 
 // CheckResourceLimits checks if resource limits are exceeded
@@ -267,13 +275,21 @@ func (ns *PluginNamespace) UpdateMetrics() {
 	ns.metrics.mu.Lock()
 	defer ns.metrics.mu.Unlock()
 
-	// Update goroutine count
-	ns.metrics.GoroutineCount = int32(runtime.NumGoroutine())
+	// Update goroutine count - safe conversion as goroutine count won't exceed int32 max
+	goroutineCount := runtime.NumGoroutine()
+	if goroutineCount > 2147483647 {
+		goroutineCount = 2147483647 // Cap at int32 max
+	}
+	ns.metrics.GoroutineCount = int32(goroutineCount) // #nosec G115 - bounded by check above
 
-	// Update memory stats
+	// Update memory stats - safe conversion with bounds check
 	var m runtime.MemStats
 	runtime.ReadMemStats(&m)
-	ns.metrics.MemoryUsageMB = int64(m.Alloc / 1024 / 1024)
+	memoryMB := m.Alloc / 1024 / 1024
+	if memoryMB > 9223372036854775807 {
+		memoryMB = 9223372036854775807 // Cap at int64 max
+	}
+	ns.metrics.MemoryUsageMB = int64(memoryMB) // #nosec G115 - bounded by check above
 
 	// CPU usage would require more sophisticated tracking
 	// This is a simplified placeholder
@@ -300,10 +316,16 @@ func (ns *PluginNamespace) NewResourceGuard(parentCtx context.Context) *Resource
 		ctx, cancel = context.WithTimeout(parentCtx, timeout)
 	}
 
+	// Safe conversion of goroutine count - system goroutine count won't exceed int32 max in practice
+	goroutineCount := runtime.NumGoroutine()
+	if goroutineCount > 2147483647 {
+		goroutineCount = 2147483647 // Cap at int32 max
+	}
+
 	return &ResourceGuard{
 		namespace:   ns,
 		startTime:   time.Now(),
-		goroutines:  int32(runtime.NumGoroutine()),
+		goroutines:  int32(goroutineCount), // #nosec G115 - bounded by check above
 		fileHandles: 0,
 		ctx:         ctx,
 		cancel:      cancel,

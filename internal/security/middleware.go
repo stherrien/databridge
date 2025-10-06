@@ -37,8 +37,8 @@ func AuthMiddleware(authManager *AuthManager) gin.HandlerFunc {
 			})
 		} else if authHeader != "" {
 			// Try Bearer token authentication
-			if strings.HasPrefix(authHeader, "Bearer ") {
-				token := strings.TrimPrefix(authHeader, "Bearer ")
+			token := strings.TrimPrefix(authHeader, "Bearer ")
+			if token != authHeader {
 				user, err = authManager.Authenticate(c.Request.Context(), Credentials{
 					Type:  AuthTypeBearer,
 					Token: token,
@@ -80,12 +80,14 @@ func OptionalAuthMiddleware(authManager *AuthManager) gin.HandlerFunc {
 				Type:   AuthTypeAPIKey,
 				APIKey: apiKey,
 			})
-		} else if authHeader != "" && strings.HasPrefix(authHeader, "Bearer ") {
+		} else if authHeader != "" {
 			token := strings.TrimPrefix(authHeader, "Bearer ")
-			user, _ = authManager.Authenticate(c.Request.Context(), Credentials{
-				Type:  AuthTypeBearer,
-				Token: token,
-			})
+			if token != authHeader {
+				user, _ = authManager.Authenticate(c.Request.Context(), Credentials{
+					Type:  AuthTypeBearer,
+					Token: token,
+				})
+			}
 		}
 
 		if user != nil {
@@ -279,14 +281,14 @@ func AuditMiddleware(auditLogger *AuditLogger) gin.HandlerFunc {
 		}
 
 		event := AuditEvent{
-			Timestamp:  start,
-			UserID:     userID,
-			Username:   username,
-			Action:     c.Request.Method,
-			Resource:   c.Request.URL.Path,
-			Result:     result,
-			IPAddress:  c.ClientIP(),
-			UserAgent:  c.Request.UserAgent(),
+			Timestamp: start,
+			UserID:    userID,
+			Username:  username,
+			Action:    c.Request.Method,
+			Resource:  c.Request.URL.Path,
+			Result:    result,
+			IPAddress: c.ClientIP(),
+			UserAgent: c.Request.UserAgent(),
 			Details: map[string]interface{}{
 				"status":   c.Writer.Status(),
 				"duration": time.Since(start).Milliseconds(),

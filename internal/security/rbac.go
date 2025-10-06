@@ -8,10 +8,10 @@ import (
 )
 
 var (
-	ErrRoleNotFound       = errors.New("role not found")
-	ErrRoleExists         = errors.New("role already exists")
-	ErrPermissionDenied   = errors.New("permission denied")
-	ErrInvalidPermission  = errors.New("invalid permission")
+	ErrRoleNotFound      = errors.New("role not found")
+	ErrRoleExists        = errors.New("role already exists")
+	ErrPermissionDenied  = errors.New("permission denied")
+	ErrInvalidPermission = errors.New("invalid permission")
 )
 
 // Action defines permission actions
@@ -232,7 +232,7 @@ func (m *RBACManager) DeleteRole(ctx context.Context, roleID string) error {
 	}
 
 	if role.Name == RoleAdmin || role.Name == RoleOperator ||
-	   role.Name == RoleMonitor || role.Name == RoleDeveloper {
+		role.Name == RoleMonitor || role.Name == RoleDeveloper {
 		return errors.New("cannot delete predefined role")
 	}
 

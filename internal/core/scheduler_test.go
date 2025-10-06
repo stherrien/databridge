@@ -2,14 +2,13 @@ package core
 
 import (
 	"context"
-	"sync"
 	"sync/atomic"
 	"testing"
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/sirupsen/logrus"
 	"github.com/shawntherrien/databridge/pkg/types"
+	"github.com/sirupsen/logrus"
 )
 
 // Mock processor for scheduler testing
@@ -18,7 +17,6 @@ type mockSchedulerProcessor struct {
 	triggerCount  int32
 	shouldFail    bool
 	executionTime time.Duration
-	mu            sync.Mutex
 }
 
 func newMockSchedulerProcessor(shouldFail bool, executionTime time.Duration) *mockSchedulerProcessor {

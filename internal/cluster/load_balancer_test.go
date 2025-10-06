@@ -65,24 +65,24 @@ func TestLoadBalancer_LeastLoaded(t *testing.T) {
 
 	nodes := []*ClusterNode{
 		{
-			ID:    "node-1",
-			State: StateHealthy,
+			ID:       "node-1",
+			State:    StateHealthy,
 			Capacity: ResourceCapacity{MaxProcessors: 100},
 			Load: &NodeLoad{
 				Score: 80.0,
 			},
 		},
 		{
-			ID:    "node-2",
-			State: StateHealthy,
+			ID:       "node-2",
+			State:    StateHealthy,
 			Capacity: ResourceCapacity{MaxProcessors: 100},
 			Load: &NodeLoad{
 				Score: 30.0, // Least loaded
 			},
 		},
 		{
-			ID:    "node-3",
-			State: StateHealthy,
+			ID:       "node-3",
+			State:    StateHealthy,
 			Capacity: ResourceCapacity{MaxProcessors: 100},
 			Load: &NodeLoad{
 				Score: 60.0,

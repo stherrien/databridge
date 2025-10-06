@@ -1,221 +1,52 @@
-name: Release Pipeline
+name: Release
 
 on:
   push:
     tags:
       - 'v*'
 
-env:
-  GO_VERSION: '1.21'
-  REGISTRY: ghcr.io
-  IMAGE_NAME: ${{ github.repository }}
+permissions:
+  contents: write
 
 jobs:
-  # Build and test before release
-  test:
-    name: Test Before Release
+  build-and-release:
+    name: Build and Release
     runs-on: ubuntu-latest
 
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
+    - uses: actions/checkout@v4
 
     - name: Set up Go
       uses: actions/setup-go@v5
       with:
-        go-version: ${{ env.GO_VERSION }}
+        go-version: '1.21'
 
-    - name: Run tests
-      run: make test
-
-    - name: Run linting
-      run: make lint
-
-  # Build binaries for multiple platforms
-  build-binaries:
-    name: Build Release Binaries
-    needs: test
-    runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        goos: [linux, darwin, windows]
-        goarch: [amd64, arm64]
-        exclude:
-          - goos: windows
-            goarch: arm64
-
-    steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-
-    - name: Set up Go
-      uses: actions/setup-go@v5
+    - name: Set up Node.js
+      uses: actions/setup-node@v4
       with:
-        go-version: ${{ env.GO_VERSION }}
+        node-version: '18'
 
-    - name: Get version from tag
-      id: version
-      run: echo "VERSION=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
-
-    - name: Build binary
-      env:
-        GOOS: ${{ matrix.goos }}
-        GOARCH: ${{ matrix.goarch }}
-        CGO_ENABLED: 0
+    - name: Build Backend
       run: |
-        VERSION=${{ steps.version.outputs.VERSION }}
-        BUILD_DATE=$(date -u +%Y-%m-%dT%H:%M:%SZ)
-        GIT_COMMIT=${{ github.sha }}
+        GOOS=linux GOARCH=amd64 go build -o build/databridge-linux-amd64 ./cmd/databridge
+        GOOS=darwin GOARCH=amd64 go build -o build/databridge-darwin-amd64 ./cmd/databridge
+        GOOS=darwin GOARCH=arm64 go build -o build/databridge-darwin-arm64 ./cmd/databridge
+        GOOS=windows GOARCH=amd64 go build -o build/databridge-windows-amd64.exe ./cmd/databridge
 
-        BINARY_NAME=databridge-${{ matrix.goos }}-${{ matrix.goarch }}
-        if [ "${{ matrix.goos }}" = "windows" ]; then
-          BINARY_NAME="${BINARY_NAME}.exe"
-        fi
-
-        go build \
-          -ldflags "-X main.version=${VERSION} -X main.buildDate=${BUILD_DATE} -X main.gitCommit=${GIT_COMMIT} -s -w" \
-          -trimpath \
-          -o dist/${BINARY_NAME} \
-          ./cmd/databridge
-
-    - name: Create archive
+    - name: Build Frontend
       run: |
-        cd dist
-        BINARY_NAME=databridge-${{ matrix.goos }}-${{ matrix.goarch }}
-        if [ "${{ matrix.goos }}" = "windows" ]; then
-          BINARY_NAME="${BINARY_NAME}.exe"
-          zip ${BINARY_NAME%.exe}.zip ${BINARY_NAME}
-        else
-          tar czf ${BINARY_NAME}.tar.gz ${BINARY_NAME}
-        fi
-
-    - name: Upload artifact
-      uses: actions/upload-artifact@v4
-      with:
-        name: databridge-${{ matrix.goos }}-${{ matrix.goarch }}
-        path: dist/*
-
-  # Build and push Docker image
-  build-docker:
-    name: Build and Push Docker Image
-    needs: test
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      packages: write
-
-    steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-
-    - name: Set up Docker Buildx
-      uses: docker/setup-buildx-action@v3
-
-    - name: Log in to Container Registry
-      uses: docker/login-action@v3
-      with:
-        registry: ${{ env.REGISTRY }}
-        username: ${{ github.actor }}
-        password: ${{ secrets.GITHUB_TOKEN }}
-
-    - name: Extract metadata
-      id: meta
-      uses: docker/metadata-action@v5
-      with:
-        images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
-        tags: |
-          type=semver,pattern={{version}}
-          type=semver,pattern={{major}}.{{minor}}
-          type=semver,pattern={{major}}
-          type=sha
-
-    - name: Build and push Docker image
-      uses: docker/build-push-action@v5
-      with:
-        context: .
-        file: ./Dockerfile
-        push: true
-        tags: ${{ steps.meta.outputs.tags }}
-        labels: ${{ steps.meta.outputs.labels }}
-        cache-from: type=gha
-        cache-to: type=gha,mode=max
-        platforms: linux/amd64,linux/arm64
-        build-args: |
-          VERSION=${{ github.ref_name }}
-          BUILD_DATE=${{ github.event.head_commit.timestamp }}
-          GIT_COMMIT=${{ github.sha }}
-
-  # Create GitHub Release
-  create-release:
-    name: Create GitHub Release
-    needs: [build-binaries, build-docker]
-    runs-on: ubuntu-latest
-    permissions:
-      contents: write
-
-    steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-
-    - name: Download all artifacts
-      uses: actions/download-artifact@v4
-      with:
-        path: dist
-
-    - name: Generate changelog
-      id: changelog
-      run: |
-        if [ -f CHANGELOG.md ]; then
-          # Extract changelog for this version
-          VERSION=${GITHUB_REF#refs/tags/}
-          awk "/^## \[${VERSION}\]/,/^## \[/" CHANGELOG.md | sed '$d' > release-notes.md
-        else
-          echo "Release ${GITHUB_REF#refs/tags/}" > release-notes.md
-        fi
+        cd frontend
+        npm ci
+        npm run build
+        tar -czf ../build/frontend-dist.tar.gz .next
 
     - name: Create Release
       uses: softprops/action-gh-release@v1
       with:
-        body_path: release-notes.md
         files: |
-          dist/**/*.tar.gz
-          dist/**/*.zip
-        draft: false
-        prerelease: ${{ contains(github.ref, 'beta') || contains(github.ref, 'alpha') }}
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-  # Deploy to staging (optional)
-  deploy-staging:
-    name: Deploy to Staging
-    needs: build-docker
-    runs-on: ubuntu-latest
-    if: startsWith(github.ref, 'refs/tags/v') && !contains(github.ref, 'beta')
-    environment:
-      name: staging
-      url: https://staging.databridge.example.com
-
-    steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-
-    - name: Set up kubectl
-      uses: azure/setup-kubectl@v3
-
-    - name: Configure kubectl
-      run: |
-        mkdir -p $HOME/.kube
-        echo "${{ secrets.KUBE_CONFIG_STAGING }}" | base64 -d > $HOME/.kube/config
-
-    - name: Deploy to Kubernetes
-      run: |
-        kubectl set image statefulset/databridge \
-          databridge=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.ref_name }} \
-          -n databridge-staging
-
-        kubectl rollout status statefulset/databridge -n databridge-staging --timeout=5m
-
-    - name: Verify deployment
-      run: |
-        kubectl get pods -n databridge-staging
-        kubectl get svc -n databridge-staging
+          build/databridge-linux-amd64
+          build/databridge-darwin-amd64
+          build/databridge-darwin-arm64
+          build/databridge-windows-amd64.exe
+          build/frontend-dist.tar.gz
+        generate_release_notes: true

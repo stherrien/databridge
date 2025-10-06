@@ -52,8 +52,8 @@ func TestBasicAuthProvider(t *testing.T) {
 			Password: "testPass123",
 		}
 
-		user, err := provider.Authenticate(ctx, creds)
-		require.NoError(t, err)
+		user, authErr := provider.Authenticate(ctx, creds)
+		require.NoError(t, authErr)
 		assert.Equal(t, testUser.ID, user.ID)
 		assert.Equal(t, testUser.Username, user.Username)
 	})
@@ -65,10 +65,10 @@ func TestBasicAuthProvider(t *testing.T) {
 			Password: "wrongPassword",
 		}
 
-		user, err := provider.Authenticate(ctx, creds)
-		assert.Error(t, err)
+		user, authErr := provider.Authenticate(ctx, creds)
+		assert.Error(t, authErr)
 		assert.Nil(t, user)
-		assert.Equal(t, ErrInvalidCredentials, err)
+		assert.Equal(t, ErrInvalidCredentials, authErr)
 	})
 
 	t.Run("Non-existent user", func(t *testing.T) {
@@ -78,10 +78,10 @@ func TestBasicAuthProvider(t *testing.T) {
 			Password: "password",
 		}
 
-		user, err := provider.Authenticate(ctx, creds)
-		assert.Error(t, err)
+		user, authErr := provider.Authenticate(ctx, creds)
+		assert.Error(t, authErr)
 		assert.Nil(t, user)
-		assert.Equal(t, ErrInvalidCredentials, err)
+		assert.Equal(t, ErrInvalidCredentials, authErr)
 	})
 
 	t.Run("Disabled user", func(t *testing.T) {

@@ -105,8 +105,8 @@ func TestGetFileProcessorInitialize(t *testing.T) {
 
 	// Test initialization with a file (not directory)
 	tmpFile := filepath.Join(tmpDir, "not_a_dir.txt")
-	if err := os.WriteFile(tmpFile, []byte("test"), 0644); err != nil {
-		t.Fatal(err)
+	if writeErr := os.WriteFile(tmpFile, []byte("test"), 0644); writeErr != nil {
+		t.Fatal(writeErr)
 	}
 
 	ctxFileNotDir := &mockProcessorContext{
@@ -431,14 +431,14 @@ func TestGetFileProcessorKeepSourceFile(t *testing.T) {
 	}
 
 	// Verify file still exists
-	if _, err := os.Stat(testFile); os.IsNotExist(err) {
+	if _, statErr := os.Stat(testFile); os.IsNotExist(statErr) {
 		t.Error("Source file should still exist when Keep Source File is true")
 	}
 
 	// Test with Keep Source File = false (delete)
 	testFile2 := filepath.Join(tmpDir, "test2.txt")
-	if err := os.WriteFile(testFile2, []byte("Test content 2"), 0644); err != nil {
-		t.Fatal(err)
+	if writeErr := os.WriteFile(testFile2, []byte("Test content 2"), 0644); writeErr != nil {
+		t.Fatal(writeErr)
 	}
 
 	session2 := newMockProcessSession()

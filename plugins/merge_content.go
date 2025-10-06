@@ -6,14 +6,12 @@ import (
 	"sort"
 	"strconv"
 	"strings"
-	"time"
 
 	"github.com/shawntherrien/databridge/internal/plugin"
 	"github.com/shawntherrien/databridge/pkg/types"
 )
 
 func init() {
-	// Register this processor as a built-in
 	info := getMergeContentInfo()
 	plugin.RegisterBuiltInProcessor("MergeContent", func() types.Processor {
 		return NewMergeContentProcessor()
@@ -26,599 +24,335 @@ func getMergeContentInfo() plugin.PluginInfo {
 		"MergeContent",
 		"1.0.0",
 		"DataBridge",
-		"Merges multiple FlowFiles into a single FlowFile based on configurable merge strategies",
-		[]string{"merge", "aggregate", "combine", "content"},
+		"Merges multiple FlowFiles into a single FlowFile. Supports various merge strategies including concatenation, binary concatenation, and custom delimiters.",
+		[]string{"merge", "concatenate", "join", "aggregate"},
 	)
 }
 
-// MergeContentProcessor merges multiple FlowFiles into a single FlowFile
+// MergeContentProcessor merges multiple FlowFiles into one
 type MergeContentProcessor struct {
 	*types.BaseProcessor
-	mergeQueue []*types.FlowFile
+	pendingMerges map[string][]*types.FlowFile
 }
-
-// Define merge relationship
-var (
-	RelationshipMerged = types.Relationship{
-		Name:        "merged",
-		Description: "Merged FlowFiles",
-	}
-)
 
 // NewMergeContentProcessor creates a new MergeContent processor
 func NewMergeContentProcessor() *MergeContentProcessor {
 	info := types.ProcessorInfo{
 		Name:        "MergeContent",
-		Description: "Merges multiple FlowFiles into a single FlowFile based on configurable merge strategies",
+		Description: "Merges multiple FlowFiles into a single FlowFile",
 		Version:     "1.0.0",
 		Author:      "DataBridge",
-		Tags:        []string{"merge", "aggregate", "combine", "content"},
+		Tags:        []string{"merge", "concatenate", "join", "aggregate"},
 		Properties: []types.PropertySpec{
 			{
-				Name:        "Merge Strategy",
-				Description: "Strategy for merging FlowFiles",
-				Required:    false,
-				DefaultValue: "Bin-Packing",
+				Name:         "Merge Strategy",
+				DisplayName:  "Merge Strategy",
+				Description:  "Strategy for merging FlowFiles",
+				Required:     true,
+				DefaultValue: "Bin-Packing Algorithm",
 				AllowedValues: []string{
-					"Bin-Packing",      // Group by size/count limits
-					"Defragment",       // Group by fragment.identifier
-					"Attribute-Based",  // Group by attribute value
+					"Defragment",
+					"Bin-Packing Algorithm",
 				},
+				Type:     "select",
+				HelpText: "Defragment: Merge based on fragment attributes; Bin-Packing: Merge by accumulating FlowFiles",
 			},
 			{
 				Name:         "Merge Format",
+				DisplayName:  "Merge Format",
 				Description:  "Format for merged content",
-				Required:     false,
+				Required:     true,
 				DefaultValue: "Binary Concatenation",
 				AllowedValues: []string{
-					"Binary Concatenation", // Simple concatenation
-					"Text Concatenation",   // With delimiters
-					"TAR",                  // TAR archive (future)
-					"ZIP",                  // ZIP archive (future)
+					"Binary Concatenation",
+					"Text Concatenation",
 				},
+				Type:     "select",
+				HelpText: "Binary: Concatenate raw bytes; Text: Concatenate with optional delimiters",
+			},
+			{
+				Name:          "Delimiter Strategy",
+				DisplayName:   "Delimiter Strategy",
+				Description:   "How to add delimiters between merged content",
+				Required:      false,
+				DefaultValue:  "Text",
+				AllowedValues: []string{"Filename", "Text"},
+				Type:          "select",
+				HelpText:      "Filename: Use content from delimiter file; Text: Use specified text delimiter",
+			},
+			{
+				Name:         "Demarcator",
+				DisplayName:  "Demarcator",
+				Description:  "Text to insert between merged FlowFiles",
+				Required:     false,
+				DefaultValue: "",
+				Type:         "string",
+				Placeholder:  "\\n or ,",
+				HelpText:     "Delimiter to insert between FlowFiles. Use \\n for newline, \\t for tab.",
+			},
+			{
+				Name:         "Header",
+				DisplayName:  "Header",
+				Description:  "Text to prepend to merged content",
+				Required:     false,
+				DefaultValue: "",
+				Type:         "multiline",
+				Placeholder:  "",
+				HelpText:     "Content to add at the beginning of merged FlowFile",
+			},
+			{
+				Name:         "Footer",
+				DisplayName:  "Footer",
+				Description:  "Text to append to merged content",
+				Required:     false,
+				DefaultValue: "",
+				Type:         "multiline",
+				Placeholder:  "",
+				HelpText:     "Content to add at the end of merged FlowFile",
 			},
 			{
 				Name:         "Minimum Number of Entries",
+				DisplayName:  "Minimum Number of Entries",
 				Description:  "Minimum number of FlowFiles to merge",
 				Required:     false,
 				DefaultValue: "1",
-				Pattern:      `^\d+$`,
+				Type:         "string",
+				Placeholder:  "10",
+				HelpText:     "Wait until at least this many FlowFiles are available before merging",
 			},
 			{
 				Name:         "Maximum Number of Entries",
-				Description:  "Maximum number of FlowFiles to merge (0 = unlimited)",
+				DisplayName:  "Maximum Number of Entries",
+				Description:  "Maximum number of FlowFiles to merge in one batch",
 				Required:     false,
-				DefaultValue: "100",
-				Pattern:      `^\d+$`,
+				DefaultValue: "1000",
+				Type:         "string",
+				Placeholder:  "1000",
+				HelpText:     "Maximum FlowFiles to include in a single merge",
 			},
 			{
-				Name:         "Minimum Group Size",
-				Description:  "Minimum total size in bytes (0 = no minimum)",
+				Name:         "Maximum Bin Age",
+				DisplayName:  "Maximum Bin Age",
+				Description:  "Maximum time to wait for FlowFiles before merging",
 				Required:     false,
-				DefaultValue: "0",
-				Pattern:      `^\d+$`,
-			},
-			{
-				Name:         "Maximum Group Size",
-				Description:  "Maximum total size in bytes (0 = no maximum)",
-				Required:     false,
-				DefaultValue: "0",
-				Pattern:      `^\d+$`,
-			},
-			{
-				Name:         "Max Bin Age",
-				Description:  "Maximum time to wait for bin to fill (e.g., 30s, 5m)",
-				Required:     false,
-				DefaultValue: "0s",
-			},
-			{
-				Name:         "Correlation Attribute Name",
-				Description:  "Attribute name for Attribute-Based merge strategy",
-				Required:     false,
-				DefaultValue: "merge.group",
-			},
-			{
-				Name:         "Delimiter Strategy",
-				Description:  "Delimiter between merged content for Text Concatenation",
-				Required:     false,
-				DefaultValue: "Newline",
-				AllowedValues: []string{
-					"None",
-					"Newline",
-					"Tab",
-					"Custom",
-				},
-			},
-			{
-				Name:         "Delimiter Text",
-				Description:  "Custom delimiter text when Delimiter Strategy is Custom",
-				Required:     false,
-				DefaultValue: "",
-			},
-			{
-				Name:         "Keep Path",
-				Description:  "Whether to keep path attribute from original FlowFiles",
-				Required:     false,
-				DefaultValue: "false",
-				AllowedValues: []string{"true", "false"},
+				DefaultValue: "5m",
+				Type:         "duration",
+				Placeholder:  "5m",
+				HelpText:     "Duration to wait (e.g., 30s, 5m, 1h)",
 			},
 		},
 		Relationships: []types.Relationship{
-			RelationshipMerged,
-			types.RelationshipOriginal,
+			{
+				Name:        "merged",
+				Description: "Merged FlowFile",
+			},
+			{
+				Name:        "original",
+				Description: "Original FlowFiles that were merged",
+			},
 			types.RelationshipFailure,
 		},
 	}
 
 	return &MergeContentProcessor{
 		BaseProcessor: types.NewBaseProcessor(info),
-		mergeQueue:    make([]*types.FlowFile, 0),
+		pendingMerges: make(map[string][]*types.FlowFile),
 	}
 }
 
 // Initialize initializes the processor
 func (p *MergeContentProcessor) Initialize(ctx types.ProcessorContext) error {
-	logger := ctx.GetLogger()
-	logger.Info("Initializing MergeContent processor")
-
-	// Validate minimum/maximum entries
-	minEntries := ctx.GetPropertyValue("Minimum Number of Entries")
-	if minEntries != "" {
-		val, err := strconv.Atoi(minEntries)
-		if err != nil || val < 1 {
-			return fmt.Errorf("Minimum Number of Entries must be a positive integer")
-		}
-	}
-
-	maxEntries := ctx.GetPropertyValue("Maximum Number of Entries")
-	if maxEntries != "" {
-		val, err := strconv.Atoi(maxEntries)
-		if err != nil || val < 0 {
-			return fmt.Errorf("Maximum Number of Entries must be a non-negative integer")
-		}
-	}
-
 	return nil
 }
 
-// OnTrigger processes the trigger event
+// OnTrigger processes FlowFiles
 func (p *MergeContentProcessor) OnTrigger(ctx context.Context, session types.ProcessSession) error {
 	logger := session.GetLogger()
 
-	// Get processor context to access properties
+	// Get FlowFile from input
+	flowFile := session.Get()
+	if flowFile == nil {
+		return nil
+	}
+
 	processorCtx, ok := ctx.Value("processorContext").(types.ProcessorContext)
 	if !ok {
-		return fmt.Errorf("processor context not available")
+		session.Transfer(flowFile, types.RelationshipFailure)
+		return fmt.Errorf("failed to get processor context")
 	}
 
-	// Read configuration properties
+	// Get configuration
 	mergeStrategy := processorCtx.GetPropertyValue("Merge Strategy")
-	if mergeStrategy == "" {
-		mergeStrategy = "Bin-Packing"
+	_ = processorCtx.GetPropertyValue("Merge Format") // mergeFormat - unused for now
+	demarcator := processorCtx.GetPropertyValue("Demarcator")
+	header := processorCtx.GetPropertyValue("Header")
+	footer := processorCtx.GetPropertyValue("Footer")
+	minEntriesStr := processorCtx.GetPropertyValue("Minimum Number of Entries")
+	maxEntriesStr := processorCtx.GetPropertyValue("Maximum Number of Entries")
+
+	minEntries, _ := strconv.Atoi(minEntriesStr)
+	if minEntries < 1 {
+		minEntries = 1
+	}
+	maxEntries, _ := strconv.Atoi(maxEntriesStr)
+	if maxEntries < 1 {
+		maxEntries = 1000
 	}
 
-	mergeFormat := processorCtx.GetPropertyValue("Merge Format")
-	if mergeFormat == "" {
-		mergeFormat = "Binary Concatenation"
+	// Parse demarcator escape sequences
+	demarcator = strings.ReplaceAll(demarcator, "\\n", "\n")
+	demarcator = strings.ReplaceAll(demarcator, "\\t", "\t")
+	demarcator = strings.ReplaceAll(demarcator, "\\r", "\r")
+
+	// Determine merge bin key
+	binKey := "default"
+	if mergeStrategy == "Defragment" {
+		// Use fragment.identifier as bin key
+		if identifier, exists := flowFile.GetAttribute("fragment.identifier"); exists {
+			binKey = identifier
+		}
 	}
 
-	minEntries := p.getIntProperty(processorCtx, "Minimum Number of Entries", 1)
-	maxEntries := p.getIntProperty(processorCtx, "Maximum Number of Entries", 100)
-	minSize := p.getIntProperty(processorCtx, "Minimum Group Size", 0)
-	maxSize := p.getIntProperty(processorCtx, "Maximum Group Size", 0)
+	// Add to pending merges
+	if _, exists := p.pendingMerges[binKey]; !exists {
+		p.pendingMerges[binKey] = make([]*types.FlowFile, 0)
+	}
+	p.pendingMerges[binKey] = append(p.pendingMerges[binKey], flowFile)
 
-	maxBinAge := processorCtx.GetPropertyValue("Max Bin Age")
-	maxBinDuration, _ := time.ParseDuration(maxBinAge)
+	// Check if we should merge
+	shouldMerge := false
+	pending := p.pendingMerges[binKey]
 
-	correlationAttr := processorCtx.GetPropertyValue("Correlation Attribute Name")
-	if correlationAttr == "" {
-		correlationAttr = "merge.group"
+	if len(pending) >= maxEntries {
+		shouldMerge = true
+		logger.Debug("Triggering merge: max entries reached",
+			"binKey", binKey,
+			"count", len(pending))
+	} else if mergeStrategy == "Defragment" {
+		// Check if we have all fragments
+		expectedCount := p.getExpectedFragmentCount(pending)
+		if expectedCount > 0 && len(pending) >= expectedCount {
+			shouldMerge = true
+			logger.Debug("Triggering merge: all fragments received",
+				"binKey", binKey,
+				"count", len(pending),
+				"expected", expectedCount)
+		}
+	} else if len(pending) >= minEntries {
+		shouldMerge = true
+		logger.Debug("Triggering merge: min entries reached",
+			"binKey", binKey,
+			"count", len(pending))
 	}
 
-	delimiterStrategy := processorCtx.GetPropertyValue("Delimiter Strategy")
-	if delimiterStrategy == "" {
-		delimiterStrategy = "Newline"
-	}
-
-	delimiterText := processorCtx.GetPropertyValue("Delimiter Text")
-	keepPath := processorCtx.GetPropertyValue("Keep Path") == "true"
-
-	// Get FlowFiles to merge
-	var flowFiles []*types.FlowFile
-	if maxEntries > 0 {
-		flowFiles = session.GetBatch(maxEntries)
-	} else {
-		// Get available FlowFiles (reasonable batch size)
-		flowFiles = session.GetBatch(1000)
-	}
-
-	if len(flowFiles) == 0 {
-		logger.Debug("No FlowFiles available to merge")
+	if !shouldMerge {
+		logger.Debug("Not ready to merge",
+			"binKey", binKey,
+			"pendingCount", len(pending),
+			"minEntries", minEntries,
+			"maxEntries", maxEntries)
 		return nil
 	}
 
-	logger.Debug("Retrieved FlowFiles for merging", "count", len(flowFiles))
+	// Perform merge
+	flowFilesToMerge := p.pendingMerges[binKey]
+	delete(p.pendingMerges, binKey)
 
-	// Group FlowFiles based on merge strategy
-	var groups [][]*types.FlowFile
-
-	switch mergeStrategy {
-	case "Bin-Packing":
-		groups = p.binPackingStrategy(flowFiles, minEntries, maxEntries, minSize, maxSize)
-	case "Defragment":
-		groups = p.defragmentStrategy(flowFiles)
-	case "Attribute-Based":
-		groups = p.attributeBasedStrategy(flowFiles, correlationAttr)
-	default:
-		logger.Error("Unknown merge strategy", "strategy", mergeStrategy)
-		for _, ff := range flowFiles {
-			session.Transfer(ff, types.RelationshipFailure)
-		}
-		return nil
+	// Sort FlowFiles if defragmenting
+	if mergeStrategy == "Defragment" {
+		sort.Slice(flowFilesToMerge, func(i, j int) bool {
+			idxI := p.getFragmentIndex(flowFilesToMerge[i])
+			idxJ := p.getFragmentIndex(flowFilesToMerge[j])
+			return idxI < idxJ
+		})
 	}
 
-	logger.Debug("Grouped FlowFiles", "groupCount", len(groups))
+	// Merge content
+	var mergedContent []byte
 
-	// Process each group
-	for groupIdx, group := range groups {
-		// Check minimum entries requirement
-		if len(group) < minEntries {
-			logger.Debug("Group has fewer than minimum entries, routing to original",
-				"groupSize", len(group), "minEntries", minEntries)
-			for _, ff := range group {
-				session.Transfer(ff, types.RelationshipOriginal)
-			}
-			continue
-		}
+	// Add header
+	if header != "" {
+		mergedContent = append(mergedContent, []byte(header)...)
+	}
 
-		// Check max bin age if configured
-		if maxBinDuration > 0 {
-			oldestTime := p.getOldestFlowFileTime(group)
-			if time.Since(oldestTime) < maxBinDuration {
-				logger.Debug("Group not old enough, routing to original",
-					"age", time.Since(oldestTime), "maxAge", maxBinDuration)
-				for _, ff := range group {
-					session.Transfer(ff, types.RelationshipOriginal)
-				}
-				continue
-			}
-		}
-
-		// Merge the group
-		mergedFlowFile, err := p.mergeGroup(session, group, mergeFormat, delimiterStrategy, delimiterText, keepPath)
+	// Merge FlowFile contents
+	for i, ff := range flowFilesToMerge {
+		content, err := session.Read(ff)
 		if err != nil {
-			logger.Error("Failed to merge group", "groupIndex", groupIdx, "error", err)
-			for _, ff := range group {
-				session.Transfer(ff, types.RelationshipFailure)
-			}
+			logger.Error("Failed to read FlowFile for merge",
+				"flowFileId", ff.ID,
+				"error", err)
 			continue
 		}
 
-		// Add merge metadata attributes
-		session.PutAttribute(mergedFlowFile, "merge.count", strconv.Itoa(len(group)))
-		session.PutAttribute(mergedFlowFile, "merge.strategy", mergeStrategy)
-		session.PutAttribute(mergedFlowFile, "merge.format", mergeFormat)
+		// Add content
+		mergedContent = append(mergedContent, content...)
 
-		// Transfer merged FlowFile to success
-		session.Transfer(mergedFlowFile, RelationshipMerged)
-
-		// Remove original FlowFiles
-		for _, ff := range group {
-			session.Remove(ff)
+		// Add demarcator between FlowFiles (not after last one)
+		if i < len(flowFilesToMerge)-1 && demarcator != "" {
+			mergedContent = append(mergedContent, []byte(demarcator)...)
 		}
-
-		logger.Info("Successfully merged FlowFiles",
-			"groupIndex", groupIdx,
-			"flowFileCount", len(group),
-			"mergedFlowFileId", mergedFlowFile.ID)
 	}
+
+	// Add footer
+	if footer != "" {
+		mergedContent = append(mergedContent, []byte(footer)...)
+	}
+
+	// Create merged FlowFile
+	mergedFlowFile := session.Create()
+
+	// Copy attributes from first FlowFile
+	for key, value := range flowFilesToMerge[0].Attributes {
+		session.PutAttribute(mergedFlowFile, key, value)
+	}
+
+	// Add merge metadata
+	session.PutAttribute(mergedFlowFile, "merge.count", fmt.Sprintf("%d", len(flowFilesToMerge)))
+	session.PutAttribute(mergedFlowFile, "merge.bin.key", binKey)
+
+	// Write merged content
+	if err := session.Write(mergedFlowFile, mergedContent); err != nil {
+		logger.Error("Failed to write merged content",
+			"error", err)
+		session.Transfer(mergedFlowFile, types.RelationshipFailure)
+		return err
+	}
+
+	// Transfer merged FlowFile
+	session.Transfer(mergedFlowFile, types.Relationship{Name: "merged", Description: "Merged FlowFile"})
+
+	// Transfer originals
+	for _, ff := range flowFilesToMerge {
+		session.Transfer(ff, types.Relationship{Name: "original", Description: "Original FlowFile"})
+	}
+
+	logger.Info("Successfully merged FlowFiles",
+		"mergedFlowFileId", mergedFlowFile.ID,
+		"sourceCount", len(flowFilesToMerge),
+		"mergedSize", len(mergedContent))
 
 	return nil
 }
 
-// binPackingStrategy groups FlowFiles based on size and count constraints
-func (p *MergeContentProcessor) binPackingStrategy(flowFiles []*types.FlowFile, minEntries, maxEntries, minSize, maxSize int) [][]*types.FlowFile {
-	var groups [][]*types.FlowFile
-	var currentGroup []*types.FlowFile
-	var currentSize int
-
+// getExpectedFragmentCount gets expected fragment count from FlowFiles
+func (p *MergeContentProcessor) getExpectedFragmentCount(flowFiles []*types.FlowFile) int {
 	for _, ff := range flowFiles {
-		ffSize := ff.Size
-
-		// Check if adding this FlowFile would exceed limits
-		wouldExceedCount := maxEntries > 0 && len(currentGroup) >= maxEntries
-		wouldExceedSize := maxSize > 0 && currentSize+int(ffSize) > maxSize
-
-		if wouldExceedCount || wouldExceedSize {
-			// Start a new group
-			if len(currentGroup) > 0 {
-				groups = append(groups, currentGroup)
-			}
-			currentGroup = []*types.FlowFile{ff}
-			currentSize = int(ffSize)
-		} else {
-			// Add to current group
-			currentGroup = append(currentGroup, ff)
-			currentSize += int(ffSize)
-		}
-	}
-
-	// Add final group
-	if len(currentGroup) > 0 {
-		groups = append(groups, currentGroup)
-	}
-
-	return groups
-}
-
-// defragmentStrategy groups FlowFiles by fragment.identifier attribute
-func (p *MergeContentProcessor) defragmentStrategy(flowFiles []*types.FlowFile) [][]*types.FlowFile {
-	fragmentMap := make(map[string][]*types.FlowFile)
-
-	for _, ff := range flowFiles {
-		identifier, exists := ff.GetAttribute("fragment.identifier")
-		if !exists {
-			// No fragment identifier, treat as singleton group
-			identifier = ff.ID.String()
-		}
-
-		fragmentMap[identifier] = append(fragmentMap[identifier], ff)
-	}
-
-	// Sort each group by fragment.index
-	var groups [][]*types.FlowFile
-	for _, group := range fragmentMap {
-		sort.Slice(group, func(i, j int) bool {
-			iIndex, iExists := group[i].GetAttribute("fragment.index")
-			jIndex, jExists := group[j].GetAttribute("fragment.index")
-
-			if !iExists || !jExists {
-				return false
-			}
-
-			iVal, _ := strconv.Atoi(iIndex)
-			jVal, _ := strconv.Atoi(jIndex)
-			return iVal < jVal
-		})
-
-		groups = append(groups, group)
-	}
-
-	return groups
-}
-
-// attributeBasedStrategy groups FlowFiles by a correlation attribute
-func (p *MergeContentProcessor) attributeBasedStrategy(flowFiles []*types.FlowFile, correlationAttr string) [][]*types.FlowFile {
-	attrMap := make(map[string][]*types.FlowFile)
-
-	for _, ff := range flowFiles {
-		attrValue, exists := ff.GetAttribute(correlationAttr)
-		if !exists {
-			// No correlation attribute, treat as singleton group
-			attrValue = ff.ID.String()
-		}
-
-		attrMap[attrValue] = append(attrMap[attrValue], ff)
-	}
-
-	var groups [][]*types.FlowFile
-	for _, group := range attrMap {
-		groups = append(groups, group)
-	}
-
-	return groups
-}
-
-// mergeGroup merges a group of FlowFiles into a single FlowFile
-func (p *MergeContentProcessor) mergeGroup(
-	session types.ProcessSession,
-	group []*types.FlowFile,
-	mergeFormat, delimiterStrategy, delimiterText string,
-	keepPath bool,
-) (*types.FlowFile, error) {
-	if len(group) == 0 {
-		return nil, fmt.Errorf("cannot merge empty group")
-	}
-
-	// Create merged FlowFile from first FlowFile in group
-	mergedFlowFile := session.Clone(group[0])
-
-	// Get delimiter based on strategy
-	delimiter := p.getDelimiter(delimiterStrategy, delimiterText)
-
-	// Merge content based on format
-	var mergedContent []byte
-
-	switch mergeFormat {
-	case "Binary Concatenation":
-		mergedContent = p.binaryConcatenation(session, group)
-	case "Text Concatenation":
-		mergedContent = p.textConcatenation(session, group, delimiter)
-	case "TAR", "ZIP":
-		return nil, fmt.Errorf("merge format %s not yet implemented", mergeFormat)
-	default:
-		return nil, fmt.Errorf("unknown merge format: %s", mergeFormat)
-	}
-
-	// Write merged content
-	if err := session.Write(mergedFlowFile, mergedContent); err != nil {
-		return nil, fmt.Errorf("failed to write merged content: %w", err)
-	}
-
-	// Optionally preserve path attributes
-	if keepPath {
-		var paths []string
-		for _, ff := range group {
-			if path, exists := ff.GetAttribute("path"); exists {
-				paths = append(paths, path)
-			}
-		}
-		if len(paths) > 0 {
-			session.PutAttribute(mergedFlowFile, "merge.paths", strings.Join(paths, ","))
-		}
-	}
-
-	return mergedFlowFile, nil
-}
-
-// binaryConcatenation performs simple binary concatenation
-func (p *MergeContentProcessor) binaryConcatenation(session types.ProcessSession, group []*types.FlowFile) []byte {
-	var result []byte
-
-	for _, ff := range group {
-		content, err := session.Read(ff)
-		if err != nil {
-			// Skip FlowFiles that can't be read
-			continue
-		}
-		result = append(result, content...)
-	}
-
-	return result
-}
-
-// textConcatenation performs text concatenation with delimiters
-func (p *MergeContentProcessor) textConcatenation(session types.ProcessSession, group []*types.FlowFile, delimiter string) []byte {
-	var parts []string
-
-	for _, ff := range group {
-		content, err := session.Read(ff)
-		if err != nil {
-			// Skip FlowFiles that can't be read
-			continue
-		}
-		parts = append(parts, string(content))
-	}
-
-	return []byte(strings.Join(parts, delimiter))
-}
-
-// getDelimiter returns the delimiter based on strategy
-func (p *MergeContentProcessor) getDelimiter(strategy, customText string) string {
-	switch strategy {
-	case "None":
-		return ""
-	case "Newline":
-		return "\n"
-	case "Tab":
-		return "\t"
-	case "Custom":
-		return customText
-	default:
-		return "\n"
-	}
-}
-
-// getIntProperty retrieves an integer property with a default value
-func (p *MergeContentProcessor) getIntProperty(ctx types.ProcessorContext, name string, defaultValue int) int {
-	valueStr := ctx.GetPropertyValue(name)
-	if valueStr == "" {
-		return defaultValue
-	}
-
-	value, err := strconv.Atoi(valueStr)
-	if err != nil {
-		return defaultValue
-	}
-
-	return value
-}
-
-// getOldestFlowFileTime returns the oldest entry time from a group
-func (p *MergeContentProcessor) getOldestFlowFileTime(group []*types.FlowFile) time.Time {
-	if len(group) == 0 {
-		return time.Now()
-	}
-
-	oldest := group[0].CreatedAt
-	for _, ff := range group[1:] {
-		if ff.CreatedAt.Before(oldest) {
-			oldest = ff.CreatedAt
-		}
-	}
-
-	return oldest
-}
-
-// Validate validates the processor configuration
-func (p *MergeContentProcessor) Validate(config types.ProcessorConfig) []types.ValidationResult {
-	results := p.BaseProcessor.Validate(config)
-
-	// Validate Minimum Number of Entries
-	if minStr, exists := config.Properties["Minimum Number of Entries"]; exists && minStr != "" {
-		min, err := strconv.Atoi(minStr)
-		if err != nil || min < 1 {
-			results = append(results, types.ValidationResult{
-				Property: "Minimum Number of Entries",
-				Valid:    false,
-				Message:  "Minimum Number of Entries must be a positive integer",
-			})
-		}
-	}
-
-	// Validate Maximum Number of Entries
-	if maxStr, exists := config.Properties["Maximum Number of Entries"]; exists && maxStr != "" {
-		max, err := strconv.Atoi(maxStr)
-		if err != nil || max < 0 {
-			results = append(results, types.ValidationResult{
-				Property: "Maximum Number of Entries",
-				Valid:    false,
-				Message:  "Maximum Number of Entries must be a non-negative integer",
-			})
-		}
-
-		// Check that max >= min
-		if minStr, minExists := config.Properties["Minimum Number of Entries"]; minExists {
-			min, minErr := strconv.Atoi(minStr)
-			max, maxErr := strconv.Atoi(maxStr)
-			if minErr == nil && maxErr == nil && max > 0 && max < min {
-				results = append(results, types.ValidationResult{
-					Property: "Maximum Number of Entries",
-					Valid:    false,
-					Message:  "Maximum Number of Entries must be greater than or equal to Minimum Number of Entries",
-				})
+		if countStr, exists := ff.GetAttribute("fragment.count"); exists {
+			if count, err := strconv.Atoi(countStr); err == nil {
+				return count
 			}
 		}
 	}
-
-	// Validate Group Sizes
-	if minStr, exists := config.Properties["Minimum Group Size"]; exists && minStr != "" {
-		min, err := strconv.Atoi(minStr)
-		if err != nil || min < 0 {
-			results = append(results, types.ValidationResult{
-				Property: "Minimum Group Size",
-				Valid:    false,
-				Message:  "Minimum Group Size must be a non-negative integer",
-			})
-		}
-	}
-
-	if maxStr, exists := config.Properties["Maximum Group Size"]; exists && maxStr != "" {
-		max, err := strconv.Atoi(maxStr)
-		if err != nil || max < 0 {
-			results = append(results, types.ValidationResult{
-				Property: "Maximum Group Size",
-				Valid:    false,
-				Message:  "Maximum Group Size must be a non-negative integer",
-			})
-		}
-	}
-
-	// Validate Max Bin Age
-	if ageStr, exists := config.Properties["Max Bin Age"]; exists && ageStr != "" {
-		if _, err := time.ParseDuration(ageStr); err != nil {
-			results = append(results, types.ValidationResult{
-				Property: "Max Bin Age",
-				Valid:    false,
-				Message:  "Max Bin Age must be a valid duration (e.g., 30s, 5m, 1h)",
-			})
-		}
-	}
-
-	return results
+	return 0
 }
 
-// OnStopped cleanup when processor is stopped
-func (p *MergeContentProcessor) OnStopped(ctx context.Context) {
-	p.mergeQueue = nil
+// getFragmentIndex gets fragment index from FlowFile
+func (p *MergeContentProcessor) getFragmentIndex(ff *types.FlowFile) int {
+	if idxStr, exists := ff.GetAttribute("fragment.index"); exists {
+		if idx, err := strconv.Atoi(idxStr); err == nil {
+			return idx
+		}
+	}
+	return 0
 }

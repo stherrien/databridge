@@ -17,22 +17,22 @@ var (
 
 // AuthManager manages authentication and authorization
 type AuthManager struct {
-	config         SecurityConfig
-	providers      map[AuthType]AuthProvider
-	rbacManager    *RBACManager
-	apiKeyManager  *APIKeyManager
-	jwtManager     *JWTManager
-	encryptor      *Encryptor
-	auditLogger    *AuditLogger
-	userRepo       UserRepository
-	loginAttempts  map[string]*LoginAttempts
-	mu             sync.RWMutex
-	logger         *logrus.Logger
+	config        SecurityConfig
+	providers     map[AuthType]AuthProvider
+	rbacManager   *RBACManager
+	apiKeyManager *APIKeyManager
+	jwtManager    *JWTManager
+	encryptor     *Encryptor
+	auditLogger   *AuditLogger
+	userRepo      UserRepository
+	loginAttempts map[string]*LoginAttempts
+	mu            sync.RWMutex
+	logger        *logrus.Logger
 }
 
 // LoginAttempts tracks failed login attempts
 type LoginAttempts struct {
-	Count      int
+	Count       int
 	LastAttempt time.Time
 	LockedUntil *time.Time
 }
@@ -298,7 +298,7 @@ func (m *AuthManager) recordFailedAttempt(username string) {
 	attempts, ok := m.loginAttempts[username]
 	if !ok {
 		attempts = &LoginAttempts{
-			Count:      0,
+			Count:       0,
 			LastAttempt: time.Now(),
 		}
 		m.loginAttempts[username] = attempts

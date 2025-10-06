@@ -29,12 +29,12 @@ type SetLoadThresholdsRequest struct {
 
 // AddExecutionRuleRequest represents an execution rule creation request
 type AddExecutionRuleRequest struct {
-	ProcessorID  string                   `json:"processorId" binding:"required"`
-	Name         string                   `json:"name" binding:"required"`
-	Conditions   []core.Condition         `json:"conditions" binding:"required"`
-	Action       core.RuleAction          `json:"action" binding:"required"`
-	EvaluateMode core.EvaluateMode        `json:"evaluateMode" binding:"required"`
-	Enabled      bool                     `json:"enabled"`
+	ProcessorID  string            `json:"processorId" binding:"required"`
+	Name         string            `json:"name" binding:"required"`
+	Conditions   []core.Condition  `json:"conditions" binding:"required"`
+	Action       core.RuleAction   `json:"action" binding:"required"`
+	EvaluateMode core.EvaluateMode `json:"evaluateMode" binding:"required"`
+	Enabled      bool              `json:"enabled"`
 }
 
 // RegisterRoutes registers scheduler API routes
@@ -96,9 +96,9 @@ func (h *SchedulerHandler) SetLoadThresholds(c *gin.Context) {
 	h.scheduler.SetLoadThresholds(req.CPU, req.Memory, req.Goroutines)
 
 	c.JSON(http.StatusOK, gin.H{
-		"message": "load thresholds updated successfully",
-		"cpu":     req.CPU,
-		"memory":  req.Memory,
+		"message":    "load thresholds updated successfully",
+		"cpu":        req.CPU,
+		"memory":     req.Memory,
 		"goroutines": req.Goroutines,
 	})
 }
@@ -222,11 +222,11 @@ func (h *SchedulerHandler) GetSchedulerStatus(c *gin.Context) {
 	queueDepths := h.scheduler.GetPriorityQueueDepths()
 
 	status := gin.H{
-		"currentLoad":       load,
-		"averageLoad":       avgLoad,
-		"priorityQueues":    queueDepths,
-		"loadScheduling":    gin.H{"enabled": true},
-		"priorityScheduling": gin.H{"enabled": true},
+		"currentLoad":           load,
+		"averageLoad":           avgLoad,
+		"priorityQueues":        queueDepths,
+		"loadScheduling":        gin.H{"enabled": true},
+		"priorityScheduling":    gin.H{"enabled": true},
 		"conditionalScheduling": gin.H{"enabled": true},
 	}
 

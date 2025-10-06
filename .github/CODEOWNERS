@@ -1,0 +1,24 @@
+# DataBridge Code Owners
+# These owners will be automatically requested for review when someone opens a pull request
+
+# Default owner for everything in the repo
+* @stherrien
+
+# Backend code
+/cmd/ @stherrien
+/internal/ @stherrien
+*.go @stherrien
+
+# Frontend code
+/frontend/ @stherrien
+
+# Configuration files
+Makefile @stherrien
+go.mod @stherrien
+go.sum @stherrien
+
+# Documentation
+*.md @stherrien
+
+# CI/CD
+/.github/ @stherrien

@@ -6,8 +6,27 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/shawntherrien/databridge/internal/plugin"
 	"github.com/shawntherrien/databridge/pkg/types"
 )
+
+func init() {
+	info := getSplitTextInfo()
+	plugin.RegisterBuiltInProcessor("SplitText", func() types.Processor {
+		return NewSplitTextProcessor()
+	}, info)
+}
+
+func getSplitTextInfo() plugin.PluginInfo {
+	return plugin.NewProcessorInfo(
+		"SplitText",
+		"SplitText",
+		"1.0.0",
+		"DataBridge",
+		"Splits text content into multiple FlowFiles based on line count or size",
+		[]string{"text", "split", "transform"},
+	)
+}
 
 // SplitTextProcessor splits text content into multiple FlowFiles
 type SplitTextProcessor struct {
@@ -39,10 +58,10 @@ func NewSplitTextProcessor() *SplitTextProcessor {
 				Pattern:      `^\d+$`,
 			},
 			{
-				Name:         "Remove Trailing Newlines",
-				Description:  "Whether to remove trailing newlines from splits",
-				Required:     false,
-				DefaultValue: "true",
+				Name:          "Remove Trailing Newlines",
+				Description:   "Whether to remove trailing newlines from splits",
+				Required:      false,
+				DefaultValue:  "true",
 				AllowedValues: []string{"true", "false"},
 			},
 			{
@@ -61,8 +80,8 @@ func NewSplitTextProcessor() *SplitTextProcessor {
 			},
 		},
 		Relationships: []types.Relationship{
-			types.RelationshipSuccess,  // Original FlowFile
-			RelationshipSplits,         // Split FlowFiles
+			types.RelationshipSuccess, // Original FlowFile
+			RelationshipSplits,        // Split FlowFiles
 			types.RelationshipFailure,
 		},
 	}

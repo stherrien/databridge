@@ -7,6 +7,13 @@ import (
 	"github.com/google/uuid"
 )
 
+// Test constants
+const (
+	testValue1 = "value1"
+	testValue2 = "value2"
+	testValue  = "testValue"
+)
+
 func TestNewFlowFile(t *testing.T) {
 	flowFile := NewFlowFile()
 
@@ -39,8 +46,8 @@ func TestNewFlowFile(t *testing.T) {
 func TestFlowFileBuilder(t *testing.T) {
 	// Test builder pattern
 	attributes := map[string]string{
-		"key1": "value1",
-		"key2": "value2",
+		"key1": testValue1,
+		"key2": testValue2,
 	}
 
 	contentClaim := &ContentClaim{
@@ -107,8 +114,8 @@ func TestFlowFileBuilder(t *testing.T) {
 func TestFlowFileClone(t *testing.T) {
 	// Create original FlowFile
 	original := NewFlowFile()
-	original.Attributes["key1"] = "value1"
-	original.Attributes["key2"] = "value2"
+	original.Attributes["key1"] = testValue1
+	original.Attributes["key2"] = testValue2
 	original.ContentClaim = &ContentClaim{
 		ID:        uuid.New(),
 		Container: "test",
@@ -180,10 +187,10 @@ func TestFlowFileAttributeOperations(t *testing.T) {
 
 	// Test UpdateAttribute
 	time.Sleep(1 * time.Millisecond) // Ensure time difference
-	flowFile.UpdateAttribute("testKey", "testValue")
+	flowFile.UpdateAttribute("testKey", testValue)
 
-	if flowFile.Attributes["testKey"] != "testValue" {
-		t.Errorf("Expected testKey=testValue, got %s", flowFile.Attributes["testKey"])
+	if flowFile.Attributes["testKey"] != testValue {
+		t.Errorf("Expected testKey=%s, got %s", testValue, flowFile.Attributes["testKey"])
 	}
 
 	if !flowFile.UpdatedAt.After(originalUpdateTime) {
@@ -196,8 +203,8 @@ func TestFlowFileAttributeOperations(t *testing.T) {
 		t.Error("GetAttribute should return true for existing attribute")
 	}
 
-	if value != "testValue" {
-		t.Errorf("GetAttribute should return testValue, got %s", value)
+	if value != testValue {
+		t.Errorf("GetAttribute should return %s, got %s", testValue, value)
 	}
 
 	// Test GetAttribute for non-existent key
@@ -295,8 +302,8 @@ func BenchmarkNewFlowFile(b *testing.B) {
 
 func BenchmarkFlowFileBuilder(b *testing.B) {
 	attributes := map[string]string{
-		"key1": "value1",
-		"key2": "value2",
+		"key1": testValue1,
+		"key2": testValue2,
 		"key3": "value3",
 	}
 
@@ -310,8 +317,8 @@ func BenchmarkFlowFileBuilder(b *testing.B) {
 
 func BenchmarkFlowFileClone(b *testing.B) {
 	flowFile := NewFlowFile()
-	flowFile.Attributes["key1"] = "value1"
-	flowFile.Attributes["key2"] = "value2"
+	flowFile.Attributes["key1"] = testValue1
+	flowFile.Attributes["key2"] = testValue2
 	flowFile.ContentClaim = &ContentClaim{
 		ID:        uuid.New(),
 		Container: "test",

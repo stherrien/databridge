@@ -1,6 +1,8 @@
 package core
 
 import (
+	"bytes"
+	"io"
 	"os"
 	"path/filepath"
 	"testing"
@@ -11,6 +13,12 @@ import (
 	"github.com/stretchr/testify/mock"
 
 	"github.com/shawntherrien/databridge/pkg/types"
+)
+
+// Test constants
+const (
+	testValue1 = "value1"
+	testValue2 = "value2"
 )
 
 // Mock repositories for testing
@@ -49,6 +57,16 @@ func (m *MockFlowFileRepo) Count() (int, error) {
 	return args.Int(0), args.Error(1)
 }
 
+func (m *MockFlowFileRepo) UpdateAttributes(id uuid.UUID, attributes map[string]string) error {
+	args := m.Called(id, attributes)
+	return args.Error(0)
+}
+
+func (m *MockFlowFileRepo) Close() error {
+	args := m.Called()
+	return args.Error(0)
+}
+
 type MockContentRepo struct {
 	mock.Mock
 }
@@ -58,12 +76,12 @@ func (m *MockContentRepo) Write(claim *types.ContentClaim, data []byte) error {
 	return args.Error(0)
 }
 
-func (m *MockContentRepo) Read(claim *types.ContentClaim) ([]byte, error) {
+func (m *MockContentRepo) Read(claim *types.ContentClaim) (io.ReadCloser, error) {
 	args := m.Called(claim)
 	if args.Get(0) == nil {
 		return nil, args.Error(1)
 	}
-	return args.Get(0).([]byte), args.Error(1)
+	return args.Get(0).(io.ReadCloser), args.Error(1)
 }
 
 func (m *MockContentRepo) Remove(claim *types.ContentClaim) error {
@@ -79,37 +97,115 @@ func (m *MockContentRepo) ListClaims() ([]*types.ContentClaim, error) {
 	return args.Get(0).([]*types.ContentClaim), args.Error(1)
 }
 
+func (m *MockContentRepo) Store(content []byte) (*types.ContentClaim, error) {
+	args := m.Called(content)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*types.ContentClaim), args.Error(1)
+}
+
+func (m *MockContentRepo) Get(claim *types.ContentClaim) ([]byte, error) {
+	args := m.Called(claim)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).([]byte), args.Error(1)
+}
+
+func (m *MockContentRepo) GetReader(claim *types.ContentClaim) (io.ReadCloser, error) {
+	args := m.Called(claim)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(io.ReadCloser), args.Error(1)
+}
+
+func (m *MockContentRepo) GetWriter() (ContentWriter, error) {
+	args := m.Called()
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(ContentWriter), args.Error(1)
+}
+
+func (m *MockContentRepo) Delete(claim *types.ContentClaim) error {
+	args := m.Called(claim)
+	return args.Error(0)
+}
+
+func (m *MockContentRepo) IncrementRef(claim *types.ContentClaim) error {
+	args := m.Called(claim)
+	return args.Error(0)
+}
+
+func (m *MockContentRepo) DecrementRef(claim *types.ContentClaim) error {
+	args := m.Called(claim)
+	return args.Error(0)
+}
+
+func (m *MockContentRepo) Close() error {
+	args := m.Called()
+	return args.Error(0)
+}
+
 type MockProvenanceRepo struct {
 	mock.Mock
 }
 
-func (m *MockProvenanceRepo) AddEvent(event *types.ProvenanceEvent) error {
+func (m *MockProvenanceRepo) AddEvent(event *ProvenanceEvent) error {
 	args := m.Called(event)
 	return args.Error(0)
 }
 
-func (m *MockProvenanceRepo) GetEvent(id int64) (*types.ProvenanceEvent, error) {
+func (m *MockProvenanceRepo) GetEvent(id int64) (*ProvenanceEvent, error) {
 	args := m.Called(id)
 	if args.Get(0) == nil {
 		return nil, args.Error(1)
 	}
-	return args.Get(0).(*types.ProvenanceEvent), args.Error(1)
+	return args.Get(0).(*ProvenanceEvent), args.Error(1)
 }
 
-func (m *MockProvenanceRepo) GetEvents(offset, limit int) ([]*types.ProvenanceEvent, error) {
+func (m *MockProvenanceRepo) GetEvents(offset, limit int) ([]*ProvenanceEvent, error) {
 	args := m.Called(offset, limit)
 	if args.Get(0) == nil {
 		return nil, args.Error(1)
 	}
-	return args.Get(0).([]*types.ProvenanceEvent), args.Error(1)
+	return args.Get(0).([]*ProvenanceEvent), args.Error(1)
 }
 
-func (m *MockProvenanceRepo) SearchEvents(query string, limit int) ([]*types.ProvenanceEvent, error) {
+func (m *MockProvenanceRepo) SearchEvents(query string, limit int) ([]*ProvenanceEvent, error) {
 	args := m.Called(query, limit)
 	if args.Get(0) == nil {
 		return nil, args.Error(1)
 	}
-	return args.Get(0).([]*types.ProvenanceEvent), args.Error(1)
+	return args.Get(0).([]*ProvenanceEvent), args.Error(1)
+}
+
+func (m *MockProvenanceRepo) Close() error {
+	args := m.Called()
+	return args.Error(0)
+}
+
+func (m *MockProvenanceRepo) Store(event *ProvenanceEvent) error {
+	args := m.Called(event)
+	return args.Error(0)
+}
+
+func (m *MockProvenanceRepo) Query(query ProvenanceQuery) ([]*ProvenanceEvent, error) {
+	args := m.Called(query)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).([]*ProvenanceEvent), args.Error(1)
+}
+
+func (m *MockProvenanceRepo) GetLineage(flowFileId uuid.UUID) (*LineageGraph, error) {
+	args := m.Called(flowFileId)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*LineageGraph), args.Error(1)
 }
 
 func TestNewRepositoryBackupManager(t *testing.T) {
@@ -140,20 +236,20 @@ func TestCreateBackup(t *testing.T) {
 		types.NewFlowFile(),
 		types.NewFlowFile(),
 	}
-	flowFiles[0].Attributes["test"] = "value1"
-	flowFiles[1].Attributes["test"] = "value2"
+	flowFiles[0].Attributes["test"] = testValue1
+	flowFiles[1].Attributes["test"] = testValue2
 
 	claims := []*types.ContentClaim{
 		{Container: "test", Section: "section1", Offset: 0, Length: 100},
 	}
 
-	events := []*types.ProvenanceEvent{
-		{ID: 1, EventType: "CREATE"},
+	events := []*ProvenanceEvent{
+		{ID: uuid.New(), EventType: "CREATE"},
 	}
 
 	ffRepo.On("List", 0, 0).Return(flowFiles, nil)
 	contentRepo.On("ListClaims").Return(claims, nil)
-	contentRepo.On("Read", mock.Anything).Return(make([]byte, 100), nil)
+	contentRepo.On("Read", mock.Anything).Return(io.NopCloser(bytes.NewReader(make([]byte, 100))), nil)
 	provRepo.On("GetEvents", 0, 0).Return(events, nil)
 
 	t.Run("Full Backup Uncompressed", func(t *testing.T) {
@@ -218,17 +314,17 @@ func TestBackupRestore(t *testing.T) {
 
 	// Create test FlowFiles
 	ff1 := types.NewFlowFile()
-	ff1.Attributes["key"] = "value1"
+	ff1.Attributes["key"] = testValue1
 	ff1.Size = 100
 
 	ff2 := types.NewFlowFile()
-	ff2.Attributes["key"] = "value2"
+	ff2.Attributes["key"] = testValue2
 	ff2.Size = 200
 
 	flowFiles := []*types.FlowFile{ff1, ff2}
 
 	claims := []*types.ContentClaim{}
-	events := []*types.ProvenanceEvent{}
+	events := []*ProvenanceEvent{}
 
 	// Setup mocks for backup
 	ffRepo.On("List", 0, 0).Return(flowFiles, nil)
@@ -266,7 +362,7 @@ func TestListBackups(t *testing.T) {
 	// Setup empty data for backups
 	ffRepo.On("List", 0, 0).Return([]*types.FlowFile{}, nil)
 	contentRepo.On("ListClaims").Return([]*types.ContentClaim{}, nil)
-	provRepo.On("GetEvents", 0, 0).Return([]*types.ProvenanceEvent{}, nil)
+	provRepo.On("GetEvents", 0, 0).Return([]*ProvenanceEvent{}, nil)
 
 	// Create multiple backups
 	opts := BackupOptions{Type: "full", Compress: true}
@@ -299,7 +395,7 @@ func TestDeleteBackup(t *testing.T) {
 	// Setup empty data
 	ffRepo.On("List", 0, 0).Return([]*types.FlowFile{}, nil)
 	contentRepo.On("ListClaims").Return([]*types.ContentClaim{}, nil)
-	provRepo.On("GetEvents", 0, 0).Return([]*types.ProvenanceEvent{}, nil)
+	provRepo.On("GetEvents", 0, 0).Return([]*ProvenanceEvent{}, nil)
 
 	// Create backup
 	opts := BackupOptions{Type: "full", Compress: true}
@@ -331,7 +427,7 @@ func TestVerifyBackup(t *testing.T) {
 	// Setup empty data
 	ffRepo.On("List", 0, 0).Return([]*types.FlowFile{}, nil)
 	contentRepo.On("ListClaims").Return([]*types.ContentClaim{}, nil)
-	provRepo.On("GetEvents", 0, 0).Return([]*types.ProvenanceEvent{}, nil)
+	provRepo.On("GetEvents", 0, 0).Return([]*ProvenanceEvent{}, nil)
 
 	t.Run("Valid Backup", func(t *testing.T) {
 		opts := BackupOptions{Type: "full", Compress: true}
@@ -373,7 +469,7 @@ func TestPruneOldBackups(t *testing.T) {
 	// Setup empty data
 	ffRepo.On("List", 0, 0).Return([]*types.FlowFile{}, nil)
 	contentRepo.On("ListClaims").Return([]*types.ContentClaim{}, nil)
-	provRepo.On("GetEvents", 0, 0).Return([]*types.ProvenanceEvent{}, nil)
+	provRepo.On("GetEvents", 0, 0).Return([]*ProvenanceEvent{}, nil)
 
 	// Create multiple backups
 	opts := BackupOptions{Type: "full", Compress: true}

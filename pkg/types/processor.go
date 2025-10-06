@@ -27,31 +27,35 @@ type Processor interface {
 
 // ProcessorInfo contains metadata about a processor
 type ProcessorInfo struct {
-	Name         string            `json:"name"`
-	Description  string            `json:"description"`
-	Version      string            `json:"version"`
-	Author       string            `json:"author"`
-	Tags         []string          `json:"tags"`
-	Properties   []PropertySpec    `json:"properties"`
-	Relationships []Relationship   `json:"relationships"`
+	Name          string         `json:"name"`
+	Description   string         `json:"description"`
+	Version       string         `json:"version"`
+	Author        string         `json:"author"`
+	Tags          []string       `json:"tags"`
+	Properties    []PropertySpec `json:"properties"`
+	Relationships []Relationship `json:"relationships"`
 }
 
 // PropertySpec defines a processor property specification
 type PropertySpec struct {
-	Name         string `json:"name"`
-	Description  string `json:"description"`
-	Required     bool   `json:"required"`
-	Sensitive    bool   `json:"sensitive"`
-	DefaultValue string `json:"defaultValue"`
+	Name          string   `json:"name"`
+	DisplayName   string   `json:"displayName"`
+	Description   string   `json:"description"`
+	Required      bool     `json:"required"`
+	Sensitive     bool     `json:"sensitive"`
+	DefaultValue  string   `json:"defaultValue"`
 	AllowedValues []string `json:"allowedValues,omitempty"`
-	Pattern      string `json:"pattern,omitempty"`
+	Pattern       string   `json:"pattern,omitempty"`
+	Type          string   `json:"type"`                  // string, number, boolean, select, multiline, directory, file, duration, permission
+	Placeholder   string   `json:"placeholder,omitempty"` // Hint text for input fields
+	HelpText      string   `json:"helpText,omitempty"`    // Additional help text beyond description
 }
 
 // Relationship defines how FlowFiles are routed after processing
 type Relationship struct {
-	Name        string `json:"name"`
-	Description string `json:"description"`
-	AutoTerminate bool `json:"autoTerminate"`
+	Name          string `json:"name"`
+	Description   string `json:"description"`
+	AutoTerminate bool   `json:"autoTerminate"`
 }
 
 // Common relationships
@@ -82,16 +86,16 @@ type Position struct {
 
 // ProcessorConfig contains processor configuration
 type ProcessorConfig struct {
-	ID            uuid.UUID         `json:"id"`
-	Name          string           `json:"name"`
-	Type          string           `json:"type"`
-	Properties    map[string]string `json:"properties"`
-	ScheduleType  ScheduleType     `json:"scheduleType"`
-	ScheduleValue string           `json:"scheduleValue"`
-	Concurrency   int              `json:"concurrency"`
-	AutoTerminate map[string]bool  `json:"autoTerminate"`
-	Position      *Position        `json:"position,omitempty"` // Canvas position for UI
-	ProcessGroupID *uuid.UUID      `json:"processGroupId,omitempty"` // Parent process group
+	ID             uuid.UUID         `json:"id"`
+	Name           string            `json:"name"`
+	Type           string            `json:"type"`
+	Properties     map[string]string `json:"properties"`
+	ScheduleType   ScheduleType      `json:"scheduleType"`
+	ScheduleValue  string            `json:"scheduleValue"`
+	Concurrency    int               `json:"concurrency"`
+	AutoTerminate  map[string]bool   `json:"autoTerminate"`
+	Position       *Position         `json:"position,omitempty"`       // Canvas position for UI
+	ProcessGroupID *uuid.UUID        `json:"processGroupId,omitempty"` // Parent process group
 }
 
 // ScheduleType defines how a processor is scheduled
@@ -170,19 +174,19 @@ type ProcessSession interface {
 
 // ProcessorStatus represents the current status of a processor
 type ProcessorStatus struct {
-	ID                uuid.UUID `json:"id"`
-	Name              string    `json:"name"`
-	Type              string    `json:"type"`
-	State             ProcessorState `json:"state"`
-	FlowFilesIn       int64     `json:"flowFilesIn"`
-	FlowFilesOut      int64     `json:"flowFilesOut"`
-	BytesIn           int64     `json:"bytesIn"`
-	BytesOut          int64     `json:"bytesOut"`
-	TasksCompleted    int64     `json:"tasksCompleted"`
-	TasksRunning      int       `json:"tasksRunning"`
-	AverageTaskTime   time.Duration `json:"averageTaskTime"`
-	LastRun           time.Time `json:"lastRun"`
-	ValidationErrors  []string  `json:"validationErrors,omitempty"`
+	ID               uuid.UUID      `json:"id"`
+	Name             string         `json:"name"`
+	Type             string         `json:"type"`
+	State            ProcessorState `json:"state"`
+	FlowFilesIn      int64          `json:"flowFilesIn"`
+	FlowFilesOut     int64          `json:"flowFilesOut"`
+	BytesIn          int64          `json:"bytesIn"`
+	BytesOut         int64          `json:"bytesOut"`
+	TasksCompleted   int64          `json:"tasksCompleted"`
+	TasksRunning     int            `json:"tasksRunning"`
+	AverageTaskTime  time.Duration  `json:"averageTaskTime"`
+	LastRun          time.Time      `json:"lastRun"`
+	ValidationErrors []string       `json:"validationErrors,omitempty"`
 }
 
 // ProcessorState represents the processor lifecycle state
@@ -202,6 +206,14 @@ type Logger interface {
 	Warn(msg string, fields ...interface{})
 	Error(msg string, fields ...interface{})
 }
+
+// MockLogger is a test logger that discards all logs
+type MockLogger struct{}
+
+func (l *MockLogger) Debug(msg string, fields ...interface{}) {}
+func (l *MockLogger) Info(msg string, fields ...interface{})  {}
+func (l *MockLogger) Warn(msg string, fields ...interface{})  {}
+func (l *MockLogger) Error(msg string, fields ...interface{}) {}
 
 // BaseProcessor provides common processor functionality
 type BaseProcessor struct {

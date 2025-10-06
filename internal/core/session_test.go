@@ -50,11 +50,11 @@ import (
 
 type testFlowFileRepository struct {
 	*mockFlowFileRepository
-	mu           sync.RWMutex
-	storeError   error
-	getError     error
-	deleteError  error
-	updateError  error
+	mu          sync.RWMutex
+	storeError  error
+	getError    error
+	deleteError error
+	updateError error
 }
 
 func newTestFlowFileRepository() *testFlowFileRepository {
@@ -101,11 +101,11 @@ func (m *testFlowFileRepository) UpdateAttributes(id uuid.UUID, attributes map[s
 
 type testContentRepository struct {
 	*mockContentRepository
-	mu           sync.RWMutex
-	refCounts    map[uuid.UUID]int
-	storeError   error
-	getError     error
-	deleteError  error
+	mu          sync.RWMutex
+	refCounts   map[uuid.UUID]int
+	storeError  error
+	getError    error
+	deleteError error
 }
 
 func newTestContentRepository() *testContentRepository {
@@ -161,9 +161,9 @@ func (m *testContentRepository) DecrementRef(claim *types.ContentClaim) error {
 }
 
 type testProvenanceRepository struct {
-	mu          sync.RWMutex
-	events      map[uuid.UUID]*ProvenanceEvent
-	storeError  error
+	mu         sync.RWMutex
+	events     map[uuid.UUID]*ProvenanceEvent
+	storeError error
 }
 
 func newTestProvenanceRepository() *testProvenanceRepository {
@@ -190,6 +190,20 @@ func (m *testProvenanceRepository) GetLineage(flowFileId uuid.UUID) (*LineageGra
 	return nil, nil
 }
 
+func (m *testProvenanceRepository) GetEvents(offset, limit int) ([]*ProvenanceEvent, error) {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+	events := make([]*ProvenanceEvent, 0, len(m.events))
+	for _, event := range m.events {
+		events = append(events, event)
+	}
+	return events, nil
+}
+
+func (m *testProvenanceRepository) AddEvent(event *ProvenanceEvent) error {
+	return m.Store(event)
+}
+
 func (m *testProvenanceRepository) Close() error {
 	return nil
 }
@@ -213,7 +227,7 @@ func createTestSession() (*ProcessSessionImpl, *testFlowFileRepository, *testCon
 	inputQueues := []*FlowFileQueue{}
 	outputConnections := []*Connection{}
 
-	session := NewProcessSession(ffRepo, contentRepo, provRepo, logger, ctx, inputQueues, outputConnections)
+	session := NewProcessSession(ffRepo, contentRepo, provRepo, logger, ctx, nil, inputQueues, outputConnections)
 	return session, ffRepo, contentRepo, provRepo
 }
 
@@ -225,7 +239,7 @@ func createTestSessionWithQueues(inputQueues []*FlowFileQueue, outputConnections
 	logger := &testLogger{}
 	ctx := context.Background()
 
-	session := NewProcessSession(ffRepo, contentRepo, provRepo, logger, ctx, inputQueues, outputConnections)
+	session := NewProcessSession(ffRepo, contentRepo, provRepo, logger, ctx, nil, inputQueues, outputConnections)
 	return session, ffRepo, contentRepo, provRepo
 }
 

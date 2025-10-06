@@ -2,6 +2,7 @@ package api
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 
 	"github.com/google/uuid"
@@ -149,7 +150,7 @@ func (h *FlowHandlers) HandleUpdateFlow(w http.ResponseWriter, r *http.Request) 
 		Name string `json:"name"`
 	}
 
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+	if decodeErr := json.NewDecoder(r.Body).Decode(&req); decodeErr != nil {
 		respondError(w, http.StatusBadRequest, "Invalid request body")
 		return
 	}
@@ -290,13 +291,38 @@ func (h *FlowHandlers) HandleGetProcessorMetadata(w http.ResponseWriter, r *http
 	vars := mux.Vars(r)
 	processorType := vars["type"]
 
-	// Basic metadata for processor types
+	// Get plugin manager from flow controller
+	pluginManager := h.flowController.GetPluginManager()
+	if pluginManager == nil {
+		// Fallback to basic metadata if plugin manager not available
+		metadata := map[string]interface{}{
+			"type":          processorType,
+			"category":      "General",
+			"description":   "Processor: " + processorType,
+			"properties":    []interface{}{},
+			"relationships": []interface{}{},
+		}
+		respondJSON(w, http.StatusOK, metadata)
+		return
+	}
+
+	// Try to create an instance to get metadata
+	processor, err := pluginManager.GetProcessor(processorType)
+	if err != nil {
+		respondError(w, http.StatusNotFound, fmt.Sprintf("Processor type not found: %s", processorType))
+		return
+	}
+
+	// Get processor info
+	info := processor.GetInfo()
+
+	// Convert to frontend format
 	metadata := map[string]interface{}{
-		"type":        processorType,
-		"name":        processorType,
-		"description": "Processor: " + processorType,
-		"version":     "1.0.0",
-		"properties":  []string{},
+		"type":          processorType,
+		"category":      "General", // Could be inferred from tags
+		"description":   info.Description,
+		"properties":    info.Properties,
+		"relationships": info.Relationships,
 	}
 
 	respondJSON(w, http.StatusOK, metadata)
@@ -329,7 +355,7 @@ func (h *FlowHandlers) HandleCreateProcessor(w http.ResponseWriter, r *http.Requ
 		} `json:"position"`
 	}
 
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+	if decodeErr := json.NewDecoder(r.Body).Decode(&req); decodeErr != nil {
 		respondError(w, http.StatusBadRequest, "Invalid request body")
 		return
 	}
@@ -341,15 +367,15 @@ func (h *FlowHandlers) HandleCreateProcessor(w http.ResponseWriter, r *http.Requ
 
 	// Create processor configuration
 	processorConfig := types.ProcessorConfig{
-		ID:            uuid.New(),
-		Name:          req.Type, // Use type as default name
-		Type:          req.Type,
-		ScheduleType:  types.ScheduleTypeTimer,
-		ScheduleValue: "1s",
-		Concurrency:   1,
-		Properties:    make(map[string]string),
-		AutoTerminate: make(map[string]bool),
-		Position:      &types.Position{X: req.Position.X, Y: req.Position.Y},
+		ID:             uuid.New(),
+		Name:           req.Type, // Use type as default name
+		Type:           req.Type,
+		ScheduleType:   types.ScheduleTypeTimer,
+		ScheduleValue:  "1s",
+		Concurrency:    1,
+		Properties:     make(map[string]string),
+		AutoTerminate:  make(map[string]bool),
+		Position:       &types.Position{X: req.Position.X, Y: req.Position.Y},
 		ProcessGroupID: &flowId,
 	}
 
@@ -393,7 +419,7 @@ func (h *FlowHandlers) HandleUpdateProcessor(w http.ResponseWriter, r *http.Requ
 		} `json:"position,omitempty"`
 	}
 
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+	if decodeErr := json.NewDecoder(r.Body).Decode(&req); decodeErr != nil {
 		respondError(w, http.StatusBadRequest, "Invalid request body")
 		return
 	}
@@ -487,7 +513,7 @@ func (h *FlowHandlers) HandleCreateConnection(w http.ResponseWriter, r *http.Req
 		Relationship string `json:"relationship"`
 	}
 
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+	if decodeErr := json.NewDecoder(r.Body).Decode(&req); decodeErr != nil {
 		respondError(w, http.StatusBadRequest, "Invalid request body")
 		return
 	}
@@ -510,6 +536,43 @@ func (h *FlowHandlers) HandleCreateConnection(w http.ResponseWriter, r *http.Req
 		relationshipName = "success"
 	}
 
+	// Validate that source processor exists and supports the relationship
+	sourceProcessor, exists := h.flowController.GetProcessor(sourceId)
+	if !exists {
+		respondError(w, http.StatusNotFound, "Source processor not found")
+		return
+	}
+
+	// Get processor info to check supported relationships
+	if sourceProcessor.Processor != nil {
+		processorInfo := sourceProcessor.Processor.GetInfo()
+		relationshipSupported := false
+
+		// Check if the relationship is defined by the processor
+		for _, rel := range processorInfo.Relationships {
+			if rel.Name == relationshipName {
+				relationshipSupported = true
+				break
+			}
+		}
+
+		if !relationshipSupported {
+			respondError(w, http.StatusBadRequest,
+				fmt.Sprintf("Source processor '%s' does not support relationship '%s'. Supported relationships: %v",
+					sourceProcessor.Name,
+					relationshipName,
+					getRelationshipNames(processorInfo.Relationships)))
+			return
+		}
+	}
+
+	// Validate that target processor exists
+	_, exists = h.flowController.GetProcessor(targetId)
+	if !exists {
+		respondError(w, http.StatusNotFound, "Target processor not found")
+		return
+	}
+
 	// Create Relationship struct
 	rel := types.Relationship{
 		Name: relationshipName,
@@ -527,6 +590,15 @@ func (h *FlowHandlers) HandleCreateConnection(w http.ResponseWriter, r *http.Req
 		"targetId":     conn.Destination.ID,
 		"relationship": relationshipName,
 	})
+}
+
+// getRelationshipNames extracts relationship names from a list of relationships
+func getRelationshipNames(relationships []types.Relationship) []string {
+	names := make([]string, 0, len(relationships))
+	for _, rel := range relationships {
+		names = append(names, rel.Name)
+	}
+	return names
 }
 
 // HandleDeleteConnection handles DELETE /api/flows/{flowId}/connections/{connectionId}
@@ -548,5 +620,77 @@ func (h *FlowHandlers) HandleDeleteConnection(w http.ResponseWriter, r *http.Req
 	respondJSON(w, http.StatusOK, map[string]interface{}{
 		"success": true,
 		"message": "Connection deleted successfully",
+	})
+}
+
+// HandleExportFlow handles GET /api/flows/{id}/export
+func (h *FlowHandlers) HandleExportFlow(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	idStr := vars["id"]
+
+	id, err := uuid.Parse(idStr)
+	if err != nil {
+		respondError(w, http.StatusBadRequest, "Invalid flow ID")
+		return
+	}
+
+	exportData, err := h.flowController.ExportFlow(id)
+	if err != nil {
+		respondError(w, http.StatusInternalServerError, "Failed to export flow: "+err.Error())
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set("Content-Disposition", fmt.Sprintf("attachment; filename=\"flow_%s.json\"", id))
+	respondJSON(w, http.StatusOK, exportData)
+}
+
+// HandleImportFlow handles POST /api/flows/import
+func (h *FlowHandlers) HandleImportFlow(w http.ResponseWriter, r *http.Request) {
+	var flowData map[string]interface{}
+	if err := json.NewDecoder(r.Body).Decode(&flowData); err != nil {
+		respondError(w, http.StatusBadRequest, "Invalid request body")
+		return
+	}
+
+	flow, err := h.flowController.ImportFlow(flowData)
+	if err != nil {
+		respondError(w, http.StatusInternalServerError, "Failed to import flow: "+err.Error())
+		return
+	}
+
+	flowData = map[string]interface{}{
+		"id":   flow.ID,
+		"name": flow.Name,
+	}
+	if flow.Parent != nil {
+		flowData["parentId"] = flow.Parent.ID
+	}
+
+	respondJSON(w, http.StatusCreated, flowData)
+}
+
+// HandleValidateFlow handles POST /api/flows/{id}/validate
+func (h *FlowHandlers) HandleValidateFlow(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	idStr := vars["id"]
+
+	id, err := uuid.Parse(idStr)
+	if err != nil {
+		respondError(w, http.StatusBadRequest, "Invalid flow ID")
+		return
+	}
+
+	validationResults, err := h.flowController.ValidateFlow(id)
+	if err != nil {
+		respondError(w, http.StatusInternalServerError, "Failed to validate flow: "+err.Error())
+		return
+	}
+
+	respondJSON(w, http.StatusOK, map[string]interface{}{
+		"flowId":   id,
+		"valid":    validationResults.Valid,
+		"errors":   validationResults.Errors,
+		"warnings": validationResults.Warnings,
 	})
 }

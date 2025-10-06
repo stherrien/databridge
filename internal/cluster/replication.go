@@ -51,11 +51,13 @@ func (sr *StateReplicator) ReplicateState(ctx context.Context, stateType string,
 	}
 
 	// Create replication request
+	// Safe conversion: UnixNano() returns int64, converting to uint64 for version numbering
+	// UnixNano() is always positive after 1970, so this conversion is safe
 	req := &ReplicationRequest{
 		RequestID:   uuid.New().String(),
 		StateType:   stateType,
 		Data:        data,
-		Version:     uint64(time.Now().UnixNano()),
+		Version:     uint64(time.Now().UnixNano()), // #nosec G115 - UnixNano is positive for valid timestamps
 		Timestamp:   time.Now(),
 		AckRequired: sr.config.Strategy != ReplicationAsync,
 	}
@@ -253,13 +255,13 @@ func (sr *StateReplicator) GetReplicationStatus(requestID string) (*ReplicationS
 	responses := sr.responses[requestID]
 
 	status := &ReplicationStatus{
-		RequestID:       requestID,
-		StateType:       req.StateType,
-		TotalNodes:      0, // Would track from original request
+		RequestID:         requestID,
+		StateType:         req.StateType,
+		TotalNodes:        0, // Would track from original request
 		AcknowledgedNodes: len(responses),
-		Pending:         req.AckRequired && len(responses) == 0,
-		Completed:       !req.AckRequired || len(responses) > 0,
-		Timestamp:       req.Timestamp,
+		Pending:           req.AckRequired && len(responses) == 0,
+		Completed:         !req.AckRequired || len(responses) > 0,
+		Timestamp:         req.Timestamp,
 	}
 
 	return status, nil
