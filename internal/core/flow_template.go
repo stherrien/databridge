@@ -263,7 +263,7 @@ func (ftm *FlowTemplateManager) InstantiateTemplate(templateID uuid.UUID, variab
 		if err != nil {
 			// Cleanup created processors on error
 			for _, procID := range createdProcessors {
-				ftm.flowController.RemoveProcessor(procID)
+				_ = ftm.flowController.RemoveProcessor(procID)
 			}
 			return nil, fmt.Errorf("failed to create processor %s: %w", procTemplate.Name, err)
 		}
@@ -327,6 +327,7 @@ func (ftm *FlowTemplateManager) SaveTemplate(templateID uuid.UUID) error {
 
 // LoadTemplate loads a template from disk
 func (ftm *FlowTemplateManager) LoadTemplate(filename string) (*FlowTemplate, error) {
+	// #nosec G304 - filename is controlled by template manager and points to template directory
 	data, err := os.ReadFile(filename)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read template file: %w", err)
@@ -501,7 +502,7 @@ func (ftm *FlowTemplateManager) ImportFlow(export *FlowExport) ([]uuid.UUID, err
 		if err != nil {
 			// Cleanup on error
 			for _, procID := range createdProcessors {
-				ftm.flowController.RemoveProcessor(procID)
+				_ = ftm.flowController.RemoveProcessor(procID)
 			}
 			return nil, fmt.Errorf("failed to import processor %s: %w", procExport.Name, err)
 		}

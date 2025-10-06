@@ -119,12 +119,12 @@ func (p *SplitJSONProcessor) OnTrigger(ctx context.Context, session types.Proces
 
 	// Parse JSON
 	var jsonData interface{}
-	if err := json.Unmarshal(content, &jsonData); err != nil {
+	if unmarshalErr := json.Unmarshal(content, &jsonData); unmarshalErr != nil {
 		logger.Error("Failed to parse JSON content",
 			"flowFileId", flowFile.ID,
-			"error", err)
+			"error", unmarshalErr)
 		session.Transfer(flowFile, types.RelationshipFailure)
-		return err
+		return unmarshalErr
 	}
 
 	// Navigate to array using JSONPath

@@ -156,7 +156,7 @@ func (s *ProcessSessionImpl) Clone(original *types.FlowFile) *types.FlowFile {
 
 	// Increment reference count on content claim
 	if clone.ContentClaim != nil {
-		s.contentRepo.IncrementRef(clone.ContentClaim)
+		_ = s.contentRepo.IncrementRef(clone.ContentClaim)
 	}
 
 	s.logger.Debug("Cloned FlowFile", "cloneId", clone.ID, "originalId", original.ID)
@@ -261,7 +261,7 @@ func (s *ProcessSessionImpl) Write(flowFile *types.FlowFile, content []byte) err
 
 	// Decrement reference count on old content claim
 	if flowFile.ContentClaim != nil {
-		s.contentRepo.DecrementRef(flowFile.ContentClaim)
+		_ = s.contentRepo.DecrementRef(flowFile.ContentClaim)
 	}
 
 	// Update FlowFile with new content claim
@@ -441,7 +441,7 @@ func (s *ProcessSessionImpl) Rollback() {
 	// Decrement reference counts on any content claims that were incremented
 	for _, flowFile := range s.creations {
 		if flowFile.ContentClaim != nil {
-			s.contentRepo.DecrementRef(flowFile.ContentClaim)
+			_ = s.contentRepo.DecrementRef(flowFile.ContentClaim)
 		}
 	}
 

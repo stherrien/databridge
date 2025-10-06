@@ -370,7 +370,7 @@ func (fc *FlowController) StartProcessor(processorID uuid.UUID) error {
 	}
 
 	// Schedule processor
-	fc.scheduler.ScheduleProcessor(processorNode)
+	_ = fc.scheduler.ScheduleProcessor(processorNode)
 
 	processorNode.Status.State = types.ProcessorStateRunning
 	processorNode.Status.ValidationErrors = nil
@@ -598,7 +598,7 @@ func (ctx *ProcessorContextImpl) GetProperty(name string) (string, bool) {
 
 // GetPropertyValue retrieves a property value or empty string
 func (ctx *ProcessorContextImpl) GetPropertyValue(name string) string {
-	value, _ := ctx.config.Properties[name]
+	value := ctx.config.Properties[name]
 	return value
 }
 
@@ -852,7 +852,7 @@ func (fc *FlowController) RemoveProcessor(id uuid.UUID) error {
 	}
 
 	for _, connID := range connectionsToRemove {
-		fc.removeConnection(connID)
+		_ = fc.removeConnection(connID)
 	}
 
 	delete(fc.processors, id)
@@ -1157,188 +1157,18 @@ func (fc *FlowController) ImportFlow(data map[string]interface{}) (*ProcessGroup
 	}
 
 	// Create new process group
-	pg := &ProcessGroup{
-		ID:          uuid.New(),
-		Name:        name,
-		Children:    make(map[uuid.UUID]*ProcessGroup),
-		Processors:  make(map[uuid.UUID]*ProcessorNode),
-		Connections: make(map[uuid.UUID]*Connection),
-	}
+	pg := fc.createProcessGroupForImport(name)
 
 	// Handle parent if specified
-	if parentIDStr, ok := data["parentId"].(string); ok {
-		parentID, err := uuid.Parse(parentIDStr)
-		if err == nil {
-			parent, exists := fc.processGroups[parentID]
-			if exists {
-				pg.Parent = parent
-				parent.mu.Lock()
-				parent.Children[pg.ID] = pg
-				parent.mu.Unlock()
-			}
-		}
-	}
+	fc.attachParentGroup(pg, data)
 
 	fc.processGroups[pg.ID] = pg
 
-	// Import processors
-	if processorsData, ok := data["processors"].([]interface{}); ok {
-		processorIDMap := make(map[string]uuid.UUID) // Old ID -> New ID mapping
+	// Import processors and get ID mapping
+	processorIDMap := fc.importProcessors(pg, data)
 
-		for _, procData := range processorsData {
-			procMap, ok := procData.(map[string]interface{})
-			if !ok {
-				continue
-			}
-
-			oldID := ""
-			if id, ok := procMap["id"].(string); ok {
-				oldID = id
-			}
-
-			processorType, _ := procMap["type"].(string)
-			processorName, _ := procMap["name"].(string)
-
-			// Create processor config
-			newID := uuid.New()
-			processorIDMap[oldID] = newID
-
-			config := types.ProcessorConfig{
-				ID:             newID,
-				Name:           processorName,
-				Type:           processorType,
-				ScheduleType:   types.ScheduleTypeTimer,
-				ScheduleValue:  "1s",
-				Concurrency:    1,
-				Properties:     make(map[string]string),
-				AutoTerminate:  make(map[string]bool),
-				ProcessGroupID: &pg.ID,
-			}
-
-			// Import properties
-			if props, ok := procMap["properties"].(map[string]interface{}); ok {
-				for k, v := range props {
-					if strVal, ok := v.(string); ok {
-						config.Properties[k] = strVal
-					}
-				}
-			}
-
-			// Import schedule settings
-			if schedType, ok := procMap["scheduleType"].(string); ok {
-				config.ScheduleType = types.ScheduleType(schedType)
-			}
-			if schedVal, ok := procMap["scheduleValue"].(string); ok {
-				config.ScheduleValue = schedVal
-			}
-			if concurrency, ok := procMap["concurrency"].(float64); ok {
-				config.Concurrency = int(concurrency)
-			}
-
-			// Import position
-			if posData, ok := procMap["position"].(map[string]interface{}); ok {
-				x, _ := posData["x"].(float64)
-				y, _ := posData["y"].(float64)
-				config.Position = &types.Position{X: x, Y: y}
-			}
-
-			// Import autoTerminate
-			if autoTerm, ok := procMap["autoTerminate"].(map[string]interface{}); ok {
-				for k, v := range autoTerm {
-					if boolVal, ok := v.(bool); ok {
-						config.AutoTerminate[k] = boolVal
-					}
-				}
-			}
-
-			// Create processor using plugin manager
-			if fc.pluginManager != nil {
-				processor, err := fc.pluginManager.GetProcessor(processorType)
-				if err != nil {
-					fc.logger.WithError(err).Warnf("Failed to create processor type %s during import", processorType)
-					continue
-				}
-
-				// Create processor node
-				processorNode := &ProcessorNode{
-					ID:        config.ID,
-					Name:      config.Name,
-					Type:      config.Type,
-					Processor: processor,
-					Config:    config,
-					Status: types.ProcessorStatus{
-						ID:    config.ID,
-						Name:  config.Name,
-						Type:  config.Type,
-						State: types.ProcessorStateStopped,
-					},
-					Context:        NewProcessorContext(config, fc.logger),
-					RateLimiter:    NewProcessorRateLimiter(DefaultRateLimitConfig()),
-					CircuitBreaker: NewCircuitBreaker(config.Name, DefaultCircuitBreakerConfig()),
-					RetryPolicy:    &RetryPolicy{},
-					RetryQueue:     NewRetryQueue(&RetryPolicy{}, 1000),
-				}
-
-				fc.processors[processorNode.ID] = processorNode
-				pg.Processors[processorNode.ID] = processorNode
-			}
-		}
-
-		// Import connections
-		if connectionsData, ok := data["connections"].([]interface{}); ok {
-			for _, connData := range connectionsData {
-				connMap, ok := connData.(map[string]interface{})
-				if !ok {
-					continue
-				}
-
-				oldSourceID, _ := connMap["sourceId"].(string)
-				oldDestID, _ := connMap["destinationId"].(string)
-				relationshipName, _ := connMap["relationship"].(string)
-
-				// Map old IDs to new IDs
-				newSourceID, sourceExists := processorIDMap[oldSourceID]
-				newDestID, destExists := processorIDMap[oldDestID]
-
-				if !sourceExists || !destExists {
-					continue
-				}
-
-				source, sourceExists := fc.processors[newSourceID]
-				dest, destExists := fc.processors[newDestID]
-
-				if !sourceExists || !destExists {
-					continue
-				}
-
-				// Create connection
-				connection := &Connection{
-					ID:                 uuid.New(),
-					Name:               fmt.Sprintf("%s -> %s", source.Name, dest.Name),
-					Source:             source,
-					Destination:        dest,
-					Relationship:       types.Relationship{Name: relationshipName},
-					BackPressureSize:   10000,
-					BackPressureConfig: DefaultBackPressureConfig(),
-				}
-
-				// Create queue
-				connection.Queue = &FlowFileQueue{
-					connection: connection,
-					flowFiles:  make([]*types.FlowFile, 0),
-					maxSize:    connection.BackPressureSize,
-					metrics:    &BackPressureMetrics{},
-				}
-
-				fc.connections[connection.ID] = connection
-				pg.Connections[connection.ID] = connection
-
-				source.mu.Lock()
-				source.Connections = append(source.Connections, connection)
-				source.mu.Unlock()
-			}
-		}
-	}
+	// Import connections using the ID mapping
+	fc.importConnections(pg, data, processorIDMap)
 
 	fc.logger.WithFields(logrus.Fields{
 		"flowId":   pg.ID,
@@ -1346,6 +1176,229 @@ func (fc *FlowController) ImportFlow(data map[string]interface{}) (*ProcessGroup
 	}).Info("Imported flow")
 
 	return pg, nil
+}
+
+// createProcessGroupForImport creates a new process group for importing
+func (fc *FlowController) createProcessGroupForImport(name string) *ProcessGroup {
+	return &ProcessGroup{
+		ID:          uuid.New(),
+		Name:        name,
+		Children:    make(map[uuid.UUID]*ProcessGroup),
+		Processors:  make(map[uuid.UUID]*ProcessorNode),
+		Connections: make(map[uuid.UUID]*Connection),
+	}
+}
+
+// attachParentGroup attaches a parent group if specified in the import data
+func (fc *FlowController) attachParentGroup(pg *ProcessGroup, data map[string]interface{}) {
+	parentIDStr, ok := data["parentId"].(string)
+	if !ok {
+		return
+	}
+
+	parentID, err := uuid.Parse(parentIDStr)
+	if err != nil {
+		return
+	}
+
+	parent, exists := fc.processGroups[parentID]
+	if !exists {
+		return
+	}
+
+	pg.Parent = parent
+	parent.mu.Lock()
+	parent.Children[pg.ID] = pg
+	parent.mu.Unlock()
+}
+
+// importProcessors imports processors from the flow data
+func (fc *FlowController) importProcessors(pg *ProcessGroup, data map[string]interface{}) map[string]uuid.UUID {
+	processorIDMap := make(map[string]uuid.UUID)
+
+	processorsData, ok := data["processors"].([]interface{})
+	if !ok {
+		return processorIDMap
+	}
+
+	for _, procData := range processorsData {
+		procMap, ok := procData.(map[string]interface{})
+		if !ok {
+			continue
+		}
+
+		oldID, _ := procMap["id"].(string)
+		newID := uuid.New()
+		processorIDMap[oldID] = newID
+
+		config := fc.buildProcessorConfig(procMap, newID, pg.ID)
+		processorNode := fc.createProcessorNode(config, procMap)
+
+		if processorNode != nil {
+			fc.processors[processorNode.ID] = processorNode
+			pg.Processors[processorNode.ID] = processorNode
+		}
+	}
+
+	return processorIDMap
+}
+
+// buildProcessorConfig builds a processor configuration from imported data
+func (fc *FlowController) buildProcessorConfig(procMap map[string]interface{}, newID, groupID uuid.UUID) types.ProcessorConfig {
+	processorType, _ := procMap["type"].(string)
+	processorName, _ := procMap["name"].(string)
+
+	config := types.ProcessorConfig{
+		ID:             newID,
+		Name:           processorName,
+		Type:           processorType,
+		ScheduleType:   types.ScheduleTypeTimer,
+		ScheduleValue:  "1s",
+		Concurrency:    1,
+		Properties:     make(map[string]string),
+		AutoTerminate:  make(map[string]bool),
+		ProcessGroupID: &groupID,
+	}
+
+	// Import properties
+	if props, ok := procMap["properties"].(map[string]interface{}); ok {
+		for k, v := range props {
+			if strVal, ok := v.(string); ok {
+				config.Properties[k] = strVal
+			}
+		}
+	}
+
+	// Import schedule settings
+	if schedType, ok := procMap["scheduleType"].(string); ok {
+		config.ScheduleType = types.ScheduleType(schedType)
+	}
+	if schedVal, ok := procMap["scheduleValue"].(string); ok {
+		config.ScheduleValue = schedVal
+	}
+	if concurrency, ok := procMap["concurrency"].(float64); ok {
+		config.Concurrency = int(concurrency)
+	}
+
+	// Import position
+	if posData, ok := procMap["position"].(map[string]interface{}); ok {
+		x, _ := posData["x"].(float64)
+		y, _ := posData["y"].(float64)
+		config.Position = &types.Position{X: x, Y: y}
+	}
+
+	// Import autoTerminate
+	if autoTerm, ok := procMap["autoTerminate"].(map[string]interface{}); ok {
+		for k, v := range autoTerm {
+			if boolVal, ok := v.(bool); ok {
+				config.AutoTerminate[k] = boolVal
+			}
+		}
+	}
+
+	return config
+}
+
+// createProcessorNode creates a processor node from config
+func (fc *FlowController) createProcessorNode(config types.ProcessorConfig, procMap map[string]interface{}) *ProcessorNode {
+	if fc.pluginManager == nil {
+		return nil
+	}
+
+	processor, err := fc.pluginManager.GetProcessor(config.Type)
+	if err != nil {
+		fc.logger.WithError(err).Warnf("Failed to create processor type %s during import", config.Type)
+		return nil
+	}
+
+	return &ProcessorNode{
+		ID:        config.ID,
+		Name:      config.Name,
+		Type:      config.Type,
+		Processor: processor,
+		Config:    config,
+		Status: types.ProcessorStatus{
+			ID:    config.ID,
+			Name:  config.Name,
+			Type:  config.Type,
+			State: types.ProcessorStateStopped,
+		},
+		Context:        NewProcessorContext(config, fc.logger),
+		RateLimiter:    NewProcessorRateLimiter(DefaultRateLimitConfig()),
+		CircuitBreaker: NewCircuitBreaker(config.Name, DefaultCircuitBreakerConfig()),
+		RetryPolicy:    &RetryPolicy{},
+		RetryQueue:     NewRetryQueue(&RetryPolicy{}, 1000),
+	}
+}
+
+// importConnections imports connections from the flow data
+func (fc *FlowController) importConnections(pg *ProcessGroup, data map[string]interface{}, processorIDMap map[string]uuid.UUID) {
+	connectionsData, ok := data["connections"].([]interface{})
+	if !ok {
+		return
+	}
+
+	for _, connData := range connectionsData {
+		connMap, ok := connData.(map[string]interface{})
+		if !ok {
+			continue
+		}
+
+		connection := fc.buildConnection(connMap, processorIDMap)
+		if connection == nil {
+			continue
+		}
+
+		fc.connections[connection.ID] = connection
+		pg.Connections[connection.ID] = connection
+
+		connection.Source.mu.Lock()
+		connection.Source.Connections = append(connection.Source.Connections, connection)
+		connection.Source.mu.Unlock()
+	}
+}
+
+// buildConnection builds a connection from imported data
+func (fc *FlowController) buildConnection(connMap map[string]interface{}, processorIDMap map[string]uuid.UUID) *Connection {
+	oldSourceID, _ := connMap["sourceId"].(string)
+	oldDestID, _ := connMap["destinationId"].(string)
+	relationshipName, _ := connMap["relationship"].(string)
+
+	// Map old IDs to new IDs
+	newSourceID, sourceExists := processorIDMap[oldSourceID]
+	newDestID, destExists := processorIDMap[oldDestID]
+
+	if !sourceExists || !destExists {
+		return nil
+	}
+
+	source, sourceExists := fc.processors[newSourceID]
+	dest, destExists := fc.processors[newDestID]
+
+	if !sourceExists || !destExists {
+		return nil
+	}
+
+	// Create connection
+	connection := &Connection{
+		ID:                 uuid.New(),
+		Name:               fmt.Sprintf("%s -> %s", source.Name, dest.Name),
+		Source:             source,
+		Destination:        dest,
+		Relationship:       types.Relationship{Name: relationshipName},
+		BackPressureSize:   10000,
+		BackPressureConfig: DefaultBackPressureConfig(),
+	}
+
+	// Create queue
+	connection.Queue = &FlowFileQueue{
+		connection: connection,
+		flowFiles:  make([]*types.FlowFile, 0),
+		maxSize:    connection.BackPressureSize,
+		metrics:    &BackPressureMetrics{},
+	}
+
+	return connection
 }
 
 // ValidateFlow validates a flow configuration
@@ -1367,23 +1420,23 @@ func (fc *FlowController) ValidateFlow(id uuid.UUID) (*FlowValidationResult, err
 	flow.RLock()
 	defer flow.RUnlock()
 
-	// Check for disconnected processors
-	for _, proc := range flow.Processors {
-		hasIncoming := false
-		hasOutgoing := false
+	// Run all validations
+	fc.validateProcessorConnections(flow, result)
+	fc.validateFlowForCycles(flow, result)
+	fc.validateProcessorConfigurations(flow, result)
+	fc.validateRelationships(flow, result)
 
-		for _, conn := range flow.Connections {
-			if conn.Destination.ID == proc.ID {
-				hasIncoming = true
-			}
-			if conn.Source.ID == proc.ID {
-				hasOutgoing = true
-			}
-		}
+	return result, nil
+}
+
+// validateProcessorConnections checks for disconnected processors
+func (fc *FlowController) validateProcessorConnections(flow *ProcessGroup, result *FlowValidationResult) {
+	for _, proc := range flow.Processors {
+		hasIncoming := fc.hasIncomingConnection(proc.ID, flow.Connections)
+		hasOutgoing := fc.hasOutgoingConnection(proc.ID, flow.Connections)
 
 		// Source processors don't need incoming connections
-		isSource := proc.Type == "GenerateFlowFile" || proc.Type == "GetFile" ||
-			proc.Type == "ConsumeKafka" || proc.Type == "ExecuteSQL"
+		isSource := fc.isSourceProcessor(proc.Type)
 
 		if !isSource && !hasIncoming {
 			result.Warnings = append(result.Warnings,
@@ -1395,82 +1448,120 @@ func (fc *FlowController) ValidateFlow(id uuid.UUID) (*FlowValidationResult, err
 				fmt.Sprintf("Processor '%s' has no outgoing connections", proc.Name))
 		}
 	}
+}
 
-	// Check for cycles (simple DFS-based cycle detection)
+// hasIncomingConnection checks if a processor has any incoming connections
+func (fc *FlowController) hasIncomingConnection(procID uuid.UUID, connections map[uuid.UUID]*Connection) bool {
+	for _, conn := range connections {
+		if conn.Destination.ID == procID {
+			return true
+		}
+	}
+	return false
+}
+
+// hasOutgoingConnection checks if a processor has any outgoing connections
+func (fc *FlowController) hasOutgoingConnection(procID uuid.UUID, connections map[uuid.UUID]*Connection) bool {
+	for _, conn := range connections {
+		if conn.Source.ID == procID {
+			return true
+		}
+	}
+	return false
+}
+
+// isSourceProcessor returns true if the processor type is a source processor
+func (fc *FlowController) isSourceProcessor(processorType string) bool {
+	return processorType == "GenerateFlowFile" ||
+		processorType == "GetFile" ||
+		processorType == "ConsumeKafka" ||
+		processorType == "ExecuteSQL"
+}
+
+// validateFlowForCycles detects cycles in the flow using DFS
+func (fc *FlowController) validateFlowForCycles(flow *ProcessGroup, result *FlowValidationResult) {
 	visited := make(map[uuid.UUID]bool)
 	recStack := make(map[uuid.UUID]bool)
 
-	var hasCycle func(uuid.UUID) bool
-	hasCycle = func(procID uuid.UUID) bool {
-		visited[procID] = true
-		recStack[procID] = true
-
-		// Check all outgoing connections
-		for _, conn := range flow.Connections {
-			if conn.Source.ID == procID {
-				destID := conn.Destination.ID
-				if !visited[destID] {
-					if hasCycle(destID) {
-						return true
-					}
-				} else if recStack[destID] {
-					return true
-				}
-			}
-		}
-
-		recStack[procID] = false
-		return false
-	}
-
 	for procID := range flow.Processors {
 		if !visited[procID] {
-			if hasCycle(procID) {
+			if fc.detectCycle(procID, flow.Connections, visited, recStack) {
 				result.Errors = append(result.Errors, "Flow contains cycles")
 				result.Valid = false
 				break
 			}
 		}
 	}
+}
 
-	// Validate each processor configuration
-	for _, proc := range flow.Processors {
-		if proc.Processor != nil {
-			validationResults := proc.Processor.Validate(proc.Config)
-			for _, vr := range validationResults {
-				if !vr.Valid {
-					result.Errors = append(result.Errors,
-						fmt.Sprintf("Processor '%s': %s - %s", proc.Name, vr.Property, vr.Message))
-					result.Valid = false
+// detectCycle performs DFS-based cycle detection
+func (fc *FlowController) detectCycle(procID uuid.UUID, connections map[uuid.UUID]*Connection, visited, recStack map[uuid.UUID]bool) bool {
+	visited[procID] = true
+	recStack[procID] = true
+
+	// Check all outgoing connections
+	for _, conn := range connections {
+		if conn.Source.ID == procID {
+			destID := conn.Destination.ID
+			if !visited[destID] {
+				if fc.detectCycle(destID, connections, visited, recStack) {
+					return true
 				}
+			} else if recStack[destID] {
+				return true
 			}
 		}
 	}
 
-	// Check for missing relationship configurations
+	recStack[procID] = false
+	return false
+}
+
+// validateProcessorConfigurations validates each processor's configuration
+func (fc *FlowController) validateProcessorConfigurations(flow *ProcessGroup, result *FlowValidationResult) {
 	for _, proc := range flow.Processors {
-		if proc.Processor != nil {
-			info := proc.Processor.GetInfo()
-			for _, rel := range info.Relationships {
-				// Check if relationship is connected or auto-terminated
-				isConnected := false
-				for _, conn := range flow.Connections {
-					if conn.Source.ID == proc.ID && conn.Relationship.Name == rel.Name {
-						isConnected = true
-						break
-					}
-				}
+		if proc.Processor == nil {
+			continue
+		}
 
-				isAutoTerminated := proc.Config.AutoTerminate[rel.Name]
-
-				if !isConnected && !isAutoTerminated {
-					result.Warnings = append(result.Warnings,
-						fmt.Sprintf("Processor '%s': relationship '%s' is neither connected nor auto-terminated",
-							proc.Name, rel.Name))
-				}
+		validationResults := proc.Processor.Validate(proc.Config)
+		for _, vr := range validationResults {
+			if !vr.Valid {
+				result.Errors = append(result.Errors,
+					fmt.Sprintf("Processor '%s': %s - %s", proc.Name, vr.Property, vr.Message))
+				result.Valid = false
 			}
 		}
 	}
+}
 
-	return result, nil
+// validateRelationships checks for missing relationship configurations
+func (fc *FlowController) validateRelationships(flow *ProcessGroup, result *FlowValidationResult) {
+	for _, proc := range flow.Processors {
+		if proc.Processor == nil {
+			continue
+		}
+
+		info := proc.Processor.GetInfo()
+		for _, rel := range info.Relationships {
+			isConnected := fc.isRelationshipConnected(proc.ID, rel.Name, flow.Connections)
+			isAutoTerminated := proc.Config.AutoTerminate[rel.Name]
+
+			if !isConnected && !isAutoTerminated {
+				result.Warnings = append(result.Warnings,
+					fmt.Sprintf("Processor '%s': relationship '%s' is neither connected nor auto-terminated",
+						proc.Name, rel.Name))
+			}
+		}
+	}
+}
+
+// isRelationshipConnected checks if a relationship is connected
+func (fc *FlowController) isRelationshipConnected(procID uuid.UUID, relationshipName string, connections map[uuid.UUID]*Connection) bool {
+	for _, conn := range connections {
+		if conn.Source.ID == procID && conn.Relationship.Name == relationshipName {
+			return true
+		}
+	}
+	return false
 }

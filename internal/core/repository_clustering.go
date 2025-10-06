@@ -11,6 +11,12 @@ import (
 	"github.com/shawntherrien/databridge/pkg/types"
 )
 
+const (
+	statusActive  = "active"
+	statusSuccess = "success"
+	statusFailed  = "failed"
+)
+
 // ClusterNode represents a node in the repository cluster
 type ClusterNode struct {
 	ID        string
@@ -108,7 +114,7 @@ func (c *RepositoryCluster) Start() error {
 	c.mu.Lock()
 	c.nodes[c.nodeID] = &ClusterNode{
 		ID:       c.nodeID,
-		Status:   "active",
+		Status:   statusActive,
 		Role:     "follower",
 		LastSeen: time.Now(),
 	}
@@ -166,7 +172,7 @@ func (c *RepositoryCluster) ElectLeader() (string, error) {
 	// Simple leader election: choose first active node alphabetically
 	var candidates []string
 	for id, node := range c.nodes {
-		if node.Status == "active" {
+		if node.Status == statusActive {
 			candidates = append(candidates, id)
 		}
 	}
@@ -306,7 +312,7 @@ func (c *RepositoryCluster) selectReplicationTargets() []string {
 		if id == c.nodeID {
 			continue // Don't replicate to self
 		}
-		if node.Status != "active" {
+		if node.Status != statusActive {
 			continue
 		}
 		targets = append(targets, id)
@@ -358,9 +364,9 @@ func (c *RepositoryCluster) processReplicationTask(task *ReplicationTask) {
 	logEntry.ReplicaCount = successCount
 
 	if successCount >= len(task.TargetNodes)/2+1 {
-		logEntry.Status = "success"
+		logEntry.Status = statusSuccess
 	} else {
-		logEntry.Status = "failed"
+		logEntry.Status = statusFailed
 	}
 
 	c.mu.Lock()
@@ -378,7 +384,7 @@ func (c *RepositoryCluster) replicateToNode(nodeID string, task *ReplicationTask
 		return fmt.Errorf("node %s not found", nodeID)
 	}
 
-	if node.Status != "active" {
+	if node.Status != statusActive {
 		return fmt.Errorf("node %s is not active", nodeID)
 	}
 
@@ -452,8 +458,8 @@ func (c *RepositoryCluster) sendHeartbeat() {
 		if id == c.nodeID {
 			continue
 		}
-		if node.LastSeen.Before(cutoff) && node.Status == "active" {
-			node.Status = "failed"
+		if node.LastSeen.Before(cutoff) && node.Status == statusActive {
+			node.Status = statusFailed
 		}
 	}
 }
@@ -496,7 +502,7 @@ func (c *RepositoryCluster) GetStats() ClusterStats {
 	}
 
 	for _, node := range c.nodes {
-		if node.Status == "active" {
+		if node.Status == statusActive {
 			stats.ActiveNodes++
 		}
 		stats.TotalFlowFiles += node.FlowFiles
@@ -505,7 +511,7 @@ func (c *RepositoryCluster) GetStats() ClusterStats {
 
 	// Count failed replicas
 	for _, entry := range c.replicationLog {
-		if entry.Status == "failed" {
+		if entry.Status == statusFailed {
 			stats.FailedReplicas++
 		}
 	}

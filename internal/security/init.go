@@ -46,8 +46,8 @@ func InitializeSecurity(ctx context.Context, authManager *AuthManager, logger *l
 			Enabled:      true,
 		}
 
-		if err := userRepo.Create(ctx, adminUser); err != nil {
-			return fmt.Errorf("failed to create admin user: %w", err)
+		if createErr := userRepo.Create(ctx, adminUser); createErr != nil {
+			return fmt.Errorf("failed to create admin user: %w", createErr)
 		}
 
 		// Assign admin role

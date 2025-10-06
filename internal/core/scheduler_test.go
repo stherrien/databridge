@@ -2,7 +2,6 @@ package core
 
 import (
 	"context"
-	"sync"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -18,7 +17,6 @@ type mockSchedulerProcessor struct {
 	triggerCount  int32
 	shouldFail    bool
 	executionTime time.Duration
-	mu            sync.Mutex
 }
 
 func newMockSchedulerProcessor(shouldFail bool, executionTime time.Duration) *mockSchedulerProcessor {

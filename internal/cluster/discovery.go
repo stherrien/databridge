@@ -346,7 +346,9 @@ func (d *Discovery) SetSeeds(seeds []string) error {
 
 	// Re-discover with new seeds
 	if d.running {
-		go d.discover()
+		go func() {
+			_ = d.discover() // Error logged inside discover()
+		}()
 	}
 
 	return nil

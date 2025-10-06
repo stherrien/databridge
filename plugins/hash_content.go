@@ -2,7 +2,7 @@ package plugins
 
 import (
 	"context"
-	"crypto/md5" // #nosec G501 - MD5 is intentionally supported for compatibility with legacy systems
+	"crypto/md5"  // #nosec G501 - MD5 is intentionally supported for compatibility with legacy systems
 	"crypto/sha1" // #nosec G505 - SHA-1 is intentionally supported for compatibility with legacy systems
 	"crypto/sha256"
 	"crypto/sha512"

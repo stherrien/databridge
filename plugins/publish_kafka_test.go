@@ -37,7 +37,7 @@ func TestPublishKafkaProcessor_InitializeSuccess(t *testing.T) {
 	}
 
 	mockLogger := &MockConsumeKafkaLogger{}
-	mockLogger.On("Info", mock.Anything)
+	mockLogger.On("Info", mock.Anything, mock.Anything)
 	mockLogger.On("WithFields", mock.Anything).Return(mockLogger)
 	mockCtx.On("GetLogger").Return(mockLogger)
 
@@ -59,7 +59,7 @@ func TestPublishKafkaProcessor_InitializeMissingBrokers(t *testing.T) {
 	}
 
 	mockLogger := &MockConsumeKafkaLogger{}
-	mockLogger.On("Info", mock.Anything)
+	mockLogger.On("Info", mock.Anything, mock.Anything)
 	mockCtx.On("GetLogger").Return(mockLogger)
 
 	err := processor.Initialize(mockCtx)
@@ -78,7 +78,7 @@ func TestPublishKafkaProcessor_InitializeMissingTopic(t *testing.T) {
 	}
 
 	mockLogger := &MockConsumeKafkaLogger{}
-	mockLogger.On("Info", mock.Anything)
+	mockLogger.On("Info", mock.Anything, mock.Anything)
 	mockCtx.On("GetLogger").Return(mockLogger)
 
 	err := processor.Initialize(mockCtx)
@@ -99,7 +99,7 @@ func TestPublishKafkaProcessor_InitializeInvalidMaxMessageSize(t *testing.T) {
 	}
 
 	mockLogger := &MockConsumeKafkaLogger{}
-	mockLogger.On("Info", mock.Anything)
+	mockLogger.On("Info", mock.Anything, mock.Anything)
 	mockCtx.On("GetLogger").Return(mockLogger)
 
 	err := processor.Initialize(mockCtx)
@@ -120,7 +120,7 @@ func TestPublishKafkaProcessor_InitializeInvalidTimeout(t *testing.T) {
 	}
 
 	mockLogger := &MockConsumeKafkaLogger{}
-	mockLogger.On("Info", mock.Anything)
+	mockLogger.On("Info", mock.Anything, mock.Anything)
 	mockCtx.On("GetLogger").Return(mockLogger)
 
 	err := processor.Initialize(mockCtx)
@@ -141,7 +141,7 @@ func TestPublishKafkaProcessor_InitializeInvalidRetries(t *testing.T) {
 	}
 
 	mockLogger := &MockConsumeKafkaLogger{}
-	mockLogger.On("Info", mock.Anything)
+	mockLogger.On("Info", mock.Anything, mock.Anything)
 	mockCtx.On("GetLogger").Return(mockLogger)
 
 	err := processor.Initialize(mockCtx)
@@ -164,7 +164,7 @@ func TestPublishKafkaProcessor_InitializeAsyncMode(t *testing.T) {
 	}
 
 	mockLogger := &MockConsumeKafkaLogger{}
-	mockLogger.On("Info", mock.Anything)
+	mockLogger.On("Info", mock.Anything, mock.Anything)
 	mockLogger.On("WithFields", mock.Anything).Return(mockLogger)
 	mockCtx.On("GetLogger").Return(mockLogger)
 
@@ -189,7 +189,7 @@ func TestPublishKafkaProcessor_InitializeInvalidBatchSize(t *testing.T) {
 	}
 
 	mockLogger := &MockConsumeKafkaLogger{}
-	mockLogger.On("Info", mock.Anything)
+	mockLogger.On("Info", mock.Anything, mock.Anything)
 	mockCtx.On("GetLogger").Return(mockLogger)
 
 	err := processor.Initialize(mockCtx)
@@ -211,7 +211,7 @@ func TestPublishKafkaProcessor_InitializeInvalidLingerTime(t *testing.T) {
 	}
 
 	mockLogger := &MockConsumeKafkaLogger{}
-	mockLogger.On("Info", mock.Anything)
+	mockLogger.On("Info", mock.Anything, mock.Anything)
 	mockCtx.On("GetLogger").Return(mockLogger)
 
 	err := processor.Initialize(mockCtx)
@@ -233,7 +233,7 @@ func TestPublishKafkaProcessor_InitializeTransactions(t *testing.T) {
 	}
 
 	mockLogger := &MockConsumeKafkaLogger{}
-	mockLogger.On("Info", mock.Anything)
+	mockLogger.On("Info", mock.Anything, mock.Anything)
 	mockLogger.On("WithFields", mock.Anything).Return(mockLogger)
 	mockCtx.On("GetLogger").Return(mockLogger)
 
@@ -256,7 +256,7 @@ func TestPublishKafkaProcessor_InitializeTransactionsMissingID(t *testing.T) {
 	}
 
 	mockLogger := &MockConsumeKafkaLogger{}
-	mockLogger.On("Info", mock.Anything)
+	mockLogger.On("Info", mock.Anything, mock.Anything)
 	mockCtx.On("GetLogger").Return(mockLogger)
 
 	err := processor.Initialize(mockCtx)
@@ -385,7 +385,7 @@ func TestPublishKafkaProcessor_CompressionTypes(t *testing.T) {
 			}
 
 			mockLogger := &MockConsumeKafkaLogger{}
-			mockLogger.On("Info", mock.Anything)
+			mockLogger.On("Info", mock.Anything, mock.Anything)
 			mockLogger.On("WithFields", mock.Anything).Return(mockLogger)
 			mockCtx.On("GetLogger").Return(mockLogger)
 
@@ -421,7 +421,7 @@ func TestPublishKafkaProcessor_PartitionStrategies(t *testing.T) {
 			}
 
 			mockLogger := &MockConsumeKafkaLogger{}
-			mockLogger.On("Info", mock.Anything)
+			mockLogger.On("Info", mock.Anything, mock.Anything)
 			mockLogger.On("WithFields", mock.Anything).Return(mockLogger)
 			mockCtx.On("GetLogger").Return(mockLogger)
 
@@ -456,7 +456,7 @@ func TestPublishKafkaProcessor_DeliveryGuarantees(t *testing.T) {
 			}
 
 			mockLogger := &MockConsumeKafkaLogger{}
-			mockLogger.On("Info", mock.Anything)
+			mockLogger.On("Info", mock.Anything, mock.Anything)
 			mockLogger.On("WithFields", mock.Anything).Return(mockLogger)
 			mockCtx.On("GetLogger").Return(mockLogger)
 

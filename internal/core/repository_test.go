@@ -492,9 +492,9 @@ func TestContentRepositoryMultipleWrites(t *testing.T) {
 
 	totalLength := 0
 	for _, chunk := range chunks {
-		n, err := writer.Write(chunk)
-		if err != nil {
-			t.Errorf("Write chunk failed: %v", err)
+		n, writeErr := writer.Write(chunk)
+		if writeErr != nil {
+			t.Errorf("Write chunk failed: %v", writeErr)
 		}
 		if n != len(chunk) {
 			t.Errorf("Write should return chunk length %d, got %d", len(chunk), n)
@@ -623,7 +623,7 @@ func TestRepositoryDirectoryCreation(t *testing.T) {
 	}
 
 	// Verify directory was created
-	if _, err := os.Stat(dbPath); os.IsNotExist(err) {
+	if _, statErr := os.Stat(dbPath); os.IsNotExist(statErr) {
 		t.Error("BadgerDB should create directory structure")
 	}
 

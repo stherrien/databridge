@@ -7,6 +7,14 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+// Test constants
+const (
+	testFilename  = "test.txt"
+	invalidStr    = "invalid"
+	tmpDir        = "/tmp"
+	validationVal = "value"
+)
+
 func TestNewFlowFileValidator(t *testing.T) {
 	validator := NewFlowFileValidator()
 	assert.NotNil(t, validator)
@@ -75,8 +83,8 @@ func TestSchemaValidation(t *testing.T) {
 
 	t.Run("Valid FlowFile", func(t *testing.T) {
 		ff := NewFlowFile()
-		ff.Attributes["filename"] = "test.txt"
-		ff.Attributes["path"] = "/tmp/test.txt"
+		ff.Attributes["filename"] = testFilename
+		ff.Attributes["path"] = tmpDir + "/" + testFilename
 		ff.Attributes["size"] = "1000"
 
 		errors := validator.Validate(ff, "test")
@@ -85,7 +93,7 @@ func TestSchemaValidation(t *testing.T) {
 
 	t.Run("Missing Required Attribute", func(t *testing.T) {
 		ff := NewFlowFile()
-		ff.Attributes["filename"] = "test.txt"
+		ff.Attributes["filename"] = testFilename
 		// Missing "path"
 
 		errors := validator.Validate(ff, "test")
@@ -96,7 +104,7 @@ func TestSchemaValidation(t *testing.T) {
 	t.Run("String Length Constraint", func(t *testing.T) {
 		ff := NewFlowFile()
 		ff.Attributes["filename"] = "" // Too short
-		ff.Attributes["path"] = "/tmp"
+		ff.Attributes["path"] = tmpDir
 
 		errors := validator.Validate(ff, "test")
 		assert.NotEmpty(t, errors)
@@ -104,8 +112,8 @@ func TestSchemaValidation(t *testing.T) {
 
 	t.Run("Number Range Constraint", func(t *testing.T) {
 		ff := NewFlowFile()
-		ff.Attributes["filename"] = "test.txt"
-		ff.Attributes["path"] = "/tmp"
+		ff.Attributes["filename"] = testFilename
+		ff.Attributes["path"] = tmpDir
 		ff.Attributes["size"] = "2000000" // Too large
 
 		errors := validator.Validate(ff, "test")
@@ -115,8 +123,8 @@ func TestSchemaValidation(t *testing.T) {
 
 	t.Run("Invalid Number", func(t *testing.T) {
 		ff := NewFlowFile()
-		ff.Attributes["filename"] = "test.txt"
-		ff.Attributes["path"] = "/tmp"
+		ff.Attributes["filename"] = testFilename
+		ff.Attributes["path"] = tmpDir
 		ff.Attributes["size"] = "not-a-number"
 
 		errors := validator.Validate(ff, "test")
@@ -151,7 +159,7 @@ func TestConstraintTypes(t *testing.T) {
 		errors := validator.Validate(ff, "bool-test")
 		assert.Empty(t, errors)
 
-		ff.Attributes["active"] = "invalid"
+		ff.Attributes["active"] = invalidStr
 		errors = validator.Validate(ff, "bool-test")
 		assert.NotEmpty(t, errors)
 	})
@@ -195,7 +203,7 @@ func TestConstraintTypes(t *testing.T) {
 		errors := validator.Validate(ff, "enum-test")
 		assert.Empty(t, errors)
 
-		ff.Attributes["status"] = "invalid"
+		ff.Attributes["status"] = invalidStr
 		errors = validator.Validate(ff, "enum-test")
 		assert.NotEmpty(t, errors)
 	})
@@ -211,7 +219,7 @@ func TestValidationRules(t *testing.T) {
 		err := rule.Validate(ff)
 		assert.Error(t, err)
 
-		ff.Attributes["required-attr"] = "value"
+		ff.Attributes["required-attr"] = validationVal
 		err = rule.Validate(ff)
 		assert.NoError(t, err)
 	})
@@ -254,7 +262,7 @@ func TestValidationRules(t *testing.T) {
 		err = rule.Validate(ff)
 		assert.Error(t, err)
 
-		ff.Attributes["count"] = "invalid"
+		ff.Attributes["count"] = invalidStr
 		err = rule.Validate(ff)
 		assert.Error(t, err)
 	})
@@ -316,7 +324,7 @@ func TestCustomRules(t *testing.T) {
 	errors := validator.Validate(ff, "custom")
 	assert.NotEmpty(t, errors)
 
-	ff.Attributes["key"] = "value"
+	ff.Attributes["key"] = validationVal
 	errors = validator.Validate(ff, "custom")
 	assert.Empty(t, errors)
 }

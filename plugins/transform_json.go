@@ -141,9 +141,9 @@ func (p *TransformJSONProcessor) OnTrigger(ctx context.Context, session types.Pr
 
 	// Parse JSON
 	var data interface{}
-	if err := json.Unmarshal(content, &data); err != nil {
-		logger.Error("Failed to parse JSON", "error", err)
-		session.PutAttribute(flowFile, "json.error", err.Error())
+	if unmarshalErr := json.Unmarshal(content, &data); unmarshalErr != nil {
+		logger.Error("Failed to parse JSON", "error", unmarshalErr)
+		session.PutAttribute(flowFile, "json.error", unmarshalErr.Error())
 		session.Transfer(flowFile, types.RelationshipFailure)
 		return nil
 	}

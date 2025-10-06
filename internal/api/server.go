@@ -163,7 +163,7 @@ func NewServer(flowController *core.FlowController, scheduler *core.ProcessSched
 	// Health check endpoint (simple version without /api prefix)
 	router.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte("OK"))
+		_, _ = w.Write([]byte("OK"))
 	}).Methods("GET")
 
 	server := &Server{

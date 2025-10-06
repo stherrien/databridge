@@ -271,8 +271,8 @@ func (h *PluginAPIHandler) HandleUploadPlugin(w http.ResponseWriter, r *http.Req
 		return
 	}
 	defer func() {
-		if err := file.Close(); err != nil {
-			h.logger.WithError(err).Warn("Failed to close uploaded file")
+		if closeErr := file.Close(); closeErr != nil {
+			h.logger.WithError(closeErr).Warn("Failed to close uploaded file")
 		}
 	}()
 
@@ -285,6 +285,7 @@ func (h *PluginAPIHandler) HandleUploadPlugin(w http.ResponseWriter, r *http.Req
 
 	// Save uploaded file
 	destPath := filepath.Join(tempDir, header.Filename)
+	// #nosec G304 - destPath is constructed from temp directory and sanitized filename
 	destFile, err := os.Create(destPath)
 	if err != nil {
 		_ = os.RemoveAll(tempDir) // Best effort cleanup

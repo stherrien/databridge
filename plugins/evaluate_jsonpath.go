@@ -142,12 +142,12 @@ func (p *EvaluateJSONPathProcessor) OnTrigger(ctx context.Context, session types
 
 	// Parse JSON content
 	var jsonData interface{}
-	if err := json.Unmarshal(content, &jsonData); err != nil {
+	if unmarshalErr := json.Unmarshal(content, &jsonData); unmarshalErr != nil {
 		logger.Error("Failed to parse JSON content",
 			"flowFileId", flowFile.ID,
-			"error", err)
+			"error", unmarshalErr)
 		session.Transfer(flowFile, types.RelationshipFailure)
-		return err
+		return unmarshalErr
 	}
 
 	// Get JSONPath expressions
@@ -363,7 +363,7 @@ func parsePathSegments(path string) []pathSegment {
 		if match[2] != "" {
 			// Has array index
 			segment.isArray = true
-			fmt.Sscanf(match[2], "%d", &segment.index)
+			_, _ = fmt.Sscanf(match[2], "%d", &segment.index)
 		}
 
 		segments = append(segments, segment)

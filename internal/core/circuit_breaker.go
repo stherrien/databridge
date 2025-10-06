@@ -25,7 +25,6 @@ type CircuitBreaker struct {
 	timeout              time.Duration // Time before half-open attempt
 	maxTimeout           time.Duration // Maximum timeout for exponential backoff
 	failureCount         int32
-	successCount         int32
 	consecutiveSuccesses int32
 	lastFailureTime      time.Time
 	lastStateChange      time.Time
@@ -238,13 +237,6 @@ func (cb *CircuitBreaker) toClosed() {
 	cb.metrics.mu.Unlock()
 }
 
-// shouldAttemptReset checks if enough time has passed to attempt reset
-func (cb *CircuitBreaker) shouldAttemptReset() bool {
-	cb.mu.RLock()
-	defer cb.mu.RUnlock()
-	return cb.shouldAttemptResetLocked()
-}
-
 // shouldAttemptResetLocked checks if enough time has passed (must be called with lock held)
 func (cb *CircuitBreaker) shouldAttemptResetLocked() bool {
 	if cb.state != CircuitOpen {
@@ -257,7 +249,12 @@ func (cb *CircuitBreaker) shouldAttemptResetLocked() bool {
 
 	if attempts > 1 {
 		// Exponential backoff: timeout * 2^(attempts-1)
-		backoffMultiplier := time.Duration(1 << uint(attempts-1))
+		// Safe conversion: we cap attempts to prevent overflow
+		attemptsUint := uint(attempts - 1)
+		if attemptsUint > 30 {
+			attemptsUint = 30 // Cap to prevent overflow (2^30 is already very large)
+		}
+		backoffMultiplier := time.Duration(1 << attemptsUint) // #nosec G115 - capped at 30
 		timeout = cb.timeout * backoffMultiplier
 
 		if timeout > cb.maxTimeout {
@@ -373,7 +370,12 @@ func (cb *CircuitBreaker) GetTimeUntilReset() time.Duration {
 	attempts := atomic.LoadInt32(&cb.attemptCount)
 
 	if attempts > 1 {
-		backoffMultiplier := time.Duration(1 << uint(attempts-1))
+		// Safe conversion: we cap attempts to prevent overflow
+		attemptsUint := uint(attempts - 1)
+		if attemptsUint > 30 {
+			attemptsUint = 30 // Cap to prevent overflow (2^30 is already very large)
+		}
+		backoffMultiplier := time.Duration(1 << attemptsUint) // #nosec G115 - capped at 30
 		timeout = cb.timeout * backoffMultiplier
 		if timeout > cb.maxTimeout {
 			timeout = cb.maxTimeout

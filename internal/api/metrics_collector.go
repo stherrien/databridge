@@ -10,6 +10,11 @@ import (
 	"github.com/shawntherrien/databridge/pkg/types"
 )
 
+const (
+	statusDegraded  = "degraded"
+	statusUnhealthy = "unhealthy"
+)
+
 // MetricsCollector collects and aggregates metrics from the system
 type MetricsCollector struct {
 	mu             sync.RWMutex
@@ -23,11 +28,9 @@ type MetricsCollector struct {
 	cachedMetrics *SystemMetrics
 
 	// Counters for throughput calculations
-	totalFlowFiles int64
-	totalBytes     int64
-	lastFlowFiles  int64
-	lastBytes      int64
-	lastCheckTime  time.Time
+	lastFlowFiles int64
+	lastBytes     int64
+	lastCheckTime time.Time
 }
 
 // NewMetricsCollector creates a new MetricsCollector
@@ -94,7 +97,7 @@ func (mc *MetricsCollector) GetHealthStatus() HealthStatus {
 		}
 	} else {
 		components["scheduler"] = ComponentHealth{
-			Status:  "unhealthy",
+			Status:  statusUnhealthy,
 			Message: "ProcessScheduler is not running",
 		}
 	}
@@ -112,7 +115,7 @@ func (mc *MetricsCollector) GetHealthStatus() HealthStatus {
 
 	if invalidCount > 0 {
 		components["processors"] = ComponentHealth{
-			Status:  "degraded",
+			Status:  statusDegraded,
 			Message: "Some processors have invalid configuration",
 		}
 	} else {
@@ -125,11 +128,11 @@ func (mc *MetricsCollector) GetHealthStatus() HealthStatus {
 	// Determine overall status
 	overallStatus := "healthy"
 	for _, comp := range components {
-		if comp.Status == "unhealthy" {
-			overallStatus = "unhealthy"
+		if comp.Status == statusUnhealthy {
+			overallStatus = statusUnhealthy
 			break
-		} else if comp.Status == "degraded" && overallStatus == "healthy" {
-			overallStatus = "degraded"
+		} else if comp.Status == statusDegraded && overallStatus == "healthy" {
+			overallStatus = statusDegraded
 		}
 	}
 

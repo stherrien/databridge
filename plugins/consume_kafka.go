@@ -146,17 +146,54 @@ func (p *ConsumeKafkaProcessor) Initialize(ctx types.ProcessorContext) error {
 	// Store context for later use
 	p.processorCtx = ctx
 
+	// Validate and parse required properties
+	brokers, _, groupID, err := p.validateAndParseProperties(ctx)
+	if err != nil {
+		return err
+	}
+
+	// Create Kafka configuration
+	config := sarama.NewConfig()
+	config.Version = sarama.V2_6_0_0
+	config.Consumer.Group.Rebalance.Strategy = sarama.NewBalanceStrategyRoundRobin()
+
+	// Configure consumer settings
+	if err := p.configureConsumerSettings(ctx, config); err != nil {
+		return err
+	}
+
+	// Configure security
+	if err := p.configureConsumerSecurity(ctx, config); err != nil {
+		return err
+	}
+
+	// Create consumer group
+	consumer, err := sarama.NewConsumerGroup(brokers, groupID, config)
+	if err != nil {
+		return fmt.Errorf("failed to create Kafka consumer: %w", err)
+	}
+
+	p.consumer = consumer
+	p.isInitialized = true
+
+	logger.Info("Kafka consumer initialized successfully")
+
+	return nil
+}
+
+// validateAndParseProperties validates and parses required properties
+func (p *ConsumeKafkaProcessor) validateAndParseProperties(ctx types.ProcessorContext) ([]string, []string, string, error) {
 	// Validate required properties
 	if !ctx.HasProperty("Kafka Brokers") {
-		return fmt.Errorf("Kafka Brokers property is required")
+		return nil, nil, "", fmt.Errorf("Kafka Brokers property is required")
 	}
 
 	if !ctx.HasProperty("Topic Names") {
-		return fmt.Errorf("Topic Names property is required")
+		return nil, nil, "", fmt.Errorf("Topic Names property is required")
 	}
 
 	if !ctx.HasProperty("Group ID") {
-		return fmt.Errorf("Group ID property is required")
+		return nil, nil, "", fmt.Errorf("Group ID property is required")
 	}
 
 	// Parse broker list
@@ -169,7 +206,7 @@ func (p *ConsumeKafkaProcessor) Initialize(ctx types.ProcessorContext) error {
 	// Parse topic list
 	topicsStr := ctx.GetPropertyValue("Topic Names")
 	if topicsStr == "" {
-		return fmt.Errorf("Topic Names cannot be empty")
+		return nil, nil, "", fmt.Errorf("Topic Names cannot be empty")
 	}
 	topics := strings.Split(topicsStr, ",")
 	for i, topic := range topics {
@@ -178,14 +215,14 @@ func (p *ConsumeKafkaProcessor) Initialize(ctx types.ProcessorContext) error {
 
 	groupID := ctx.GetPropertyValue("Group ID")
 	if groupID == "" {
-		return fmt.Errorf("Group ID cannot be empty")
+		return nil, nil, "", fmt.Errorf("Group ID cannot be empty")
 	}
 
-	// Create Kafka configuration
-	config := sarama.NewConfig()
-	config.Version = sarama.V2_6_0_0
-	config.Consumer.Group.Rebalance.Strategy = sarama.NewBalanceStrategyRoundRobin()
+	return brokers, topics, groupID, nil
+}
 
+// configureConsumerSettings configures consumer settings
+func (p *ConsumeKafkaProcessor) configureConsumerSettings(ctx types.ProcessorContext, config *sarama.Config) error {
 	// Offset reset
 	offsetReset := ctx.GetPropertyValue("Offset Reset")
 	if offsetReset == "earliest" {
@@ -195,8 +232,7 @@ func (p *ConsumeKafkaProcessor) Initialize(ctx types.ProcessorContext) error {
 	}
 
 	// Auto commit interval
-	autoCommitStr := ctx.GetPropertyValue("Auto Commit Interval")
-	if autoCommitStr != "" {
+	if autoCommitStr := ctx.GetPropertyValue("Auto Commit Interval"); autoCommitStr != "" {
 		autoCommitInterval, err := time.ParseDuration(autoCommitStr)
 		if err != nil {
 			return fmt.Errorf("invalid Auto Commit Interval: %w", err)
@@ -205,8 +241,7 @@ func (p *ConsumeKafkaProcessor) Initialize(ctx types.ProcessorContext) error {
 	}
 
 	// Session timeout
-	sessionTimeoutStr := ctx.GetPropertyValue("Session Timeout")
-	if sessionTimeoutStr != "" {
+	if sessionTimeoutStr := ctx.GetPropertyValue("Session Timeout"); sessionTimeoutStr != "" {
 		sessionTimeout, err := time.ParseDuration(sessionTimeoutStr)
 		if err != nil {
 			return fmt.Errorf("invalid Session Timeout: %w", err)
@@ -215,8 +250,7 @@ func (p *ConsumeKafkaProcessor) Initialize(ctx types.ProcessorContext) error {
 	}
 
 	// Max poll records
-	maxPollStr := ctx.GetPropertyValue("Max Poll Records")
-	if maxPollStr != "" {
+	if maxPollStr := ctx.GetPropertyValue("Max Poll Records"); maxPollStr != "" {
 		maxPoll, err := strconv.Atoi(maxPollStr)
 		if err != nil {
 			return fmt.Errorf("invalid Max Poll Records: %w", err)
@@ -231,47 +265,48 @@ func (p *ConsumeKafkaProcessor) Initialize(ctx types.ProcessorContext) error {
 		config.Consumer.IsolationLevel = sarama.ReadCommitted
 	}
 
-	// Security configuration
+	return nil
+}
+
+// configureConsumerSecurity configures security settings for the consumer
+func (p *ConsumeKafkaProcessor) configureConsumerSecurity(ctx types.ProcessorContext, config *sarama.Config) error {
 	securityProtocol := ctx.GetPropertyValue("Security Protocol")
+
 	switch securityProtocol {
 	case "SSL":
 		config.Net.TLS.Enable = true
 	case "SASL_SSL":
 		config.Net.TLS.Enable = true
 		config.Net.SASL.Enable = true
-		config.Net.SASL.Mechanism = sarama.SASLTypePlaintext
+		return p.configureConsumerSASL(ctx, config)
 	case "SASL_PLAINTEXT":
 		config.Net.SASL.Enable = true
+		return p.configureConsumerSASL(ctx, config)
+	}
+
+	return nil
+}
+
+// configureConsumerSASL configures SASL authentication for the consumer
+func (p *ConsumeKafkaProcessor) configureConsumerSASL(ctx types.ProcessorContext, config *sarama.Config) error {
+	config.Net.SASL.Mechanism = sarama.SASLTypePlaintext
+
+	saslMechanism := ctx.GetPropertyValue("SASL Mechanism")
+	switch saslMechanism {
+	case "PLAIN":
 		config.Net.SASL.Mechanism = sarama.SASLTypePlaintext
-
-		saslMechanism := ctx.GetPropertyValue("SASL Mechanism")
-		switch saslMechanism {
-		case "PLAIN":
-			config.Net.SASL.Mechanism = sarama.SASLTypePlaintext
-		case "SCRAM-SHA-256":
-			config.Net.SASL.Mechanism = sarama.SASLTypeSCRAMSHA256
-		case "SCRAM-SHA-512":
-			config.Net.SASL.Mechanism = sarama.SASLTypeSCRAMSHA512
-		}
-
-		username := ctx.GetPropertyValue("SASL Username")
-		password := ctx.GetPropertyValue("SASL Password")
-		if username != "" && password != "" {
-			config.Net.SASL.User = username
-			config.Net.SASL.Password = password
-		}
+	case "SCRAM-SHA-256":
+		config.Net.SASL.Mechanism = sarama.SASLTypeSCRAMSHA256
+	case "SCRAM-SHA-512":
+		config.Net.SASL.Mechanism = sarama.SASLTypeSCRAMSHA512
 	}
 
-	// Create consumer group
-	consumer, err := sarama.NewConsumerGroup(brokers, groupID, config)
-	if err != nil {
-		return fmt.Errorf("failed to create Kafka consumer: %w", err)
+	username := ctx.GetPropertyValue("SASL Username")
+	password := ctx.GetPropertyValue("SASL Password")
+	if username != "" && password != "" {
+		config.Net.SASL.User = username
+		config.Net.SASL.Password = password
 	}
-
-	p.consumer = consumer
-	p.isInitialized = true
-
-	logger.Info("Kafka consumer initialized successfully")
 
 	return nil
 }

@@ -105,8 +105,8 @@ func TestPutFileProcessorInitialize(t *testing.T) {
 
 	// Test initialization with a file (not directory)
 	tmpFile := filepath.Join(tmpDir, "not_a_dir.txt")
-	if err := os.WriteFile(tmpFile, []byte("test"), 0644); err != nil {
-		t.Fatal(err)
+	if writeErr := os.WriteFile(tmpFile, []byte("test"), 0644); writeErr != nil {
+		t.Fatal(writeErr)
 	}
 
 	ctxFileNotDir := &mockProcessorContext{

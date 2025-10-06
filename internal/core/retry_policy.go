@@ -22,7 +22,6 @@ type RetryPolicy struct {
 	RetryableErrorRegex []*regexp.Regexp
 	PenaltyDuration     time.Duration // Penalization for repeated failures
 	UseJitter           bool          // Add random jitter to delays
-	mu                  sync.RWMutex
 	metrics             *RetryMetrics
 }
 

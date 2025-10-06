@@ -100,10 +100,10 @@ func (h *ProcessorHandler) UpdateProcessor(c *gin.Context) {
 	}
 
 	var req models.UpdateProcessorRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
+	if bindErr := c.ShouldBindJSON(&req); bindErr != nil {
 		c.JSON(http.StatusBadRequest, models.ErrorResponse{
 			Error:   "invalid_request",
-			Message: err.Error(),
+			Message: bindErr.Error(),
 		})
 		return
 	}

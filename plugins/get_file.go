@@ -269,6 +269,7 @@ func (p *GetFileProcessor) findFiles(inputDir, pattern string, recurse bool, min
 // processFile processes a single file
 func (p *GetFileProcessor) processFile(filePath string, session types.ProcessSession, keepSource bool, logger types.Logger) error {
 	// Read file content
+	// #nosec G304 - filePath is validated by file matching logic in processor
 	content, err := os.ReadFile(filePath)
 	if err != nil {
 		logger.Error("Failed to read file", "file", filePath, "error", err)

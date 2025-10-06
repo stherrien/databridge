@@ -378,8 +378,8 @@ func TestConnectionHandlers(t *testing.T) {
 		assert.Equal(t, http.StatusCreated, w.Code)
 
 		var connection models.ConnectionDTO
-		err := json.Unmarshal(w.Body.Bytes(), &connection)
-		require.NoError(t, err)
+		unmarshalErr := json.Unmarshal(w.Body.Bytes(), &connection)
+		require.NoError(t, unmarshalErr)
 		assert.NotEqual(t, uuid.Nil, connection.ID)
 		assert.Equal(t, processor1.ID, connection.SourceID)
 		assert.Equal(t, processor2.ID, connection.DestinationID)
@@ -390,8 +390,8 @@ func TestConnectionHandlers(t *testing.T) {
 		assert.Equal(t, http.StatusOK, w.Code)
 
 		var response models.ListResponse
-		err := json.Unmarshal(w.Body.Bytes(), &response)
-		require.NoError(t, err)
+		unmarshalErr := json.Unmarshal(w.Body.Bytes(), &response)
+		require.NoError(t, unmarshalErr)
 		assert.NotNil(t, response.Items)
 	})
 

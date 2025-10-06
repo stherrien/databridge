@@ -400,7 +400,7 @@ func (s *IsolatedSession) Commit() error {
 	}
 
 	// Close session from isolation manager
-	s.isolationMgr.CloseSession(s.tenantID, s.id)
+	_ = s.isolationMgr.CloseSession(s.tenantID, s.id)
 
 	return nil
 }
@@ -410,7 +410,7 @@ func (s *IsolatedSession) Rollback() {
 	s.ProcessSessionImpl.Rollback()
 
 	// Close session from isolation manager
-	s.isolationMgr.CloseSession(s.tenantID, s.id)
+	_ = s.isolationMgr.CloseSession(s.tenantID, s.id)
 }
 
 // ValidateTenantAccess validates that a FlowFile belongs to this tenant

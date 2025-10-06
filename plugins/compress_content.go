@@ -228,7 +228,7 @@ func (p *CompressContentProcessor) compress(data []byte, format string, level in
 		}
 
 		if _, err := writer.Write(data); err != nil {
-			writer.Close()
+			_ = writer.Close()
 			return nil, fmt.Errorf("failed to write compressed data: %w", err)
 		}
 
@@ -251,7 +251,7 @@ func (p *CompressContentProcessor) decompress(data []byte, format string) ([]byt
 		if err != nil {
 			return nil, fmt.Errorf("failed to create gzip reader: %w", err)
 		}
-		defer reader.Close()
+		defer func() { _ = reader.Close() }()
 
 		result, err := io.ReadAll(reader)
 		if err != nil {

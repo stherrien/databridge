@@ -15,6 +15,10 @@ import (
 	"github.com/shawntherrien/databridge/pkg/types"
 )
 
+const (
+	trueStr = "true"
+)
+
 // RepositoryEncryptionConfig defines encryption settings for repository
 type RepositoryEncryptionConfig struct {
 	Enabled        bool
@@ -303,7 +307,7 @@ func (e *RepositoryEncryption) EncryptFlowFile(ff *types.FlowFile, content []byt
 	}
 
 	// Add encryption metadata to FlowFile attributes
-	ff.Attributes["encryption.enabled"] = "true"
+	ff.Attributes["encryption.enabled"] = trueStr
 	ff.Attributes["encryption.algorithm"] = string(encrypted.Algorithm)
 	ff.Attributes["encryption.keyVersion"] = encrypted.KeyVersion
 	ff.Attributes["encryption.nonce"] = hex.EncodeToString(encrypted.Nonce)
@@ -314,7 +318,7 @@ func (e *RepositoryEncryption) EncryptFlowFile(ff *types.FlowFile, content []byt
 // DecryptFlowFile decrypts a FlowFile's content
 func (e *RepositoryEncryption) DecryptFlowFile(ff *types.FlowFile, encrypted *types.EncryptedData) ([]byte, error) {
 	// Verify FlowFile is encrypted
-	if ff.Attributes["encryption.enabled"] != "true" {
+	if ff.Attributes["encryption.enabled"] != trueStr {
 		return nil, fmt.Errorf("FlowFile is not encrypted")
 	}
 
@@ -323,7 +327,7 @@ func (e *RepositoryEncryption) DecryptFlowFile(ff *types.FlowFile, encrypted *ty
 
 // IsFlowFileEncrypted checks if a FlowFile has encrypted content
 func (e *RepositoryEncryption) IsFlowFileEncrypted(ff *types.FlowFile) bool {
-	return ff.Attributes["encryption.enabled"] == "true"
+	return ff.Attributes["encryption.enabled"] == trueStr
 }
 
 // ExportKey exports an encryption key (encrypted)
@@ -433,7 +437,7 @@ func (e *RepositoryEncryption) SetConfig(config RepositoryEncryptionConfig) {
 // generateKeyID generates a unique key ID
 func generateKeyID() string {
 	b := make([]byte, 16)
-	rand.Read(b)
+	_, _ = rand.Read(b)
 	return hex.EncodeToString(b)
 }
 

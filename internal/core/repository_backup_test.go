@@ -15,6 +15,12 @@ import (
 	"github.com/shawntherrien/databridge/pkg/types"
 )
 
+// Test constants
+const (
+	testValue1 = "value1"
+	testValue2 = "value2"
+)
+
 // Mock repositories for testing
 type MockFlowFileRepo struct {
 	mock.Mock
@@ -230,8 +236,8 @@ func TestCreateBackup(t *testing.T) {
 		types.NewFlowFile(),
 		types.NewFlowFile(),
 	}
-	flowFiles[0].Attributes["test"] = "value1"
-	flowFiles[1].Attributes["test"] = "value2"
+	flowFiles[0].Attributes["test"] = testValue1
+	flowFiles[1].Attributes["test"] = testValue2
 
 	claims := []*types.ContentClaim{
 		{Container: "test", Section: "section1", Offset: 0, Length: 100},
@@ -308,11 +314,11 @@ func TestBackupRestore(t *testing.T) {
 
 	// Create test FlowFiles
 	ff1 := types.NewFlowFile()
-	ff1.Attributes["key"] = "value1"
+	ff1.Attributes["key"] = testValue1
 	ff1.Size = 100
 
 	ff2 := types.NewFlowFile()
-	ff2.Attributes["key"] = "value2"
+	ff2.Attributes["key"] = testValue2
 	ff2.Size = 200
 
 	flowFiles := []*types.FlowFile{ff1, ff2}

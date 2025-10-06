@@ -110,7 +110,7 @@ func (h *UserHandler) CreateUser(c *gin.Context) {
 	for _, roleName := range req.Roles {
 		role, err := rbacManager.GetRoleByName(c.Request.Context(), roleName)
 		if err == nil {
-			rbacManager.AssignRole(c.Request.Context(), user.ID, role.ID)
+			_ = rbacManager.AssignRole(c.Request.Context(), user.ID, role.ID)
 		}
 	}
 

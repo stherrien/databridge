@@ -396,6 +396,7 @@ func (m *SessionRecoveryManager) loadCheckpoints() error {
 		}
 
 		checkpointPath := filepath.Join(m.checkpointDir, entry.Name())
+		// #nosec G304 - checkpointPath is constructed from checkpoint directory and directory entry
 		data, err := os.ReadFile(checkpointPath)
 		if err != nil {
 			m.logger.Warn("Failed to read checkpoint file",

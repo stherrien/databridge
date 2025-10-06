@@ -52,7 +52,6 @@ func RegisterBuiltInProcessor(id string, factory ProcessorFactory, info PluginIn
 type BuiltInRegistryManager struct {
 	registry *PluginRegistry
 	logger   *logrus.Logger
-	mu       sync.RWMutex
 }
 
 // NewBuiltInRegistryManager creates a new built-in registry manager

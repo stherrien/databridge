@@ -402,6 +402,7 @@ func (r *ProcessorVersionRegistry) ImportVersionManifest(inputDir string) error 
 		}
 
 		filename := filepath.Join(inputDir, entry.Name())
+		// #nosec G304 - filename is constructed from controlled inputDir and directory entry
 		data, err := os.ReadFile(filename)
 		if err != nil {
 			r.logger.Warn("Failed to read manifest file", "file", filename, "error", err)

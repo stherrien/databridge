@@ -150,7 +150,7 @@ func (h *FlowHandlers) HandleUpdateFlow(w http.ResponseWriter, r *http.Request) 
 		Name string `json:"name"`
 	}
 
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+	if decodeErr := json.NewDecoder(r.Body).Decode(&req); decodeErr != nil {
 		respondError(w, http.StatusBadRequest, "Invalid request body")
 		return
 	}
@@ -355,7 +355,7 @@ func (h *FlowHandlers) HandleCreateProcessor(w http.ResponseWriter, r *http.Requ
 		} `json:"position"`
 	}
 
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+	if decodeErr := json.NewDecoder(r.Body).Decode(&req); decodeErr != nil {
 		respondError(w, http.StatusBadRequest, "Invalid request body")
 		return
 	}
@@ -419,7 +419,7 @@ func (h *FlowHandlers) HandleUpdateProcessor(w http.ResponseWriter, r *http.Requ
 		} `json:"position,omitempty"`
 	}
 
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+	if decodeErr := json.NewDecoder(r.Body).Decode(&req); decodeErr != nil {
 		respondError(w, http.StatusBadRequest, "Invalid request body")
 		return
 	}
@@ -513,7 +513,7 @@ func (h *FlowHandlers) HandleCreateConnection(w http.ResponseWriter, r *http.Req
 		Relationship string `json:"relationship"`
 	}
 
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+	if decodeErr := json.NewDecoder(r.Body).Decode(&req); decodeErr != nil {
 		respondError(w, http.StatusBadRequest, "Invalid request body")
 		return
 	}

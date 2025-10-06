@@ -202,7 +202,7 @@ func (m *APIKeyManager) UpdateLastUsed(ctx context.Context, keyID string) {
 
 	// Fire and forget - don't block on this
 	go func() {
-		m.apiKeyRepo.Update(ctx, key)
+		_ = m.apiKeyRepo.Update(ctx, key) // Best effort update
 	}()
 }
 
@@ -251,7 +251,7 @@ func (m *APIKeyManager) StartCleanupRoutine(ctx context.Context, interval time.D
 		for {
 			select {
 			case <-ticker.C:
-				m.CleanupExpiredKeys(ctx)
+				_ = m.CleanupExpiredKeys(ctx) // Best effort cleanup
 			case <-stop:
 				return
 			case <-ctx.Done():

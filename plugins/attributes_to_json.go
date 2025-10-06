@@ -10,6 +10,11 @@ import (
 	"github.com/shawntherrien/databridge/pkg/types"
 )
 
+const (
+	flowfileContent = "flowfile-content"
+	trueStr         = "true"
+)
+
 func init() {
 	info := getAttributesToJSONInfo()
 	plugin.RegisterBuiltInProcessor("AttributesToJSON", func() types.Processor {
@@ -47,8 +52,8 @@ func NewAttributesToJSONProcessor() *AttributesToJSONProcessor {
 				DisplayName:   "Destination",
 				Description:   "Where to write the JSON output",
 				Required:      true,
-				DefaultValue:  "flowfile-content",
-				AllowedValues: []string{"flowfile-attribute", "flowfile-content"},
+				DefaultValue:  flowfileContent,
+				AllowedValues: []string{"flowfile-attribute", flowfileContent},
 				Type:          "select",
 				HelpText:      "flowfile-attribute: Write to a single attribute; flowfile-content: Replace FlowFile content",
 			},
@@ -87,8 +92,8 @@ func NewAttributesToJSONProcessor() *AttributesToJSONProcessor {
 				DisplayName:   "Include Core Attributes",
 				Description:   "Whether to include core attributes like uuid, filename",
 				Required:      false,
-				DefaultValue:  "true",
-				AllowedValues: []string{"true", "false"},
+				DefaultValue:  trueStr,
+				AllowedValues: []string{trueStr, "false"},
 				Type:          "boolean",
 				HelpText:      "When false, filters out standard FlowFile attributes",
 			},
@@ -98,7 +103,7 @@ func NewAttributesToJSONProcessor() *AttributesToJSONProcessor {
 				Description:   "Whether to use JSON null for empty string attributes",
 				Required:      false,
 				DefaultValue:  "false",
-				AllowedValues: []string{"true", "false"},
+				AllowedValues: []string{trueStr, "false"},
 				Type:          "boolean",
 				HelpText:      "When true, empty strings become JSON null values",
 			},
@@ -139,8 +144,8 @@ func (p *AttributesToJSONProcessor) OnTrigger(ctx context.Context, session types
 	destination := processorCtx.GetPropertyValue("Destination")
 	attributesList := processorCtx.GetPropertyValue("Attributes List")
 	destinationAttr := processorCtx.GetPropertyValue("Destination Attribute Name")
-	includeCoreAttrs := processorCtx.GetPropertyValue("Include Core Attributes") == "true"
-	nullForEmpty := processorCtx.GetPropertyValue("Null Value for Empty Attribute") == "true"
+	includeCoreAttrs := processorCtx.GetPropertyValue("Include Core Attributes") == trueStr
+	nullForEmpty := processorCtx.GetPropertyValue("Null Value for Empty Attribute") == trueStr
 
 	if destinationAttr == "" {
 		destinationAttr = "JSONAttributes"
@@ -208,7 +213,7 @@ func (p *AttributesToJSONProcessor) OnTrigger(ctx context.Context, session types
 	}
 
 	// Write based on destination
-	if destination == "flowfile-content" {
+	if destination == flowfileContent {
 		// Replace content with JSON
 		if err := session.Write(flowFile, jsonBytes); err != nil {
 			logger.Error("Failed to write JSON content",

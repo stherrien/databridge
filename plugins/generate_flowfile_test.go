@@ -19,7 +19,7 @@ func (ctx *mockProcessorContext) GetProperty(name string) (string, bool) {
 }
 
 func (ctx *mockProcessorContext) GetPropertyValue(name string) string {
-	value, _ := ctx.properties[name]
+	value := ctx.properties[name]
 	return value
 }
 

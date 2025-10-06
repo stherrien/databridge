@@ -12,6 +12,10 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+const (
+	testValue = "value"
+)
+
 // Mock processor for testing
 type mockTestProcessor struct {
 	*types.BaseProcessor
@@ -618,8 +622,8 @@ func TestFlowControllerCreateProcessSession(t *testing.T) {
 		t.Error("Session should be able to create FlowFiles")
 	}
 
-	session.PutAttribute(flowFile, "test", "value")
-	if flowFile.Attributes["test"] != "value" {
+	session.PutAttribute(flowFile, "test", testValue)
+	if flowFile.Attributes["test"] != testValue {
 		t.Error("Session should be able to set attributes")
 	}
 }

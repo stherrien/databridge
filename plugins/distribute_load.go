@@ -114,7 +114,7 @@ func (p *DistributeLoadProcessor) OnTrigger(ctx context.Context, session types.P
 
 	// Parse number of relationships
 	var numRelationships int
-	fmt.Sscanf(numRelationshipsStr, "%d", &numRelationships)
+	_, _ = fmt.Sscanf(numRelationshipsStr, "%d", &numRelationships)
 	if numRelationships < 2 {
 		numRelationships = 2
 	}
@@ -125,7 +125,9 @@ func (p *DistributeLoadProcessor) OnTrigger(ctx context.Context, session types.P
 	case "round-robin":
 		p.mutex.Lock()
 		p.counter++
-		relationshipIndex = int(p.counter % uint64(numRelationships))
+		// Safe conversion: modulo ensures result fits in int range
+		modResult := p.counter % uint64(numRelationships)
+		relationshipIndex = int(modResult) // #nosec G115 - modulo bounds result to numRelationships
 		p.mutex.Unlock()
 
 	case "attribute-hash":
@@ -143,20 +145,26 @@ func (p *DistributeLoadProcessor) OnTrigger(ctx context.Context, session types.P
 				"attribute", hashAttribute)
 			p.mutex.Lock()
 			p.counter++
-			relationshipIndex = int(p.counter % uint64(numRelationships))
+			// Safe conversion: modulo ensures result fits in int range
+			modResult := p.counter % uint64(numRelationships)
+			relationshipIndex = int(modResult) // #nosec G115 - modulo bounds result to numRelationships
 			p.mutex.Unlock()
 		} else {
 			// Hash the attribute value
 			h := fnv.New32a()
 			h.Write([]byte(attrValue))
-			relationshipIndex = int(h.Sum32() % uint32(numRelationships))
+			// Safe conversion: modulo ensures result fits in both uint32 and int range
+			hashResult := h.Sum32() % uint32(numRelationships) // #nosec G115 - numRelationships is small (max 10)
+			relationshipIndex = int(hashResult)                // #nosec G115 - modulo bounds result to numRelationships
 		}
 
 	case "load-balanced":
 		// For now, use round-robin (would need queue depth info for true load balancing)
 		p.mutex.Lock()
 		p.counter++
-		relationshipIndex = int(p.counter % uint64(numRelationships))
+		// Safe conversion: modulo ensures result fits in int range
+		modResult := p.counter % uint64(numRelationships)
+		relationshipIndex = int(modResult) // #nosec G115 - modulo bounds result to numRelationships
 		p.mutex.Unlock()
 
 	default:

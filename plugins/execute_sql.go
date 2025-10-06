@@ -178,7 +178,7 @@ func (p *ExecuteSQLProcessor) Initialize(ctx types.ProcessorContext) error {
 	if maxPoolSizeStr != "" {
 		maxPoolSize, err := strconv.Atoi(maxPoolSizeStr)
 		if err != nil {
-			db.Close()
+			_ = db.Close()
 			return fmt.Errorf("invalid Max Connection Pool Size: %w", err)
 		}
 		db.SetMaxOpenConns(maxPoolSize)
@@ -190,7 +190,7 @@ func (p *ExecuteSQLProcessor) Initialize(ctx types.ProcessorContext) error {
 	if connLifetimeStr != "" {
 		connLifetime, err := time.ParseDuration(connLifetimeStr)
 		if err != nil {
-			db.Close()
+			_ = db.Close()
 			return fmt.Errorf("invalid Connection Max Lifetime: %w", err)
 		}
 		db.SetConnMaxLifetime(connLifetime)
@@ -198,7 +198,7 @@ func (p *ExecuteSQLProcessor) Initialize(ctx types.ProcessorContext) error {
 
 	// Test connection
 	if err := db.Ping(); err != nil {
-		db.Close()
+		_ = db.Close()
 		return fmt.Errorf("failed to ping database: %w", err)
 	}
 
@@ -343,7 +343,7 @@ func (p *ExecuteSQLProcessor) executeSelect(ctx context.Context, query string) (
 	if err != nil {
 		return nil, fmt.Errorf("query execution failed: %w", err)
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 
 	// Get column names
 	columns, err := rows.Columns()
@@ -443,7 +443,7 @@ func (p *ExecuteSQLProcessor) executeTransaction(ctx context.Context, queries st
 
 	defer func() {
 		if err != nil {
-			tx.Rollback()
+			_ = tx.Rollback()
 		}
 	}()
 

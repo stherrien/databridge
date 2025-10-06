@@ -153,6 +153,7 @@ func (v *PluginValidator) validateManifestFile(path string) error {
 
 // readManifest reads and parses the manifest
 func (v *PluginValidator) readManifest(path string) (map[string]interface{}, error) {
+	// #nosec G304 - path is controlled by the validator and points to plugin directory
 	data, err := os.ReadFile(path)
 	if err != nil {
 		return nil, err
@@ -289,6 +290,7 @@ func (v *PluginValidator) validateChecksum(pluginPath string, manifest map[strin
 
 // readChecksumFile reads checksums from a file
 func (v *PluginValidator) readChecksumFile(path string) (map[string]string, error) {
+	// #nosec G304 - path is controlled by the validator and points to plugin directory
 	data, err := os.ReadFile(path)
 	if err != nil {
 		return nil, err
@@ -316,6 +318,7 @@ func (v *PluginValidator) readChecksumFile(path string) (map[string]string, erro
 
 // calculateChecksum calculates SHA256 checksum of a file
 func (v *PluginValidator) calculateChecksum(path string) (string, error) {
+	// #nosec G304 - path is controlled by the validator and points to plugin directory
 	data, err := os.ReadFile(path)
 	if err != nil {
 		return "", err

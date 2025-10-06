@@ -5,7 +5,6 @@ import (
 	"crypto/subtle"
 	"errors"
 	"fmt"
-	"sync"
 	"time"
 
 	"golang.org/x/crypto/bcrypt"
@@ -65,7 +64,6 @@ type AuthProvider interface {
 // BasicAuthProvider implements username/password authentication
 type BasicAuthProvider struct {
 	userRepo UserRepository
-	mu       sync.RWMutex
 }
 
 // NewBasicAuthProvider creates a new basic authentication provider
@@ -94,7 +92,7 @@ func (p *BasicAuthProvider) Authenticate(ctx context.Context, credentials Creden
 	if err != nil {
 		if err == ErrUserNotFound {
 			// Use constant time comparison to prevent timing attacks
-			bcrypt.CompareHashAndPassword([]byte("$2a$10$dummy.hash.to.prevent.timing"), []byte(credentials.Password))
+			_ = bcrypt.CompareHashAndPassword([]byte("$2a$10$dummy.hash.to.prevent.timing"), []byte(credentials.Password))
 			return nil, ErrInvalidCredentials
 		}
 		return nil, fmt.Errorf("failed to get user: %w", err)
@@ -126,7 +124,6 @@ func (p *BasicAuthProvider) Refresh(ctx context.Context, token string) (string, 
 type JWTAuthProvider struct {
 	jwtManager *JWTManager
 	userRepo   UserRepository
-	mu         sync.RWMutex
 }
 
 // NewJWTAuthProvider creates a new JWT authentication provider
@@ -154,7 +151,7 @@ func (p *JWTAuthProvider) Authenticate(ctx context.Context, credentials Credenti
 		if err != nil {
 			if err == ErrUserNotFound {
 				// Use constant time comparison to prevent timing attacks
-				bcrypt.CompareHashAndPassword([]byte("$2a$10$dummy.hash.to.prevent.timing"), []byte(credentials.Password))
+				_ = bcrypt.CompareHashAndPassword([]byte("$2a$10$dummy.hash.to.prevent.timing"), []byte(credentials.Password))
 				return nil, ErrInvalidCredentials
 			}
 			return nil, fmt.Errorf("failed to get user: %w", err)
@@ -228,7 +225,6 @@ func (p *JWTAuthProvider) Refresh(ctx context.Context, refreshToken string) (str
 type APIKeyAuthProvider struct {
 	apiKeyManager *APIKeyManager
 	userRepo      UserRepository
-	mu            sync.RWMutex
 }
 
 // NewAPIKeyAuthProvider creates a new API key authentication provider

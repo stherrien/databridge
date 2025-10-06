@@ -285,6 +285,7 @@ func (l *PluginLoader) checkForChanges(knownPlugins map[string]time.Time) {
 // Private helper methods
 
 func (l *PluginLoader) readManifest(path string) (*PluginManifest, error) {
+	// #nosec G304 - path is validated by the plugin loader before reaching here
 	data, err := os.ReadFile(path)
 	if err != nil {
 		return nil, err

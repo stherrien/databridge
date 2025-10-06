@@ -188,11 +188,13 @@ func (p *SplitXMLProcessor) OnTrigger(ctx context.Context, session types.Process
 // splitXML splits XML content by element
 func (p *SplitXMLProcessor) splitXML(content []byte, elementName string, includeWrapper bool) ([][]byte, error) {
 	decoder := xml.NewDecoder(bytes.NewReader(content))
-	var splits [][]byte
-	var currentElement *bytes.Buffer
-	var depth int
-	var capturing bool
-	var parentElements []xml.StartElement
+
+	state := &xmlSplitState{
+		splits:         make([][]byte, 0),
+		parentElements: make([]xml.StartElement, 0),
+		elementName:    elementName,
+		includeWrapper: includeWrapper,
+	}
 
 	for {
 		token, err := decoder.Token()
@@ -203,78 +205,136 @@ func (p *SplitXMLProcessor) splitXML(content []byte, elementName string, include
 			return nil, fmt.Errorf("failed to parse XML: %w", err)
 		}
 
-		switch t := token.(type) {
-		case xml.StartElement:
-			if t.Name.Local == elementName && depth == 0 {
-				// Start capturing this element
-				capturing = true
-				currentElement = &bytes.Buffer{}
+		if err := p.processToken(token, state); err != nil {
+			return nil, err
+		}
+	}
 
-				if includeWrapper && len(parentElements) > 0 {
-					// Write parent wrapper start tags
-					for _, parent := range parentElements {
-						if err := xml.NewEncoder(currentElement).EncodeToken(parent); err != nil {
-							return nil, err
-						}
-					}
-				}
-			}
+	return state.splits, nil
+}
 
-			if capturing {
-				if err := xml.NewEncoder(currentElement).EncodeToken(t); err != nil {
-					return nil, err
-				}
-				depth++
-			} else {
-				// Track parent elements for wrapper
-				parentElements = append(parentElements, t)
-			}
+// xmlSplitState holds state during XML splitting
+type xmlSplitState struct {
+	splits         [][]byte
+	currentElement *bytes.Buffer
+	depth          int
+	capturing      bool
+	parentElements []xml.StartElement
+	elementName    string
+	includeWrapper bool
+}
 
-		case xml.EndElement:
-			if capturing {
-				if err := xml.NewEncoder(currentElement).EncodeToken(t); err != nil {
-					return nil, err
-				}
-				depth--
+// processToken processes a single XML token
+func (p *SplitXMLProcessor) processToken(token xml.Token, state *xmlSplitState) error {
+	switch t := token.(type) {
+	case xml.StartElement:
+		return p.handleStartElement(t, state)
+	case xml.EndElement:
+		return p.handleEndElement(t, state)
+	case xml.CharData:
+		return p.handleCharData(token, state)
+	case xml.Comment:
+		return p.handleComment(token, state)
+	}
+	return nil
+}
 
-				if depth == 0 {
-					// Finished capturing this element
-					if includeWrapper && len(parentElements) > 0 {
-						// Write parent wrapper end tags
-						for i := len(parentElements) - 1; i >= 0; i-- {
-							endToken := xml.EndElement{Name: parentElements[i].Name}
-							if err := xml.NewEncoder(currentElement).EncodeToken(endToken); err != nil {
-								return nil, err
-							}
-						}
-					}
+// handleStartElement handles XML start element tokens
+func (p *SplitXMLProcessor) handleStartElement(t xml.StartElement, state *xmlSplitState) error {
+	if t.Name.Local == state.elementName && state.depth == 0 {
+		// Start capturing this element
+		state.capturing = true
+		state.currentElement = &bytes.Buffer{}
 
-					// Add XML declaration
-					xmlContent := []byte(xml.Header + currentElement.String())
-					splits = append(splits, xmlContent)
-					capturing = false
-					currentElement = nil
-				}
-			} else if len(parentElements) > 0 {
-				// Pop parent element
-				parentElements = parentElements[:len(parentElements)-1]
-			}
-
-		case xml.CharData:
-			if capturing {
-				if err := xml.NewEncoder(currentElement).EncodeToken(token); err != nil {
-					return nil, err
-				}
-			}
-
-		case xml.Comment:
-			if capturing {
-				if err := xml.NewEncoder(currentElement).EncodeToken(token); err != nil {
-					return nil, err
-				}
+		if state.includeWrapper && len(state.parentElements) > 0 {
+			if err := p.writeParentWrappers(state.currentElement, state.parentElements); err != nil {
+				return err
 			}
 		}
 	}
 
-	return splits, nil
+	if state.capturing {
+		if err := xml.NewEncoder(state.currentElement).EncodeToken(t); err != nil {
+			return err
+		}
+		state.depth++
+	} else {
+		// Track parent elements for wrapper
+		state.parentElements = append(state.parentElements, t)
+	}
+
+	return nil
+}
+
+// handleEndElement handles XML end element tokens
+func (p *SplitXMLProcessor) handleEndElement(t xml.EndElement, state *xmlSplitState) error {
+	if state.capturing {
+		if err := xml.NewEncoder(state.currentElement).EncodeToken(t); err != nil {
+			return err
+		}
+		state.depth--
+
+		if state.depth == 0 {
+			// Finished capturing this element
+			if err := p.finalizeSplit(state); err != nil {
+				return err
+			}
+		}
+	} else if len(state.parentElements) > 0 {
+		// Pop parent element
+		state.parentElements = state.parentElements[:len(state.parentElements)-1]
+	}
+
+	return nil
+}
+
+// handleCharData handles XML character data tokens
+func (p *SplitXMLProcessor) handleCharData(token xml.Token, state *xmlSplitState) error {
+	if state.capturing {
+		if err := xml.NewEncoder(state.currentElement).EncodeToken(token); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// handleComment handles XML comment tokens
+func (p *SplitXMLProcessor) handleComment(token xml.Token, state *xmlSplitState) error {
+	if state.capturing {
+		if err := xml.NewEncoder(state.currentElement).EncodeToken(token); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// writeParentWrappers writes parent element wrappers to the buffer
+func (p *SplitXMLProcessor) writeParentWrappers(buffer *bytes.Buffer, parentElements []xml.StartElement) error {
+	for _, parent := range parentElements {
+		if err := xml.NewEncoder(buffer).EncodeToken(parent); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// finalizeSplit completes a split element and adds it to the results
+func (p *SplitXMLProcessor) finalizeSplit(state *xmlSplitState) error {
+	if state.includeWrapper && len(state.parentElements) > 0 {
+		// Write parent wrapper end tags
+		for i := len(state.parentElements) - 1; i >= 0; i-- {
+			endToken := xml.EndElement{Name: state.parentElements[i].Name}
+			if err := xml.NewEncoder(state.currentElement).EncodeToken(endToken); err != nil {
+				return err
+			}
+		}
+	}
+
+	// Add XML declaration
+	xmlContent := []byte(xml.Header + state.currentElement.String())
+	state.splits = append(state.splits, xmlContent)
+	state.capturing = false
+	state.currentElement = nil
+
+	return nil
 }

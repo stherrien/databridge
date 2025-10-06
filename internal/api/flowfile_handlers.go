@@ -80,7 +80,7 @@ func (h *FlowFileHandlers) HandleGetFlowFile(w http.ResponseWriter, r *http.Requ
 		reader, err := h.flowController.GetContentRepository().Read(flowFile.ContentClaim)
 		if err == nil {
 			defer func() {
-				if err := reader.Close(); err != nil {
+				if closeErr := reader.Close(); closeErr != nil {
 					// Log close error but don't override response
 				}
 			}()
@@ -224,7 +224,7 @@ func (h *FlowFileHandlers) HandleGetFlowFileContent(w http.ResponseWriter, r *ht
 		return
 	}
 	defer func() {
-		if err := reader.Close(); err != nil {
+		if closeErr := reader.Close(); closeErr != nil {
 			// Log close error but don't override response
 		}
 	}()
